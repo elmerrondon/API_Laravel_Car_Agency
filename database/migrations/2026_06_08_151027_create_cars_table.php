@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId("car_model_id")->constrained()->onDelete("restrict");
             $table->foreignId("car_type_id")->constrained()->onDelete("restrict");
             $table->foreignId("category_id")->constrained()->onDelete("restrict");
-            $table->foreign("branch_id")->constrained()->onDelete("restrict");
+            $table->foreignId("branch_id")->constrained()->onDelete("restrict");
             $table->softDeletes();
             $table->timestamps();
         });
