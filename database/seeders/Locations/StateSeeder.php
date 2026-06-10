@@ -41,11 +41,11 @@ class StateSeeder extends Seeder
             ["name" => "Arizona", "country_id" => $usa->id]          
         ];
 
-        if(count($states)>0){
+       
             foreach($states as $state){
             State::firstOrCreate($state);
             } 
-        }
+        
         }
     }
 }

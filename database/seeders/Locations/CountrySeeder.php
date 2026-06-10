@@ -21,13 +21,18 @@ class CountrySeeder extends Seeder
             ["name" => "Argentina"],
             ["name" => "España"],
             ["name" => "Brasil"],
-            ["name" => "Mexico"]
+            ["name" => "Mexico"],
+            ["name" => "Alemania"],
+            ["name" => "Japon"],
+            ["name" => "Corea del Sur"],
+            ["name" => "Francia"],
+            ["name" => "Italia"],
+            ["name" => "China"] 
             ];
 
-           if(count($countries)>0){ 
+          
             foreach($countries as $country){
                 Country::firstOrCreate($country);
-            }
             }
     }
 }

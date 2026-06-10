@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Database\Seeders\Cars\BrandSeeder;
 use Database\Seeders\Locations\BranchSeeder;
 use Database\Seeders\Locations\CitySeeder;
 use Database\Seeders\Locations\CountrySeeder;
@@ -32,6 +33,11 @@ class DatabaseSeeder extends Seeder
             StateSeeder::class,
             CitySeeder::class,
             BranchSeeder::class
+        ]);
+
+        // Cars
+        $this->call([
+            BrandSeeder::class
         ]);
     }
 }

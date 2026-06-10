@@ -48,11 +48,10 @@ class CitySeeder extends Seeder
             ["name" => "Dallas", "state_id" => $texas->id]
         ];
 
-        if(count($cities)>0){
+       
             foreach($cities as $city){
             City::firstOrCreate($city);
-        }
-        }
+           }
         
       }
 

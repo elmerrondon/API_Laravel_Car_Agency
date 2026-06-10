@@ -105,10 +105,9 @@ class BranchSeeder extends Seeder
         ]
     ];
 
-    if(count($branches)>0){
+    
         foreach($branches as $branch){
         Branch::firstOrCreate(["code" => $branch["code"]], $branch);
-    }
     }
     }
   }
