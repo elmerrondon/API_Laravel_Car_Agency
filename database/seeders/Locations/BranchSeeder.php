@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Locations;
 
 use App\Models\Locations\Branch;
 use App\Models\Locations\City;

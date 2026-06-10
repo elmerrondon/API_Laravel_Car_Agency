@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Locations;
 
 use App\Models\Locations\Country;
 use App\Models\Locations\State;

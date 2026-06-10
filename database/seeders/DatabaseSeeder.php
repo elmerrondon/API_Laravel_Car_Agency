@@ -3,6 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Database\Seeders\Locations\BranchSeeder;
+use Database\Seeders\Locations\CitySeeder;
+use Database\Seeders\Locations\CountrySeeder;
+use Database\Seeders\Locations\StateSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -22,6 +26,7 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
+        // Locations 
         $this->call([
             CountrySeeder::class,
             StateSeeder::class,
