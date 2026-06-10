@@ -29,7 +29,9 @@ class CitySeeder extends Seeder
         $california = State::where("name", "California")->first();
         $texas = State::where("name", "Texas")->first();
 
-        $cities = [
+        if($tachira && $merida && $zulia && $lara && $trujillo && $dc && $norteSantander && $santander && $antioquia && $florida && $california && $texas){
+
+            $cities = [
             ["name" => "San Cristobal", "state_id" => $tachira->id],
             ["name" => "Merida", "state_id" => $merida->id],
             ["name" => "Valera", "state_id" => $trujillo->id],
@@ -46,8 +48,13 @@ class CitySeeder extends Seeder
             ["name" => "Dallas", "state_id" => $texas->id]
         ];
 
-        foreach($cities as $city){
+        if(count($cities)>0){
+            foreach($cities as $city){
             City::firstOrCreate($city);
         }
+        }
+        
+      }
+
     }
 }

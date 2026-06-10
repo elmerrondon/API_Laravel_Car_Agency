@@ -24,8 +24,10 @@ class CountrySeeder extends Seeder
             ["name" => "Mexico"]
             ];
 
+           if(count($countries)>0){ 
             foreach($countries as $country){
                 Country::firstOrCreate($country);
+            }
             }
     }
 }

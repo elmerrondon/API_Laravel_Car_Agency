@@ -18,7 +18,9 @@ class StateSeeder extends Seeder
         $colombia = Country::where("name", "Colombia")->first();
         $usa = Country::where("name", "Estados Unidos")->first();
 
-        $states = [
+        if($venezuela && $colombia && $usa){
+            
+            $states = [
             ["name" => "Tachira", "country_id" => $venezuela->id],
             ["name" => "Merida", "country_id" => $venezuela->id],
             ["name" => "Trujillo", "country_id" => $venezuela->id],
@@ -39,8 +41,11 @@ class StateSeeder extends Seeder
             ["name" => "Arizona", "country_id" => $usa->id]          
         ];
 
-        foreach($states as $state){
+        if(count($states)>0){
+            foreach($states as $state){
             State::firstOrCreate($state);
+            } 
+        }
         }
     }
 }
