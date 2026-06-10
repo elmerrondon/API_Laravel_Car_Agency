@@ -14,9 +14,9 @@ class StateSeeder extends Seeder
      */
     public function run(): void
     {
-        $venezuela = Country::where("name", "Venezuela")->firts();
-        $colombia = Country::where("name", "Colombia")->firts();
-        $usa = Country::where("name", "Estados Unidos")->firts();
+        $venezuela = Country::where("name", "Venezuela")->first();
+        $colombia = Country::where("name", "Colombia")->first();
+        $usa = Country::where("name", "Estados Unidos")->first();
 
         $states = [
             ["name" => "Tachira", "country_id" => $venezuela->id],
