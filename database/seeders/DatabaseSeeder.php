@@ -13,6 +13,9 @@ use Database\Seeders\Locations\BranchSeeder;
 use Database\Seeders\Locations\CitySeeder;
 use Database\Seeders\Locations\CountrySeeder;
 use Database\Seeders\Locations\StateSeeder;
+use Database\Seeders\Sales\CurrencySeeder;
+use Database\Seeders\Sales\PaymentMethodSeeder;
+use Database\Seeders\Sales\TaxeSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -48,6 +51,13 @@ class DatabaseSeeder extends Seeder
             CarModelSeeder::class,
             ColorSeeder::class,
             CarSeeder::class
+        ]);
+
+        // Sales
+        $this->call([
+            CurrencySeeder::class,
+            PaymentMethodSeeder::class,
+            TaxeSeeder::class
         ]);
     }
 }
