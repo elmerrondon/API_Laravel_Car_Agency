@@ -45,5 +45,7 @@ class CarSeeder extends Seeder
                 Car::firstOrCreate($car);
             }
         }
+
+        Car::factory()->count(50)->create();
     }
 }
