@@ -4,12 +4,13 @@ namespace App\Models\Cars;
 
 use App\Models\Locations\Branch;
 use App\Models\Sales\Sale;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Car extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
 
     protected $fillable = ["price","status","mileage","vin","year","color_id","car_model_id","category_id","car_type_id","branch_id"];
 
