@@ -28,4 +28,12 @@ class CountryService{
     public function delete(Country $country) : bool{
         return $country->delete();
     }
+
+    public function restore(int $id) : Country{
+       $country = Country::withTrashed()->findOrFail($id);
+       
+       $country->restore();
+
+       return $country;
+    }
 }

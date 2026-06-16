@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Locations\Country;
+namespace App\Http\Requests\Locations\State;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateCountryRequest extends FormRequest
+class UpdateStateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,7 +24,8 @@ class UpdateCountryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:3','max:50',Rule::unique('countries','name')->ignore($this->country->id)]
+            'name' => ['sometimes','required','string','min:3','max:50',Rule::unique('states','name')->ignore($this->state->id)],
+            'country_id' => ['sometimes','required','integer','exists:countries,id']
         ];
     }
 }

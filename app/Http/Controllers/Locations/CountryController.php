@@ -42,6 +42,12 @@ class CountryController extends Controller
     public function destroy(Country $country, CountryService $service){
         $service->delete($country);
 
-        return response()->json(['message' => 'Country updated success'], 204);
+        return response()->json(204);
+    }
+
+    public function restore(int $id, CountryService $service){
+        $country = $service->restore($id);
+
+        return new CountryResource($country);
     }
 }
