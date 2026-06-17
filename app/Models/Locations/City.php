@@ -7,11 +7,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class City extends Model
 {
-    use SoftDeletes;
 
-    protected $fillable = ["name","state_id"];
+    protected $fillable = ["name","state_id","is_active"];
 
-    protected $hidden = ["created_at","updated_at","created_at"];
+    protected $hidden = ["created_at","updated_at"];
 
     public function state(){
         return $this->belongsTo(State::class);

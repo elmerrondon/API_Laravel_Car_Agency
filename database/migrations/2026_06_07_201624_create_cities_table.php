@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string("name", 50);
             $table->foreignId("state_id")->constrained()->onDelete("restrict");
             $table->unique(["name","state_id"]);
-            $table->softDeletes();
+            $table->boolean("is_active")->default(true);
             $table->timestamps();
         });
     }
