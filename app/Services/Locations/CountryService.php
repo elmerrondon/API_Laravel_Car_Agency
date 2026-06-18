@@ -16,11 +16,23 @@ class CountryService{
     }
 
     public function create(CountryData $data) : Country{
-        return Country::create(['name' => $data->name]);
+        $dataArray = ['name' => $data->name, 'is_active' => $data->isActive];
+
+        $cleanData = array_filter($dataArray, function ($value) {
+            return $value !== null;
+        });
+
+        return Country::create($cleanData);
     }
 
     public function update(Country $country, CountryData $data) : Country{
-        $country->update(['name' => $data->name]);
+        $dataArray = ['name' => $data->name, 'is_active' => $data->isActive];
+
+        $cleanData = array_filter($dataArray, function ($value) {
+            return $value !== null;
+        });
+
+        $country->update($cleanData);
 
         return $country;
     }
@@ -29,11 +41,4 @@ class CountryService{
         return $country->delete();
     }
 
-    public function restore(int $id) : Country{
-       $country = Country::withTrashed()->findOrFail($id);
-       
-       $country->restore();
-
-       return $country;
-    }
 }

@@ -8,11 +8,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Country extends Model
 {
-    use SoftDeletes;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name','is_active'];
 
-    protected $hidden = ['created_at','updated_at','created_at'];
+    protected $hidden = ['created_at','updated_at'];
 
    public function states(){
       return $this->hasMany(State::class);

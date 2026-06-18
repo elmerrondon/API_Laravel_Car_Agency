@@ -45,9 +45,4 @@ class CountryController extends Controller
         return response()->json(204);
     }
 
-    public function restore(int $id, CountryService $service){
-        $country = $service->restore($id);
-
-        return new CountryResource($country);
-    }
 }
