@@ -22,7 +22,11 @@ class CityService{
             return $value !== null;
         });
 
-        return City::create($cleanData);
+        $city = City::create($cleanData);
+
+        $city->refresh();
+
+        return $city;
     }
 
     public function update(City $city, CityData $data) : City{

@@ -23,9 +23,11 @@ class UpdateStateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $currenCountryId = $this->state->country_id;
         return [
-            'name' => ['sometimes','required','string','min:3','max:50',Rule::unique('states','name')->ignore($this->state->id)],
-            'country_id' => ['sometimes','required','integer','exists:countries,id']
+            'name' => ['sometimes','required','string','min:3','max:50', Rule::unique('states','name')->where('country_id', $this->input('country_id', $currenCountryId))->ignore($this->state->id)],
+            'country_id' => ['sometimes','required','integer','exists:countries,id'],
+            'is_active' => ['sometimes', 'boolean']
         ];
     }
 }

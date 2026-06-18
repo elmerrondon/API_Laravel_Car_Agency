@@ -4,6 +4,7 @@ namespace App\Http\Requests\Locations\State;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreStateRequest extends FormRequest
 {
@@ -23,8 +24,9 @@ class StoreStateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','unique:states,name','min:3','max:50'],
-            'country_id' => ['required','integer','exists:countries,id']
+            'name' => ['required','string','min:3','max:50', Rule::unique('states','name')->where('country_id', $this->country_id)],
+            'country_id' => ['required','integer','exists:countries,id'],
+            'is_active' => ['sometimes','boolean']
         ];
     }
 }

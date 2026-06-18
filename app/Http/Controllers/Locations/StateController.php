@@ -45,9 +45,4 @@ class StateController extends Controller
         return response()->json(204);
     }
 
-    public function restore(int $id, StateService $service){
-        $state = $service->restore($id);
-
-        return new StateResource($state);
-    }
 }

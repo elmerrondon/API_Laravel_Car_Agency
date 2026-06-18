@@ -15,11 +15,21 @@ class StateService{
     }
 
     public function create(StateData $data) : State{
-        return State::create(['name' => $data->name, 'country_id' => $data->country_id]);
+        $dataArray = ['name' => $data->name, 'country_id' => $data->country_id, 'is_active' => $data->isActive];
+
+        $cleanData = array_filter($dataArray, function ($value) {
+            return $value !== null;
+        });
+
+        $state = State::create($cleanData);
+
+        $state->refresh();
+
+        return $state;
     }
 
     public function update(State $state, StateData $data) : State{
-        $dataArray = ['name' => $data->name, 'country_id' => $data->country_id];
+        $dataArray = ['name' => $data->name, 'country_id' => $data->country_id, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
             return $value !== null;
@@ -34,11 +44,4 @@ class StateService{
         return $state->delete();
     }
 
-    public function restore(int $id) : State{
-        $state = State::withTrashed()->findOrFail($id);
-
-        $state->restore();
-
-        return $state;
-    }
 }

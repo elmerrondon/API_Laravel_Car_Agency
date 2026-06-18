@@ -4,6 +4,7 @@ namespace App\Models\Locations;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Override;
 
 class City extends Model
 {
@@ -18,5 +19,11 @@ class City extends Model
 
     public function branches(){
         return $this->hasMany(Branch::class);
+    }
+
+    #[Override]
+    public function casts()
+    {
+        return ["is_active" => "boolean"];
     }
 }

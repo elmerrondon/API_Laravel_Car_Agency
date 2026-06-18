@@ -5,6 +5,7 @@ namespace App\Models\Locations;
 use App\Models\Cars\Brand;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Override;
 
 class Country extends Model
 {
@@ -23,5 +24,11 @@ class Country extends Model
 
    public function cities(){
       return $this->hasManyThrough(City::class, State::class);
+   }
+
+   #[Override]
+   public function casts()
+   {
+      return ["is_active" => "boolean"];
    }
 }

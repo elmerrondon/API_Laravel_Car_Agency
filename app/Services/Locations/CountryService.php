@@ -22,7 +22,11 @@ class CountryService{
             return $value !== null;
         });
 
-        return Country::create($cleanData);
+        $country = Country::create($cleanData);
+
+        $country->refresh();
+
+        return $country;
     }
 
     public function update(Country $country, CountryData $data) : Country{
