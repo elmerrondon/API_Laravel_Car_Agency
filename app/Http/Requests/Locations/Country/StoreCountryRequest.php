@@ -24,7 +24,7 @@ class StoreCountryRequest extends FormRequest
     {
         return [
             'name' => ['required','string','unique:countries,name', 'min:3', 'max:50'],
-            'is_active' => ['sometimes','boolean']
+            'is_active' => ['sometimes','required','boolean']
         ];
     }
 }

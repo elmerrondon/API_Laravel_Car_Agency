@@ -10,11 +10,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Branch extends Model
 {
-    use SoftDeletes;
+    protected $fillable = ["name","address","code","description","city_id","zip_code","is_active"];
 
-    protected $fillable = ["name","address","code","description","city_id","zip_Code","is_active"];
-
-    protected $hidden = ["created_at","updated_at","deleted_at"];
+    protected $hidden = ["created_at","updated_at"];
 
     public function city(){
         return $this->belongsTo(City::class);

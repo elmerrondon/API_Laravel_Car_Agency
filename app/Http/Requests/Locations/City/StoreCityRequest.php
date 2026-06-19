@@ -26,7 +26,7 @@ class StoreCityRequest extends FormRequest
         return [
             'name' => ['required','string','min:3','max:50', Rule::unique('cities', 'name')->where('state_id', $this->state_id)],
             'state_id' => ['required','integer','exists:states,id'],
-            'is_active' => ['sometimes','boolean']
+            'is_active' => ['sometimes', 'required','boolean']
         ];
     }
 }

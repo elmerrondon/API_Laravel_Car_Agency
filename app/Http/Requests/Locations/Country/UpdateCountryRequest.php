@@ -25,7 +25,7 @@ class UpdateCountryRequest extends FormRequest
     {
         return [
             'name' => ['sometimes','required','string','min:3','max:50',Rule::unique('countries','name')->ignore($this->country->id)],
-            'is_active' => ['sometimes', 'boolean']
+            'is_active' => ['sometimes', 'required', 'boolean']
         ];
     }
 }
