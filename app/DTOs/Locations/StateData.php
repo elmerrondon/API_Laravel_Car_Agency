@@ -5,7 +5,7 @@ namespace App\DTOs\Locations;
 use Illuminate\Foundation\Http\FormRequest;
 
 readonly class StateData{
-    public function __construct(public ?string $name, public ?int $country_id, public ?bool $isActive)
+    public function __construct(public ?string $name = null, public ?int $country_id = null, public ?bool $isActive = null)
     {
         
     }
