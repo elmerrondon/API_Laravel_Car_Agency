@@ -42,7 +42,7 @@ class StateController extends Controller
     public function destroy(State $state, StateService $service){
         $service->delete($state);
 
-        return response()->json(204);
+        return response()->noContent();
     }
 
 }

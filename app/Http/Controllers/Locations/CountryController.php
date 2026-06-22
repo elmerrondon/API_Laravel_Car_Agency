@@ -42,7 +42,7 @@ class CountryController extends Controller
     public function destroy(Country $country, CountryService $service){
         $service->delete($country);
 
-        return response()->json(204);
+        return response()->noContent();
     }
 
 }

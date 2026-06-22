@@ -42,6 +42,6 @@ class BranchController extends Controller
     public function destroy(Branch $branch, BranchService $service){
         $service->delete($branch);
 
-        return response()->json(204);
+        return response()->noContent();
     }
 }

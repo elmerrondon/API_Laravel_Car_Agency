@@ -42,7 +42,7 @@ class CityController extends Controller
     public function destroy(City $city, CityService $service){
         $service->delete($city);
 
-        return response()->json(204);
+        return response()->noContent();
     }
 
 }
