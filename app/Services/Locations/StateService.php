@@ -10,10 +10,6 @@ class StateService{
         return State::paginate($perPage);
     }
 
-    public function getById(int $id){
-        return State::findOrFail($id);
-    }
-
     public function create(StateData $data) : State{
         $dataArray = ['name' => $data->name, 'country_id' => $data->country_id, 'is_active' => $data->isActive];
 

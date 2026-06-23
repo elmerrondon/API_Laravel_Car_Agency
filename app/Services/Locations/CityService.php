@@ -11,10 +11,6 @@ class CityService{
         return City::paginate($perPage);
     }
 
-    public function getById(int $id){
-        return City::findOrFail($id);
-    }
-
     public function create(CityData $data) : City{
         $dataArray = ['name' => $data->name, 'state_id' => $data->state_id, 'is_active' => $data->isActive];
 

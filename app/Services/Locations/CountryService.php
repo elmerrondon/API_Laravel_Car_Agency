@@ -11,10 +11,6 @@ class CountryService{
         return Country::paginate($perPage);
     }
 
-    public function getById(int $id){
-        return Country::findOrFail($id);
-    }
-
     public function create(CountryData $data) : Country{
         $dataArray = ['name' => $data->name, 'is_active' => $data->isActive];
 

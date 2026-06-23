@@ -10,10 +10,6 @@ class BranchService{
         return Branch::paginate($perPage);
     }
 
-    public function getById(int $id){
-        return Branch::findOrFail($id);
-    }
-
     public function create(BranchData $data) : Branch{
         $nextNumber = Branch::count() + 1;
         $generatedCode = 'SUC-' . str_pad($nextNumber,4,'0',STR_PAD_LEFT);
