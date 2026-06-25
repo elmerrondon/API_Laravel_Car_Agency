@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('brands', function (Blueprint $table) {
             $table->id();
             $table->string("name", 50)->unique();
-            $table->text("description");
+            $table->string("description",500);
             $table->foreignId("country_id")->constrained()->onDelete("restrict");
-            $table->softDeletes();
+            $table->boolean("is_active")->default(true);
             $table->timestamps();
         });
     }
