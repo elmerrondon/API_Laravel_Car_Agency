@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\CarTypeData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cars\CarType\IndexCarTypeRequest;
 use App\Http\Requests\Cars\CarType\StoreCarTypeRequest;
 use App\Http\Requests\Cars\CarType\UpdateCarTypeRequest;
 use App\Http\Resources\Cars\CarTypeResource;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 
 class CarTypeController extends Controller
 {
-    public function index(CarTypeService $service){
-        $carTypes = $service->getAllPaginated();
+    public function index(IndexCarTypeRequest $request, CarTypeService $service){
+        $perPage = $request->validated('per_page');
+        $carTypes = $service->getAllPaginated($perPage);
 
         return CarTypeResource::collection($carTypes);
     }

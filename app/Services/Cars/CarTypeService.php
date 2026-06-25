@@ -6,7 +6,7 @@ use App\DTOs\Cars\CarTypeData;
 use App\Models\Cars\CarType;
 
 class CarTypeService{
-    public function getAllPaginated($perPage = 15){
+    public function getAllPaginated(?int $perPage = null){
         return CarType::paginate($perPage);
     }
 
