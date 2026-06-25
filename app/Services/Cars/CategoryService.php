@@ -6,7 +6,7 @@ use App\DTOs\Cars\CategoryData;
 use App\Models\Cars\Category;
 
 class CategoryService{
-    public function getAllPaginated(int $perPage = 15){
+    public function getAllPaginated(?int $perPage = null){
         return Category::paginate($perPage);
     }
 

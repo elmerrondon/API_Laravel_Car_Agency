@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\CategoryData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cars\Category\IndexCategoryRequest;
 use App\Http\Requests\Cars\Category\StoreCategoryRequest;
 use App\Http\Requests\Cars\Category\UpdateCategoryRequest;
 use App\Http\Resources\Cars\CategoryResource;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index(CategoryService $service){
-        $categories = $service->getAllPaginated();
+    public function index(IndexCategoryRequest $request, CategoryService $service){
+        $perPage = $request->validated('per_page');
+        $categories = $service->getAllPaginated($perPage);
         
         return CategoryResource::collection($categories);
     }
