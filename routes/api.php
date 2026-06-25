@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Cars\BrandController;
+use App\Http\Controllers\Cars\CarModelController;
 use App\Http\Controllers\Cars\CarTypeController;
 use App\Http\Controllers\Cars\CategoryController;
 use App\Http\Controllers\Locations\BranchController;
@@ -19,3 +20,4 @@ Route::apiResource('branches', BranchController::class);
 Route::apiResource('car-types', CarTypeController::class);
 Route::apiResource('categories', CategoryController::class);
 Route::apiResource('brands', BrandController::class);
+Route::apiResource('car-models', CarModelController::class);
