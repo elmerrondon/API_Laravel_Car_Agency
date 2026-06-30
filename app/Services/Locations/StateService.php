@@ -6,7 +6,7 @@ use App\DTOs\Locations\StateData;
 use App\Models\Locations\State;
 
 class StateService{
-    public function getAllPaginated(int $perPage = 15){
+    public function getAllPaginated(?int $perPage = null){
         return State::paginate($perPage);
     }
 

@@ -7,7 +7,7 @@ use App\Models\Locations\City;
 
 class CityService{
 
-    public function getAllPaginated(int $perPage = 15){
+    public function getAllPaginated(?int $perPage = null){
         return City::paginate($perPage);
     }
 

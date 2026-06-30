@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\BranchData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Locations\Branch\IndexBranchRequest;
 use App\Http\Requests\Locations\Branch\StoreBranchRequest;
 use App\Http\Requests\Locations\Branch\UpdateBranchRequest;
 use App\Http\Resources\Locations\BranchResource;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 
 class BranchController extends Controller
 {
-    public function index(BranchService $service){
-        $branches = $service->getAllPaginated();
+    public function index(IndexBranchRequest $request, BranchService $service){
+        $perPage = $request->validated('per_page');
+        $branches = $service->getAllPaginated($perPage);
 
         return BranchResource::collection($branches);
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\StateData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Locations\State\IndexStateRequest;
 use App\Http\Requests\Locations\State\StoreStateRequest;
 use App\Http\Requests\Locations\State\UpdateStateRequest;
 use App\Http\Resources\Locations\StateResource;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 
 class StateController extends Controller
 {
-    public function index(StateService $service){
-        $states = $service->getAllPaginated();
+    public function index(IndexStateRequest $request, StateService $service){
+        $perPage = $request->validated('per_page');
+        $states = $service->getAllPaginated($perPage);
 
         return StateResource::collection($states);
     }
