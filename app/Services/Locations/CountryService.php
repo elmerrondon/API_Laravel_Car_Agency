@@ -7,7 +7,7 @@ use App\Models\Locations\Country;
 
 class CountryService{
 
-    public function getAllPaginated(int $perPage = 15){
+    public function getAllPaginated(?int $perPage = null){
         return Country::paginate($perPage);
     }
 

@@ -6,7 +6,7 @@ use App\DTOs\Locations\BranchData;
 use App\Models\Locations\Branch;
 
 class BranchService{
-    public function getAllPaginated(int $perPage = 15){
+    public function getAllPaginated(?int $perPage = null){
         return Branch::paginate($perPage);
     }
 

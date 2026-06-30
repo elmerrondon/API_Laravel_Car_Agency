@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\CountryData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Locations\Country\IndexCountryRequest;
 use App\Http\Requests\Locations\Country\StoreCountryRequest;
 use App\Http\Requests\Locations\Country\UpdateCountryRequest;
 use App\Http\Resources\Locations\CountryResource;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 
 class CountryController extends Controller
 {
-    public function index(CountryService $service){
-        $countries = $service->getAllPaginated();
+    public function index(IndexCountryRequest $request, CountryService $service){
+        $perPage = $request->validated('per_page');
+        $countries = $service->getAllPaginated($perPage);
 
         return CountryResource::collection($countries);
     }

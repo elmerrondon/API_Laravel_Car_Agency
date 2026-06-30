@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\CityData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Locations\City\IndexCityRequest;
 use App\Http\Requests\Locations\City\StoreCityRequest;
 use App\Http\Requests\Locations\City\UpdateCityRequest;
 use App\Http\Resources\Locations\CityResource;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 
 class CityController extends Controller
 {
-    public function index(CityService $service){
-        $cities = $service->getAllPaginated();
+    public function index(IndexCityRequest $request, CityService $service){
+        $perPage = $request->validated('per_page');
+        $cities = $service->getAllPaginated($perPage);
 
         return CityResource::collection($cities);
     }
