@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Cars\Car;
 
+use App\Enums\Cars\CarStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCarRequest extends FormRequest
 {
@@ -23,11 +25,11 @@ class StoreCarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'price' => ['required','decimal:0,2','min:1.00'],
-            'mileage' => ['required','decimal:0,2'],
+            'price' => ['required','numeric','decimal:0,2','min:1'],
+            'mileage' => ['required','integer','min:0'],
             'year' => ['required','integer'],
             'vin' => ['required','string','min:17','max:17','unique:cars,vin'],
-            'status' => ['required','string','min:1','max:20'],
+            'status' => ['required','string',Rule::enum(CarStatus::class)],
             'color_id' => ['required','integer','exists:colors,id'],
             'car_model_id' => ['required','integer','exists:car_models,id'],
             'car_type_id' => ['required','integer','exists:car_types,id'],

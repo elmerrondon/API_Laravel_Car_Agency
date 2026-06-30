@@ -22,10 +22,10 @@ class CarFactory extends Factory
     {
         return [
             "price" => fake()->randomFloat(2, 1000, 100000),
-            "mileage" => fake()->randomFloat(2,0,1000),
+            "mileage" => fake()->numberBetween(0, 15000),
             "year" => fake()->numberBetween(2015,2026),
             "vin" => fake()->unique()->bothify("???##?##?######??"),
-            "status" => "Available",
+            "status" => "available",
             "color_id" => Color::inrandomOrder()->first()->id,
             "car_model_id" => CarModel::inRandomOrder()->first()->id,
             "car_type_id" => CarType::inRandomOrder()->first()->id,

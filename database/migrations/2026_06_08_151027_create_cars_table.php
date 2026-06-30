@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('cars', function (Blueprint $table) {
             $table->id();
             $table->decimal("price",10,2);
-            $table->decimal("mileage",8,2);
+            $table->unsignedInteger("mileage");
             $table->unsignedSmallInteger("year");
             $table->string("vin",17)->unique();
-            $table->string("status",20);
+            $table->string("status",20)->default("available");
             $table->foreignId("color_id")->constrained()->onDelete("restrict");
             $table->foreignId("car_model_id")->constrained()->onDelete("restrict");
             $table->foreignId("car_type_id")->constrained()->onDelete("restrict");
@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignId("branch_id")->constrained()->onDelete("restrict");
             $table->softDeletes();
             $table->timestamps();
+            $table->unique("vin","deleted_at");
         });
     }
 

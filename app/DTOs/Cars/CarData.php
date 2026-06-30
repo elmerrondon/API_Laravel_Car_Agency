@@ -5,7 +5,7 @@ namespace App\DTOs\Cars;
 use Illuminate\Foundation\Http\FormRequest;
 
 readonly class CarData{
-    public function __construct(public ?float $price = null, public ?float $mileage = null, public ?int $year = null, public ?string $vin = null, public ?string $status = null, public ?int $colorId = null, public ?int $carModelId = null, public ?int $carTypeId = null, public ?int $categoryId = null, public ?int $branchId = null)
+    public function __construct(public ?float $price = null, public ?int $mileage = null, public ?int $year = null, public ?string $vin = null, public ?string $status = null, public ?int $colorId = null, public ?int $carModelId = null, public ?int $carTypeId = null, public ?int $categoryId = null, public ?int $branchId = null)
     {
         
     }
