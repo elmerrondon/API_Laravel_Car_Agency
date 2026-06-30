@@ -7,14 +7,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CarType extends Model
 {
-    use SoftDeletes;
+    protected $fillable = ["name","description","is_active"];
 
-    protected $fillable = ["name","description"];
-
-    protected $hidden = ["created_at", "updated_at", "deleted_at"];
+    protected $hidden = ["created_at", "updated_at"];
 
     public function cars(){
         return $this->hasMany(Car::class);
+    }
+
+    public function casts() : array {
+        return ['is_active' => 'boolean'];
     }
     
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models\Cars;
 
+use App\Enums\Cars\CarStatus;
 use App\Models\Locations\Branch;
 use App\Models\Sales\Sale;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,5 +39,13 @@ class Car extends Model
     
     public function sales(){
         return $this->hasMany(Sale::class);
+    }
+    
+    public function casts() : array{
+        return [
+            'price' => 'float',
+            'year' => 'integer',
+            'status' => CarStatus::class
+        ];
     }
 }
