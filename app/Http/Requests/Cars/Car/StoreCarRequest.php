@@ -28,7 +28,7 @@ class StoreCarRequest extends FormRequest
             'price' => ['required','numeric','decimal:0,2','min:1'],
             'mileage' => ['required','integer','min:0'],
             'year' => ['required','integer'],
-            'vin' => ['required','string','min:17','max:17','unique:cars,vin'],
+            'vin' => ['required','string','min:17','max:17','regex:/^[a-zA-Z0-9]+$/',Rule::unique('cars','vin')->withoutTrashed()],
             'status' => ['required','string',Rule::enum(CarStatus::class)],
             'color_id' => ['required','integer','exists:colors,id'],
             'car_model_id' => ['required','integer','exists:car_models,id'],
