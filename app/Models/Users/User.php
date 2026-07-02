@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
 
     protected $fillable = [
@@ -22,6 +23,7 @@ class User extends Authenticatable
         'code',
         'email',
         'password',
+        'is_active'
     ];
 
   
@@ -31,15 +33,6 @@ class User extends Authenticatable
         'updated_at',
         'deleted_at'
     ];
-
-
-    protected function casts(): array
-    {
-        return [
-            'password' => 'hashed',
-        ];
-    }
-
 
     public function roles(){
         return $this->belongsToMany(Role::class);
@@ -51,5 +44,13 @@ class User extends Authenticatable
 
     public function sales(){
         return $this->hasMany(Sale::class);
+    }
+
+      protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'is_active' => 'boolean'
+        ];
     }
 }

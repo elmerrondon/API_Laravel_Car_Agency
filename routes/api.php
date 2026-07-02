@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Cars\BrandController;
 use App\Http\Controllers\Cars\CarController;
 use App\Http\Controllers\Cars\CarModelController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Locations\BranchController;
 use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
+use App\Http\Controllers\Users\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Locations
@@ -25,3 +27,15 @@ Route::apiResource('brands', BrandController::class);
 Route::apiResource('car-models', CarModelController::class);
 Route::apiResource('colors', ColorController::class);
 Route::apiResource('cars', CarController::class);
+
+// Users 
+Route::apiResource('users', UserController::class);
+
+// Auth
+Route::post('auth/login', [AuthController::class, 'login']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('auth/logout', [AuthController::class, 'logout']);
+    Route::post('auth/refresh', [AuthController::class, 'refresh']);
+});

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Users\User;
+namespace App\Http\Requests\Users\Auth;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
-class LoginUserRequest extends FormRequest
+class LoginAuthRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

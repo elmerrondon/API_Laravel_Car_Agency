@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Locations;
+namespace App\Http\Resources\Users;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class BranchResource extends JsonResource
+class UserResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -17,13 +17,11 @@ class BranchResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'lastname' => $this->lastname,
+            'document_number' => $this->document_number,
             'code' => $this->code,
-            'address' => $this->address,
-            'description' => $this->description,
-            'zip_code' => $this->zip_code,
-            'is_active' => $this->is_active,
-            'city_id' => $this->city_id,
-            'city' => new CityResource($this->whenLoaded('city'))
+            'email' => $this->email,
+            'is_active' => $this->is_active
         ];
     }
 }
