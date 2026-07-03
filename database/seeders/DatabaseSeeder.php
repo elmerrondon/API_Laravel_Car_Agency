@@ -16,6 +16,7 @@ use Database\Seeders\Locations\StateSeeder;
 use Database\Seeders\Sales\CurrencySeeder;
 use Database\Seeders\Sales\PaymentMethodSeeder;
 use Database\Seeders\Sales\TaxeSeeder;
+use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -28,12 +29,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // Users
+        $this->call([
+            RoleSeeder::class
+        ]);
 
         // Locations 
         $this->call([

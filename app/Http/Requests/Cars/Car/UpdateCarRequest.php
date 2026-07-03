@@ -29,7 +29,7 @@ class UpdateCarRequest extends FormRequest
             'mileage' => ['sometimes','required','integer','min:0'],
             'year' => ['sometimes','required','integer'],
             'vin' => ['sometimes','required','string','min:17','max:17','regex:/^[a-zA-Z0-9]+$/',Rule::unique('cars','vin')->ignore($this->car->id)->withoutTrashed()],
-            'status' => ['sometimes','required','string',Rule::unique(CarStatus::class)],
+            'status' => ['sometimes','required','string',Rule::enum(CarStatus::class)],
             'color_id' => ['sometimes','required','integer','exists:colors,id'],
             'car_model_id' => ['sometimes','required','integer','exists:car_models,id'],
             'car_type_id' => ['sometimes','required','integer','exists:car_types,id'],
