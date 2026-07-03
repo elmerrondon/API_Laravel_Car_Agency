@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Users\Auth;
+namespace App\Http\Requests\Users\Role;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
-class LoginAuthRequest extends FormRequest
+class StoreRoleRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,8 +23,8 @@ class LoginAuthRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required','string','email','max:255'],
-            'password' => ['required','string','max:100',Password::default()]
+            'name' => ['required','string','min:2','max:50','unique:roles,name'],
+            'description' => ['required','string','min:3','max:500']
         ];
     }
 }

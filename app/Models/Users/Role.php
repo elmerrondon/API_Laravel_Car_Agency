@@ -7,11 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Role extends Model
 {
-    use SoftDeletes;
-
     protected $fillable = ["name","description"];
 
-    protected $hidden = ["created_at","updated_at","deleted_at"];
+    protected $hidden = ["created_at","updated_at"];
 
    public function users(){
     return $this->belongsToMany(User::class);
