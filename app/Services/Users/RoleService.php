@@ -11,12 +11,12 @@ class RoleService{
         return Role::paginate($perPage);
     }
 
-    public function create(RoleData $data){
+    public function createRole(RoleData $data){
 
         $systemRoles = array_column(RoleEnum::cases(), 'value');
 
         if(in_array($data->name, $systemRoles)){
-            return response()->json(['message' => 'Accion denegada. No se puede crear este rol por que ya existe en el sistema'], 403);
+            return false;
         }
 
         $arrayData = ['name' => $data->name, 'description' => $data->description];;
@@ -26,11 +26,11 @@ class RoleService{
         return $role;
     }
 
-    public function update(Role $role, RoleData $data) {
+    public function updateRole(Role $role, RoleData $data) {
         $systemRoles = array_column(RoleEnum::cases(), 'value');
 
         if(in_array($role->name, $systemRoles)){
-            return response()->json(['message' => 'Accion denegada. No se puede editar este rol del sistema'], 403);
+            return false;
         }
 
         $arrayData = ['name' => $data->name, 'description' => $data->description];
@@ -44,13 +44,13 @@ class RoleService{
         return $role;
     }
 
-    public function delete(Role $role){
+    public function deleteRole(Role $role) : bool{
         $systemRoles = array_column(RoleEnum::cases(), 'value');
 
         if(in_array($role->name, $systemRoles)){
-            return response()->json(['message' => 'Accion denegada. No se puede eliminar este rol del sistema'], 403);
+            return false;
         }
 
-        return response()->noContent();
+        return $role->delete();
     }
 }

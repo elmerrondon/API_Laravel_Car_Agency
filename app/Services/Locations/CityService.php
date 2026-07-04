@@ -11,7 +11,7 @@ class CityService{
         return City::paginate($perPage);
     }
 
-    public function create(CityData $data) : City{
+    public function createCity(CityData $data) : City{
         $dataArray = ['name' => $data->name, 'state_id' => $data->state_id, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -25,7 +25,7 @@ class CityService{
         return $city;
     }
 
-    public function update(City $city, CityData $data) : City{
+    public function updateCity(City $city, CityData $data) : City{
         $dataArray = ['name' => $data->name, 'state_id' => $data->state_id, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -37,7 +37,7 @@ class CityService{
         return $city;
     }
 
-    public function delete(City $city) : bool{
+    public function deleteCity(City $city) : bool{
         return $city->delete();
     }
 

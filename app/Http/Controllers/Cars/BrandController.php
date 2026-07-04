@@ -14,10 +14,15 @@ use Illuminate\Http\Request;
 
 class BrandController extends Controller
 {
-    public function index(IndexBrandRequest $indexBrand, BrandService $service){
+    public function __construct(private readonly BrandService $service)
+    {
+        
+    }
+
+    public function index(IndexBrandRequest $indexBrand){
         $perPage = $indexBrand->validated('per_page');
         
-        $brands = $service->getAllPaginated($perPage);
+        $brands = $this->service->getAllPaginated($perPage);
 
         return BrandResource::collection($brands);
     }
@@ -26,24 +31,24 @@ class BrandController extends Controller
         return new BrandResource($brand);
     }
 
-    public function store(StoreBrandRequest $request, BrandService $service){
+    public function store(StoreBrandRequest $request){
         $dto = BrandData::fromRequest($request);
 
-        $brand = $service->create($dto);
+        $brand = $this->service->createBrand($dto);
 
         return new BrandResource($brand);
     }
 
-    public function update(Brand $brand, UpdateBrandRequest $request, BrandService $service){
+    public function update(Brand $brand, UpdateBrandRequest $request){
         $dto = BrandData::fromRequest($request);
 
-        $brand = $service->update($brand, $dto);
+        $brand = $this->service->updateBrand($brand, $dto);
 
         return new BrandResource($brand);
     }
 
-    public function destroy(Brand $brand, BrandService $service){
-        $service->delete($brand);
+    public function destroy(Brand $brand){
+        $this->service->deleteBrand($brand);
 
         return response()->noContent();
     }

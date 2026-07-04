@@ -11,6 +11,7 @@ use App\Http\Controllers\Locations\BranchController;
 use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
+use App\Http\Controllers\Users\PermissionController;
 use App\Http\Controllers\Users\RoleController;
 use App\Http\Controllers\Users\UserController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,7 @@ Route::apiResource('cars', CarController::class);
 // Users 
 Route::apiResource('users', UserController::class);
 Route::apiResource('roles', RoleController::class);
+Route::get('permissions', [PermissionController::class, 'index']);
 
 // Auth
 Route::post('auth/login', [AuthController::class, 'login']);

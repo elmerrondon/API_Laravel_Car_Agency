@@ -14,9 +14,14 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index(IndexCategoryRequest $request, CategoryService $service){
+    public function __construct(private readonly CategoryService $service)
+    {
+    
+    }
+
+    public function index(IndexCategoryRequest $request){
         $perPage = $request->validated('per_page');
-        $categories = $service->getAllPaginated($perPage);
+        $categories = $this->service->getAllPaginated($perPage);
         
         return CategoryResource::collection($categories);
     }
@@ -25,24 +30,24 @@ class CategoryController extends Controller
         return new CategoryResource($category);
     }
 
-    public function store(StoreCategoryRequest $request, CategoryService $service){
+    public function store(StoreCategoryRequest $request){
         $dto = CategoryData::fromRequest($request);
 
-        $category = $service->create($dto);
+        $category = $this->service->createCategory($dto);
 
         return new CategoryResource($category);
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category, CategoryService $service){
+    public function update(UpdateCategoryRequest $request, Category $category){
         $dto = CategoryData::fromRequest($request);
 
-        $category = $service->update($category,$dto);
+        $category = $this->service->updateCategory($category,$dto);
         
         return new CategoryResource($category);
     }
 
-    public function destroy(Category $category, CategoryService $service){
-        $service->delete($category);
+    public function destroy(Category $category){
+        $this->service->deleteCategory($category);
 
         return response()->noContent();
     }

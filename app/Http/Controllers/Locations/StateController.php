@@ -14,9 +14,14 @@ use Illuminate\Http\Request;
 
 class StateController extends Controller
 {
-    public function index(IndexStateRequest $request, StateService $service){
+    public function __construct(private readonly StateService $service)
+    {
+    
+    }
+
+    public function index(IndexStateRequest $request){
         $perPage = $request->validated('per_page');
-        $states = $service->getAllPaginated($perPage);
+        $states = $this->service->getAllPaginated($perPage);
 
         return StateResource::collection($states);
     }
@@ -25,24 +30,24 @@ class StateController extends Controller
         return new StateResource($state);
     }
 
-    public function store(StoreStateRequest $request, StateService $service){
+    public function store(StoreStateRequest $request){
         $dto = StateData::fromRequest($request);
 
-        $state = $service->create($dto);
+        $state = $this->service->createState($dto);
 
         return new StateResource($state);
     }
 
-    public function update(UpdateStateRequest $request, State $state, StateService $service){
+    public function update(UpdateStateRequest $request, State $state){
         $dto = StateData::fromRequest($request);
 
-        $state = $service->update($state, $dto);
+        $state = $this->service->updateState($state, $dto);
 
         return new StateResource($state);
     }
 
-    public function destroy(State $state, StateService $service){
-        $service->delete($state);
+    public function destroy(State $state){
+        $this->service->deleteState($state);
 
         return response()->noContent();
     }

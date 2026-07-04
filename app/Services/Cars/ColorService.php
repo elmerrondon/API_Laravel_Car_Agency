@@ -10,7 +10,7 @@ class ColorService{
         return Color::paginate($perPage);
     }
 
-    public function create(ColorData $data) : Color{
+    public function createColor(ColorData $data) : Color{
         $arrayData = ['name' => $data->name, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -24,7 +24,7 @@ class ColorService{
         return $color;
     }
 
-    public function update(Color $color, ColorData $data) : Color{
+    public function updateColor(Color $color, ColorData $data) : Color{
         $arrayData = ['name' => $data->name, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -36,7 +36,7 @@ class ColorService{
         return $color;
     }
 
-    public function delete(Color $color) : bool {
+    public function deleteColor(Color $color) : bool {
         return $color->delete();
     }
 }

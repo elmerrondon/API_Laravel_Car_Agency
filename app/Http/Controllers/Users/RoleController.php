@@ -33,7 +33,11 @@ class RoleController extends Controller
     public function store(StoreRoleRequest $request){
         $dto = RoleData::fromRequest($request);
 
-        $role = $this->service->create($dto);
+        $role = $this->service->createRole($dto);
+
+        if(!$role){
+            return response()->json(['message' => 'Accion denegada. No se puede crear este rol por que ya existe en el sistema'], 403);
+        }
 
         return new RoleResource($role);
     }
@@ -41,12 +45,22 @@ class RoleController extends Controller
     public function update(Role $role, UpdateRoleRequest $request){
         $dto = RoleData::fromRequest($request);
 
-        $role = $this->service->update($role,$dto);
+        $role = $this->service->updateRole($role,$dto);
+
+        if(!$role){
+            return response()->json(['message' => 'Accion denegada. No se puede editar este rol del sistema'], 403);
+        }
 
         return new RoleResource($role);
     }
 
     public function destroy(Role $role){
-        return $this->service->delete($role);
+        $response = $this->service->deleteRole($role);
+
+        if(!$response){
+            return response()->json(['message' => 'Accion denegada. No se puede eliminar este rol del sistema'], 403);
+        }
+
+        return response()->noContent();
     }
 }

@@ -14,10 +14,15 @@ use Illuminate\Http\Request;
 
 class CarController extends Controller
 {
-    public function index(IndexCarRequest $request, CarService $service){
+    public function __construct(private readonly CarService $service)
+    {
+        
+    }
+
+    public function index(IndexCarRequest $request){
         $perPage = $request->validated('per_page');
 
-        $cars = $service->getAllPaginated($perPage);
+        $cars = $this->service->getAllPaginated($perPage);
 
         return CarResource::collection($cars);
     }
@@ -26,24 +31,24 @@ class CarController extends Controller
         return new CarResource($car);
     }
 
-    public function store(StoreCarRequest $request, CarService $service){
+    public function store(StoreCarRequest $request){
         $dto = CarData::fromRequest($request);
 
-        $car = $service->create($dto);
+        $car = $this->service->createCar($dto);
 
         return new CarResource($car);
     }
 
-    public function update(Car $car, UpdateCarRequest $request, CarService $service){
+    public function update(Car $car, UpdateCarRequest $request){
         $dto = CarData::fromRequest($request);
 
-        $carU = $service->update($car,$dto);
+        $carU = $this->service->updateCar($car,$dto);
 
         return new CarResource($carU);
     }
 
-    public function destroy(Car $car, CarService $service){
-        $service->delete($car);
+    public function destroy(Car $car){
+        $this->service->deleteCar($car);
 
         return response()->noContent();
     }

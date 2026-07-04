@@ -10,7 +10,7 @@ class BrandService {
         return Brand::paginate($perPage);
     }
 
-    public function create(BrandData $data): Brand{
+    public function createBrand(BrandData $data): Brand{
         $arrayData = ['name' => $data->name, 'description' => $data->description, 'country_id' => $data->countryId, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -24,7 +24,7 @@ class BrandService {
         return $brand;
     }
 
-    public function update(Brand $brand, BrandData $data) :  Brand{
+    public function updateBrand(Brand $brand, BrandData $data) :  Brand{
         $arrayData = ['name' => $data->name, 'description' => $data->description, 'country_id' => $data->countryId, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -36,7 +36,7 @@ class BrandService {
         return $brand;
     }
 
-    public function delete(Brand $brand) : bool{
+    public function deleteBrand(Brand $brand) : bool{
         return $brand->delete();
     }
 }

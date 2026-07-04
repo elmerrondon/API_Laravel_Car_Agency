@@ -14,10 +14,15 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function index(IndexUserRequest $request, UserService $service){
+    public function __construct(private readonly UserService $service)
+    {
+        
+    }
+    
+    public function index(IndexUserRequest $request){
         $perPage = $request->validated('per_page');
 
-        $users = $service->getAllPaginated($perPage);
+        $users = $this->service->getAllPaginated($perPage);
 
         return UserResource::collection($users);
     }
@@ -26,25 +31,25 @@ class UserController extends Controller
         return new UserResource($user);
     }
 
-    public function store(StoreUserRequest $request, UserService $service){
+    public function store(StoreUserRequest $request){
         $dto = UserData::fromRequest($request);
 
-        $user = $service->create($dto);
+        $user = $this->service->createUser($dto);
 
         return new UserResource($user);
     }
 
-    public function update(User $user, UpdateUserRequest $request, UserService $service){
+    public function update(User $user, UpdateUserRequest $request){
         $dto = UserData::fromRequest($request);
 
-        $user = $service->update($user, $dto);
+        $user = $this->service->updateUser($user, $dto);
 
         return new UserResource($user);
     }
 
-    public function destroy(User $user, UserService $service){
+    public function destroy(User $user){
         
-        $service->delete($user);
+        $this->service->deleteUser($user);
 
         return response()->noContent();
     }

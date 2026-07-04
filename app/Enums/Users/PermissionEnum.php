@@ -5,7 +5,7 @@ namespace App\Enums\Users;
 enum PermissionEnum : string
 {
     case VIEW_CARS = 'view_cars';
-    case CREATE_CARS = 'created_cars';
+    case CREATE_CARS = 'create_cars';
     case UPDATE_CARS = 'update_cars';
     case DELETE_CARS = 'delete_cars';
 

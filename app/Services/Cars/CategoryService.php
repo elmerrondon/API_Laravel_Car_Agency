@@ -10,7 +10,7 @@ class CategoryService{
         return Category::paginate($perPage);
     }
 
-    public function create(CategoryData $data){
+    public function createCategory(CategoryData $data){
         $arrayData = ['name' => $data->name, 'description' => $data->description, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -24,7 +24,7 @@ class CategoryService{
         return $category;
     }
 
-    public function update(Category $category, CategoryData $data){
+    public function updateCategory(Category $category, CategoryData $data){
         $arrayData = ['name' => $data->name, 'description' => $data->description, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -36,7 +36,7 @@ class CategoryService{
         return $category;
     }
 
-    public function delete(Category $category) : bool{
+    public function deleteCategory(Category $category) : bool{
         return $category->delete();
     }
 }

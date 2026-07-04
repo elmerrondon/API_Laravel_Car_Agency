@@ -11,7 +11,7 @@ class UserService{
         return User::paginate($perPage);
     }
 
-    public function create(UserData $data) : User{
+    public function createUser(UserData $data) : User{
         $arrayData = ['name' => $data->name, 'lastname' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -25,7 +25,7 @@ class UserService{
         return $user;
     }
 
-    public function update(User $user, UserData $data) : User{
+    public function updateUser(User $user, UserData $data) : User{
         $arrayData = ['name' => $data->name, 'lastname' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
@@ -37,7 +37,7 @@ class UserService{
         return $user;
     }
 
-    public function delete(User $user) : bool{
+    public function deleteUser(User $user) : bool{
         return $user->delete();
     }
 }

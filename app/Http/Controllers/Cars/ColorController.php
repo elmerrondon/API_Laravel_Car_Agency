@@ -14,10 +14,15 @@ use Illuminate\Http\Request;
 
 class ColorController extends Controller
 {
-    public function index(IndexColorRequest $request, ColorService $service){
+    public function __construct(private readonly ColorService $service)
+    {
+        
+    }
+
+    public function index(IndexColorRequest $request){
         $perPage = $request->validated('per_page');
 
-        $colors = $service->getAllPaginated($perPage);
+        $colors = $this->service->getAllPaginated($perPage);
 
         return ColorResource::collection($colors);
     }
@@ -26,24 +31,24 @@ class ColorController extends Controller
         return new ColorResource($color);
     }
 
-    public function store(StoreColorRequest $request, ColorService $service){
+    public function store(StoreColorRequest $request){
         $dto = ColorData::fromData($request);
 
-        $color = $service->create($dto);
+        $color = $this->service->createColor($dto);
 
         return new ColorResource($color);
     }
 
-    public function update(Color $color, UpdateColorRequest $request, ColorService $service){
+    public function update(Color $color, UpdateColorRequest $request){
         $dto = ColorData::fromData($request);
 
-        $color = $service->update($color, $dto);
+        $color = $this->service->updateColor($color, $dto);
 
         return new ColorResource($color);
     }
 
-    public function destroy(Color $color, ColorService $service){
-        $service->delete($color);
+    public function destroy(Color $color){
+        $this->service->deleteColor($color);
 
         return response()->noContent();
     }
