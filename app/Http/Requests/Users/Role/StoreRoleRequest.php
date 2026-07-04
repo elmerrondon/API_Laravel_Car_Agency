@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Users\Role;
 
-use App\Enums\Users\RoleUser;
+use App\Enums\Users\RoleEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,7 +25,7 @@ class StoreRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:2','max:50',Rule::enum(RoleUser::class),'unique:roles,name'],
+            'name' => ['required','string','min:2','max:50','unique:roles,name'],
             'description' => ['required','string','min:3','max:500']
         ];
     }

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Cars\CarStatus;
+use App\Enums\Users\RoleEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -17,7 +19,7 @@ return new class extends Migration
             $table->unsignedInteger("mileage");
             $table->unsignedSmallInteger("year");
             $table->string("vin",17)->unique();
-            $table->string("status",20)->default("available");
+            $table->string("status",20)->default(CarStatus::AVAILABLE->value);
             $table->foreignId("color_id")->constrained()->onDelete("restrict");
             $table->foreignId("car_model_id")->constrained()->onDelete("restrict");
             $table->foreignId("car_type_id")->constrained()->onDelete("restrict");

@@ -43,6 +43,7 @@ class UserController extends Controller
     }
 
     public function destroy(User $user, UserService $service){
+        
         $service->delete($user);
 
         return response()->noContent();
