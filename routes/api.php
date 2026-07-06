@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Cars\BrandController;
 use App\Http\Controllers\Cars\CarController;
 use App\Http\Controllers\Cars\CarModelController;
+use App\Http\Controllers\Cars\CarStatusController;
 use App\Http\Controllers\Cars\CarTypeController;
 use App\Http\Controllers\Cars\CategoryController;
 use App\Http\Controllers\Cars\ColorController;
@@ -23,6 +24,7 @@ Route::apiResource('cities', CityController::class);
 Route::apiResource('branches', BranchController::class);
 
 // Cars
+Route::get('car-statuses', [CarStatusController::class, 'index']);
 Route::apiResource('car-types', CarTypeController::class);
 Route::apiResource('categories', CategoryController::class);
 Route::apiResource('brands', BrandController::class);
