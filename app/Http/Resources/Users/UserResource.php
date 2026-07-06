@@ -21,6 +21,11 @@ class UserResource extends JsonResource
             'document_number' => $this->document_number,
             'code' => $this->code,
             'email' => $this->email,
+            'roles' => $this->whenLoaded('roles', function () {
+                return $this->roles->map(function ($role) {
+                    return ['id' => $role->id, 'name' => $role->name];
+                });
+            }),
             'is_active' => $this->is_active
         ];
     }

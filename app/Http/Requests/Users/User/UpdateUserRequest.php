@@ -31,6 +31,8 @@ class UpdateUserRequest extends FormRequest
             'code' => ['sometimes','required','string','min:6','max:20','regex:/^[a-zA-Z0-9\-]+$/',Rule::unique('users','code')->ignore($this->user->id)],
             'email' => ['sometimes','required','string','email','max:255',Rule::unique('users','email')->ignore($this->user->id)->withoutTrashed()],
             'password' => ['sometimes','required','string','max:100','confirmed',Password::default()],
+            'roles' => ['sometimes','array'],
+            'roles.*' => ['integer',Rule::exists('roles','id')],
             'is_active' => ['sometimes','required','boolean']
         ];
     }

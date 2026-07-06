@@ -31,6 +31,9 @@ class StoreUserRequest extends FormRequest
             'code' => ['required','string','min:6','max:20','regex:/^[a-zA-Z0-9\-]+$/','unique:users,code'],
             'email' => ['required','string','email','max:255',Rule::unique('users','email')->withoutTrashed()],
             'password' => ['required','string','max:100','confirmed',Password::default()],
+            'roles' => ['required','array','min:1'],
+            'roles.*' => ['required', 'integer', Rule::exists('roles','id')],
+            
             'is_active' => ['sometimes','required','boolean']
         ];
     }
