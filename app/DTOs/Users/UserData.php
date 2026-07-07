@@ -11,6 +11,6 @@ readonly class UserData{
     }
 
     public static function fromRequest(FormRequest $request) : self {
-        return new self(name: $request->validated('name'), lastName: $request->validated('lastname'), documentNumber: $request->validated('document_number'), code: $request->validated('code'), email: $request->validated('email'), password: $request->validated('password'), roles: $request->validated('roles'), isActive: $request->validated('is_active'));
+        return new self(name: $request->validated('name'), lastName: $request->validated('last_name'), documentNumber: $request->validated('document_number'), code: $request->validated('code'), email: $request->validated('email'), password: $request->validated('password'), roles: $request->validated('roles'), isActive: $request->validated('is_active'));
     }
 }

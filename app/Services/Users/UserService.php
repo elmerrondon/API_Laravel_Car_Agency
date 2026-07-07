@@ -12,7 +12,7 @@ class UserService{
     }
 
     public function createUser(UserData $data) : User{
-        $arrayData = ['name' => $data->name, 'lastname' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
+        $arrayData = ['name' => $data->name, 'last_name' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
             return $value !== null;
@@ -26,7 +26,7 @@ class UserService{
     }
 
     public function updateUser(User $user, UserData $data) : User{
-        $arrayData = ['name' => $data->name, 'lastname' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
+        $arrayData = ['name' => $data->name, 'last_name' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($arrayData, function ($value) {
             return $value !== null;

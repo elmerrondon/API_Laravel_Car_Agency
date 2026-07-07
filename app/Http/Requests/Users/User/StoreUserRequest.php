@@ -26,7 +26,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name' => ['required','string','min:2','max:50'],
-            'lastname' => ['required','string','min:2','max:50'],
+            'last_name' => ['required','string','min:2','max:50'],
             'document_number' => ['required','string','min:5','max:20','regex:/^[a-zA-Z0-9\-]+$/',Rule::unique('users','document_number')->withoutTrashed()],
             'code' => ['required','string','min:6','max:20','regex:/^[a-zA-Z0-9\-]+$/','unique:users,code'],
             'email' => ['required','string','email','max:255',Rule::unique('users','email')->withoutTrashed()],
