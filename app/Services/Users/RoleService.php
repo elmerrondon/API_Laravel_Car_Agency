@@ -23,7 +23,11 @@ class RoleService{
         
         $role = Role::create($arrayData);
 
-        return $role;
+        if(!empty($data->permissions)){
+            $role->permissions()->attach($data->permissions);
+        }
+
+        return $role->load('permissions');
     }
 
     public function updateRole(Role $role, RoleData $data) {
@@ -41,7 +45,11 @@ class RoleService{
 
         $role->update($cleanData);
 
-        return $role;
+        if($data->permissions !== null){
+            $role->permissions()->sync($data->permissions);
+        }
+
+        return $role->load('permissions');
     }
 
     public function deleteRole(Role $role) : bool{
