@@ -20,9 +20,13 @@ class UserService{
 
         $user = User::create($cleanData);
 
+        if(!empty($data->roles)){
+            $user->roles()->attach($data->roles);
+        }
+
         $user->refresh();
 
-        return $user;
+        return $user->load('roles');
     }
 
     public function updateUser(User $user, UserData $data) : User{
@@ -34,7 +38,11 @@ class UserService{
 
         $user->update($cleanData);
 
-        return $user;
+        if($data->roles !== null){
+            $user->roles()->sync($data->roles);
+        }
+
+        return $user->load('roles');
     }
 
     public function deleteUser(User $user) : bool{
