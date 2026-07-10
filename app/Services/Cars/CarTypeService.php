@@ -10,7 +10,7 @@ class CarTypeService{
         return CarType::paginate($perPage);
     }
 
-    public function create(CarTypeData $data) : CarType {
+    public function createCarType(CarTypeData $data) : CarType {
         $dataArray = ['name' => $data->name, 'description' => $data->description, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -24,7 +24,7 @@ class CarTypeService{
         return $carType;
     }
 
-    public function update(CarType $carType, CarTypeData $data) : CarType {
+    public function updateCarType(CarType $carType, CarTypeData $data) : CarType {
         $dataArray = ['name' => $data->name, 'description' => $data->description, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -36,7 +36,7 @@ class CarTypeService{
         return $carType;
     }
 
-    public function delete(CarType $carType) : bool{
+    public function deleteCarType(CarType $carType) : bool{
         return $carType->delete();
     }
 }

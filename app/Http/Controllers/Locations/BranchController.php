@@ -14,9 +14,13 @@ use Illuminate\Http\Request;
 
 class BranchController extends Controller
 {
-    public function index(IndexBranchRequest $request, BranchService $service){
+    public function __construct(private readonly BranchService $service){
+
+    }
+
+    public function index(IndexBranchRequest $request){
         $perPage = $request->validated('per_page');
-        $branches = $service->getAllPaginated($perPage);
+        $branches = $this->service->getAllPaginated($perPage);
 
         return BranchResource::collection($branches);
     }
@@ -25,24 +29,24 @@ class BranchController extends Controller
         return new BranchResource($branch); 
     }
 
-    public function store(StoreBranchRequest $request, BranchService $service){
+    public function store(StoreBranchRequest $request){
         $dto = BranchData::fromRequest($request);
 
-        $branch = $service->create($dto);
+        $branch = $this->service->createBranch($dto);
 
         return new BranchResource($branch);
     }
 
-    public function update(Branch $branch, UpdateBranchRequest $request, BranchService $service){
+    public function update(Branch $branch, UpdateBranchRequest $request){
         $dto = BranchData::fromRequest($request);
 
-        $branch = $service->update($branch,$dto);
+        $branch = $this->service->updateBranch($branch,$dto);
 
         return new BranchResource($branch);
     }
 
-    public function destroy(Branch $branch, BranchService $service){
-        $service->delete($branch);
+    public function destroy(Branch $branch){
+        $this->service->deleteBranch($branch);
 
         return response()->noContent();
     }

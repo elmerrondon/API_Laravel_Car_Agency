@@ -14,17 +14,24 @@ use Illuminate\Http\Request;
 
 class CountryController extends Controller
 {
-    public function index(IndexCountryRequest $request, CountryService $service){
+    public function __construct(private readonly CountryService $service)
+    {
+        
+    }
+
+    public function index(IndexCountryRequest $request){
         $perPage = $request->validated('per_page');
-        $countries = $service->getAllPaginated($perPage);
+        $countries = $this->service->getAllPaginated($perPage);
 
         return CountryResource::collection($countries);
     }
 
-    public function store(StoreCountryRequest $request, CountryService $service){
+
+
+    public function store(StoreCountryRequest $request){
         $dto = CountryData::fromRequest($request);
 
-        $country = $service->create($dto);
+        $country = $this->service->createCountry($dto);
 
         return new CountryResource($country);
     }
@@ -33,16 +40,20 @@ class CountryController extends Controller
         return new CountryResource($country);
     }
 
-    public function update(UpdateCountryRequest $request, Country $country, CountryService $service){
+
+
+    public function update(UpdateCountryRequest $request, Country $country){
         $dto = CountryData::fromRequest($request);
 
-        $UpdateCountry = $service->update($country, $dto);
+        $UpdateCountry = $this->service->updateCountry($country, $dto);
 
         return new CountryResource($UpdateCountry);
     }
 
-    public function destroy(Country $country, CountryService $service){
-        $service->delete($country);
+
+
+    public function destroy(Country $country){
+        $this->service->deleteCountry($country);
 
         return response()->noContent();
     }

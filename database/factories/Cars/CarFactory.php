@@ -2,6 +2,7 @@
 
 namespace Database\Factories\Cars;
 
+use App\Enums\Cars\CarStatus;
 use App\Models\Cars\Car;
 use App\Models\Cars\CarModel;
 use App\Models\Cars\CarType;
@@ -25,7 +26,7 @@ class CarFactory extends Factory
             "mileage" => fake()->numberBetween(0, 15000),
             "year" => fake()->numberBetween(2015,2026),
             "vin" => fake()->unique()->bothify("???##?##?######??"),
-            "status" => "available",
+            "status" => CarStatus::AVAILABLE->value,
             "color_id" => Color::inrandomOrder()->first()->id,
             "car_model_id" => CarModel::inRandomOrder()->first()->id,
             "car_type_id" => CarType::inRandomOrder()->first()->id,

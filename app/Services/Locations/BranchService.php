@@ -10,7 +10,7 @@ class BranchService{
         return Branch::paginate($perPage);
     }
 
-    public function create(BranchData $data) : Branch{
+    public function createBranch(BranchData $data) : Branch{
         $nextNumber = Branch::count() + 1;
         $generatedCode = 'SUC-' . str_pad($nextNumber,4,'0',STR_PAD_LEFT);
 
@@ -35,7 +35,7 @@ class BranchService{
         return $branch;
     }
 
-    public function update(Branch $branch, BranchData $data) : Branch{
+    public function updateBranch(Branch $branch, BranchData $data) : Branch{
         $dataArray = [
             'name' => $data->name, 
             'address' => $data->address, 
@@ -54,7 +54,7 @@ class BranchService{
         return $branch;
     }
 
-    public function delete(Branch $branch) : bool{
+    public function deleteBranch(Branch $branch) : bool{
         return $branch->delete();
     }
 }

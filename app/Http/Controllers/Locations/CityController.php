@@ -14,9 +14,14 @@ use Illuminate\Http\Request;
 
 class CityController extends Controller
 {
-    public function index(IndexCityRequest $request, CityService $service){
+    public function __construct(private readonly CityService $service)
+    {
+        
+    }
+
+    public function index(IndexCityRequest $request){
         $perPage = $request->validated('per_page');
-        $cities = $service->getAllPaginated($perPage);
+        $cities = $this->service->getAllPaginated($perPage);
 
         return CityResource::collection($cities);
     }
@@ -25,24 +30,24 @@ class CityController extends Controller
         return new CityResource($city);
     }
 
-    public function store(StoreCityRequest $request, CityService $service){
+    public function store(StoreCityRequest $request){
         $dto = CityData::fromRequest($request);
 
-        $city = $service->create($dto);
+        $city = $this->service->createCity($dto);
 
         return new CityResource($city);
     }
 
-    public function update(UpdateCityRequest $request, City $city, CityService $service){
+    public function update(UpdateCityRequest $request, City $city){
         $dto = CityData::fromRequest($request);
 
-        $UpdatedCity = $service->update($city, $dto);
+        $UpdatedCity = $this->service->updateCity($city, $dto);
 
         return new CityResource($UpdatedCity);
     }
 
-    public function destroy(City $city, CityService $service){
-        $service->delete($city);
+    public function destroy(City $city){
+        $this->service->deleteCity($city);
 
         return response()->noContent();
     }
