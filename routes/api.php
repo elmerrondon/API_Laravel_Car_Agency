@@ -12,6 +12,7 @@ use App\Http\Controllers\Locations\BranchController;
 use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
+use App\Http\Controllers\Sales\CurrencyController;
 use App\Http\Controllers\Users\PermissionController;
 use App\Http\Controllers\Users\RoleController;
 use App\Http\Controllers\Users\UserController;
@@ -37,10 +38,14 @@ Route::apiResource('users', UserController::class);
 Route::apiResource('roles', RoleController::class);
 Route::get('permissions', [PermissionController::class, 'index']);
 
+
+// Sales
+Route::apiResource('currencies', CurrencyController::class); 
+
+
+
 // Auth
 Route::post('auth/login', [AuthController::class, 'login']);
-
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
