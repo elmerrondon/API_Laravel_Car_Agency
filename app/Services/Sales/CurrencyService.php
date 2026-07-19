@@ -23,7 +23,7 @@ class CurrencyService {
         $isBase = $cleanArray['is_base'] ?? false;
 
         if(($isBase && Currency::where('is_base',true)->exists())){
-            throw new InvalidArgumentException('The base currency cannot be created because a base currency already exists');
+            throw new LogicException('The base currency cannot be created because a base currency already exists');
         }
 
         $currency = Currency::create($cleanArray);

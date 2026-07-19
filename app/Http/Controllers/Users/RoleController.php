@@ -11,6 +11,7 @@ use App\Http\Resources\Users\RoleResource;
 use App\Models\Users\Role;
 use App\Services\Users\RoleService;
 use Illuminate\Http\Request;
+use LogicException;
 
 class RoleController extends Controller
 {
@@ -21,7 +22,7 @@ class RoleController extends Controller
 
     public function index(IndexRoleRequest $request){
         $perPage = $request->validated('per_page');
-        $roles = $this->service->getAllPaginated($perPage);
+        $roles = $this->service->getAllPaginatedRoles($perPage);
 
         return RoleResource::collection($roles);
     }
@@ -31,36 +32,41 @@ class RoleController extends Controller
     }
 
     public function store(StoreRoleRequest $request){
-        $dto = RoleData::fromRequest($request);
+        try{
+            $dto = RoleData::fromRequest($request);
 
-        $role = $this->service->createRole($dto);
+            $role = $this->service->createRole($dto);
 
-        if(!$role){
-            return response()->json(['message' => 'Accion denegada. No se puede crear este rol por que ya existe en el sistema'], 403);
+            return new RoleResource($role);
+
+        }catch(LogicException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
         }
-
-        return new RoleResource($role);
+     
     }
 
     public function update(Role $role, UpdateRoleRequest $request){
-        $dto = RoleData::fromRequest($request);
+        try {
+            $dto = RoleData::fromRequest($request);
 
-        $role = $this->service->updateRole($role,$dto);
+            $role = $this->service->updateRole($role,$dto);
+            
+            return new RoleResource($role);
 
-        if(!$role){
-            return response()->json(['message' => 'Accion denegada. No se puede editar este rol del sistema'], 403);
+        }catch(LogicException $e){
+            return response()->json(['message' => $e->getMessage()], 403);
         }
-
-        return new RoleResource($role);
+        
     }
 
     public function destroy(Role $role){
-        $response = $this->service->deleteRole($role);
-
-        if(!$response){
-            return response()->json(['message' => 'Accion denegada. No se puede eliminar este rol del sistema'], 403);
+        try{ 
+            $response = $this->service->deleteRole($role);
+            
+            return response()->noContent();
+            
+        }catch(LogicException $e){
+            return response()->json(['message' => $e->getMessage()], 403);
         }
-
-        return response()->noContent();
     }
 }

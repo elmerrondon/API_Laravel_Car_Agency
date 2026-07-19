@@ -11,7 +11,6 @@ use App\Http\Resources\Sales\CurrencyResource;
 use App\Models\Sales\Currency;
 use App\Services\Sales\CurrencyService;
 use Illuminate\Http\Request;
-use InvalidArgumentException;
 use LogicException;
 
 class CurrencyController extends Controller
@@ -40,8 +39,8 @@ class CurrencyController extends Controller
             $currency = $this->service->createCurrency($dto);
 
             return new CurrencyResource($currency);
-        } catch (InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (LogicException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         } 
     }
 
@@ -54,7 +53,7 @@ class CurrencyController extends Controller
             return new CurrencyResource($currency);
 
         } catch(LogicException $e){
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => $e->getMessage()], 409);
         }
     }
 
@@ -65,7 +64,7 @@ class CurrencyController extends Controller
             return response()->noContent();
             
         } catch (LogicException $e){
-            return response()->json(['message' => $e->getMessage()]);
+            return response()->json(['message' => $e->getMessage()], 409);
         }
     }
 }
