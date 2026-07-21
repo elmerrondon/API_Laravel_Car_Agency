@@ -16,8 +16,7 @@ return new class extends Migration
             $table->string("name", 50)->unique();
             $table->string("code", 12)->unique();
             $table->decimal("percentage",5,2);
-            $table->boolean("is_active");
-            $table->softDeletes();
+            $table->boolean("is_active")->default(true);
             $table->timestamps();
         });
     }

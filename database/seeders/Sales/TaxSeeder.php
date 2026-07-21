@@ -2,11 +2,11 @@
 
 namespace Database\Seeders\Sales;
 
-use App\Models\Sales\Taxe;
+use App\Models\Sales\Tax;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class TaxeSeeder extends Seeder
+class TaxSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -19,8 +19,8 @@ class TaxeSeeder extends Seeder
             ["name" => "Ambiental","code" => "I0003","percentage" => 5, "is_active" => true],
         ];
 
-        foreach($taxes as $taxe){
-            Taxe::firstOrCreate(["name" => $taxe["name"], "code" => $taxe["code"]], $taxe);
+        foreach($taxes as $tax){
+            Tax::firstOrCreate(["name" => $tax["name"], "code" => $tax["code"]], $tax);
         }
     }
 }
