@@ -13,6 +13,7 @@ use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
 use App\Http\Controllers\Sales\CurrencyController;
+use App\Http\Controllers\Sales\PaymentMethodController;
 use App\Http\Controllers\Users\PermissionController;
 use App\Http\Controllers\Users\RoleController;
 use App\Http\Controllers\Users\UserController;
@@ -41,7 +42,7 @@ Route::get('permissions', [PermissionController::class, 'index']);
 
 // Sales
 Route::apiResource('currencies', CurrencyController::class); 
-
+Route::apiResource('payment-methods', PaymentMethodController::class);
 
 
 // Auth
