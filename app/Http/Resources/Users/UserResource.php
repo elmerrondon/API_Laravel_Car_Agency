@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Users;
 
+use App\Http\Resources\Locations\BranchResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,11 +22,8 @@ class UserResource extends JsonResource
             'document_number' => $this->document_number,
             'code' => $this->code,
             'email' => $this->email,
-            'roles' => $this->whenLoaded('roles', function () {
-                return $this->roles->map(function ($role) {
-                    return ['id' => $role->id, 'name' => $role->name];
-                });
-            }),
+            'roles' => RoleResource::collection($this->whenLoaded('roles')),
+            'branches' => BranchResource::collection($this->whenLoaded('branches')),
             'is_active' => $this->is_active
         ];
     }
