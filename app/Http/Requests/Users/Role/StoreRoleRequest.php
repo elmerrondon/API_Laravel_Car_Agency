@@ -28,7 +28,7 @@ class StoreRoleRequest extends FormRequest
             'name' => ['required','string','min:2','max:50',Rule::notIn(RoleEnum::cases()),'unique:roles,name'],
             'description' => ['required','string','min:3','max:500'],
             'permissions' => ['required','array','min:1'],
-            'permissions.*' => ['required','integer','min:1',Rule::exists('permissions','id')]
+            'permissions.*' => ['required','integer','distinct','min:1','exists:permissions,id']
         ];
     }
 }

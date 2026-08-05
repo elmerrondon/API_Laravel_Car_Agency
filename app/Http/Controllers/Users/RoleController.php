@@ -28,6 +28,7 @@ class RoleController extends Controller
     }
 
     public function show(Role $role){
+        $role->load('permissions');
         return new RoleResource($role);
     }
 
@@ -36,7 +37,7 @@ class RoleController extends Controller
             $dto = RoleData::fromRequest($request);
 
             $role = $this->service->createRole($dto);
-
+            
             return new RoleResource($role);
 
         }catch(LogicException $e) {

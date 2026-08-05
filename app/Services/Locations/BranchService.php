@@ -7,11 +7,13 @@ use App\Models\Locations\Branch;
 
 class BranchService{
     public function getAllPaginated(?int $perPage = null){
-        return Branch::paginate($perPage);
+        return Branch::with('city')->paginate($perPage);
     }
 
     public function createBranch(BranchData $data) : Branch{
-        $nextNumber = Branch::count() + 1;
+
+        $maxId = (int) Branch::max('id');
+        $nextNumber = $maxId + 1;
         $generatedCode = 'SUC-' . str_pad($nextNumber,4,'0',STR_PAD_LEFT);
 
         $dataArray = [
@@ -32,6 +34,8 @@ class BranchService{
 
         $branch->refresh();
 
+        $branch->load('city');
+
         return $branch;
     }
 
@@ -51,6 +55,8 @@ class BranchService{
 
         $branch->update($cleanData);
 
+        $branch->load('city');
+        
         return $branch;
     }
 

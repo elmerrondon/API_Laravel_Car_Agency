@@ -28,7 +28,7 @@ class UpdateRoleRequest extends FormRequest
             'name' => ['sometimes','required','string','min:2','max:50',Rule::notIn(RoleEnum::cases()),Rule::unique('roles','name')->ignore($this->role->id)],
             'description' => ['sometimes','required','string','min:1','max:500'],
             'permissions' => ['sometimes','array'],
-            'permissions.*' => ['integer',Rule::exists('permissions','id')]
+            'permissions.*' => ['integer','distinct','min:1','exists:permissions,id']
         ];
     }
 }
