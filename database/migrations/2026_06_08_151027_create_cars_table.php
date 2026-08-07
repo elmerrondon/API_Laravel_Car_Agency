@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('cars', function (Blueprint $table) {
             $table->id();
-            $table->decimal("price",10,2);
+            $table->decimal("price",15,2);
             $table->unsignedInteger("mileage");
             $table->unsignedSmallInteger("year");
             $table->string("vin",17)->unique();

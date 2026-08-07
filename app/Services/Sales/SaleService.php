@@ -33,7 +33,7 @@ class SaleService{
 
             $basePrice = $car->price;
             $discountPercentage = $data->discountPercentage ?? 0;
-            $totalDiscount = $basePrice * ($discountPercentage / 100);
+            $totalDiscount = round($basePrice * ($discountPercentage / 100), 2);
             $taxableAmount = $basePrice - $totalDiscount;
 
             $taxesFromDb = Tax::whereIn('id', $data->taxes)->get();
@@ -41,7 +41,7 @@ class SaleService{
             $taxDetails = [];
 
             foreach($taxesFromDb as $tax){
-                $calculatedTaxAmount = $taxableAmount * ($tax->percentage / 100);
+                $calculatedTaxAmount = round($taxableAmount * ($tax->percentage / 100), 2);
                 $totalTaxes += $calculatedTaxAmount;
 
                 $taxDetails[] = [
@@ -53,7 +53,7 @@ class SaleService{
             }
 
             $totalBaseAmount = $taxableAmount + $totalTaxes;
-            $totalAmountPaid = $totalBaseAmount * $data->exchangeRate;
+            $totalAmountPaid = round($totalBaseAmount * $data->exchangeRate, 2);
 
             $baseCurrency = Currency::firstWhere('is_base',true);
             
