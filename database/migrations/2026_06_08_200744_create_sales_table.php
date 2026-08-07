@@ -13,21 +13,23 @@ return new class extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->decimal("exchange_rate",10,2);
-            $table->decimal("base_price",15,2);
-            $table->json("tax_breakdown");
-            $table->decimal("total_taxes",15,2);
-            $table->decimal("discount",15,2);
-            $table->decimal("total_base_amount",15,2);
-            $table->decimal("total_amount_paid",15,2);
-            $table->string("status",30);
-            $table->dateTime("sale_date");
-            $table->foreignId("car_id")->constrained()->onDelete("restrict");
-            $table->foreignId("user_id")->constrained()->onDelete("restrict");
-            $table->foreignId("branch_id")->constrained()->onDelete("restrict");
-            $table->foreignId("payment_currency_id")->constrained("currencies")->onDelete("restrict");
-            $table->foreignId("base_currency_id")->constrained("currencies")->onDelete("restrict");
-            $table->foreignId("payment_method_id")->constrained()->onDelete("restrict");
+            $table->decimal('exchange_rate',10,2);
+            $table->decimal('base_price',15,2);
+            $table->json('taxes');
+            $table->decimal('total_taxes',15,2);
+            $table->decimal('discount_percentage',10,2);
+            $table->decimal('total_base_amount',15,2);
+            $table->decimal('total_amount_paid',15,2);
+            $table->decimal('total_discount',15,2);
+            $table->string('status',50);
+            $table->dateTime('sale_date');
+            $table->foreignId('car_id')->constrained()->onDelete('restrict');
+            $table->foreignId('user_id')->constrained()->onDelete('restrict');
+            $table->foreignId('branch_id')->constrained()->onDelete('restrict');
+            $table->foreignId('payment_currency_id')->constrained('currencies')->onDelete('restrict');
+            $table->foreignId('base_currency_id')->constrained('currencies')->onDelete('restrict');
+            $table->foreignId('payment_method_id')->constrained()->onDelete('restrict');
+            $table->string('notes',500)->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

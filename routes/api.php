@@ -14,6 +14,7 @@ use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
 use App\Http\Controllers\Sales\CurrencyController;
 use App\Http\Controllers\Sales\PaymentMethodController;
+use App\Http\Controllers\Sales\SaleController;
 use App\Http\Controllers\Sales\TaxController;
 use App\Http\Controllers\Users\PermissionController;
 use App\Http\Controllers\Users\RoleController;
@@ -45,6 +46,8 @@ Route::get('permissions', [PermissionController::class, 'index']);
 Route::apiResource('currencies', CurrencyController::class); 
 Route::apiResource('payment-methods', PaymentMethodController::class);
 Route::apiResource('taxes', TaxController::class);
+Route::patch('sales/{sale}/cancel', [SaleController::class, 'cancelSale']);
+Route::apiResource('sales', SaleController::class)->only(['index','show','store']);
 
 // Auth
 Route::post('auth/login', [AuthController::class, 'login']);
