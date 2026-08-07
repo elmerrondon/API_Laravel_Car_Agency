@@ -3,6 +3,21 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Database\Seeders\Cars\BrandSeeder;
+use Database\Seeders\Cars\CarModelSeeder;
+use Database\Seeders\Cars\CarSeeder;
+use Database\Seeders\Cars\CarTypeSeeder;
+use Database\Seeders\Cars\CategorySeeder;
+use Database\Seeders\Cars\ColorSeeder;
+use Database\Seeders\Locations\BranchSeeder;
+use Database\Seeders\Locations\CitySeeder;
+use Database\Seeders\Locations\CountrySeeder;
+use Database\Seeders\Locations\StateSeeder;
+use Database\Seeders\Sales\CurrencySeeder;
+use Database\Seeders\Sales\PaymentMethodSeeder;
+use Database\Seeders\Sales\TaxSeeder;
+use Database\Seeders\Users\PermissionSeeder;
+use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,11 +30,35 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Users
+        $this->call([
+            RoleSeeder::class,
+            PermissionSeeder::class
+        ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Locations 
+        $this->call([
+            CountrySeeder::class,
+            StateSeeder::class,
+            CitySeeder::class,
+            BranchSeeder::class
+        ]);
+
+        // Cars
+        $this->call([
+            BrandSeeder::class,
+            CarTypeSeeder::class,
+            CategorySeeder::class,
+            CarModelSeeder::class,
+            ColorSeeder::class,
+            CarSeeder::class
+        ]);
+
+        // Sales
+        $this->call([
+            CurrencySeeder::class,
+            PaymentMethodSeeder::class,
+            TaxSeeder::class
         ]);
     }
 }
