@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Users\Role;
+namespace App\Http\Requests\Sales\Tax;
 
-use App\Enums\Users\RoleEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateRoleRequest extends FormRequest
+class UpdateTaxRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,10 +24,10 @@ class UpdateRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes','required','string','min:2','max:50',Rule::notIn(RoleEnum::cases()),Rule::unique('roles','name')->ignore($this->role->id)],
-            'description' => ['sometimes','required','string','min:1','max:500'],
-            'permissions' => ['sometimes','array'],
-            'permissions.*' => ['integer','distinct','min:1','exists:permissions,id']
+            'name' => ['sometimes','string','min:2','max:50',Rule::unique('taxes','name')->ignore($this->tax->id)],
+            'code' => ['sometimes','string','min:7','max:12',Rule::unique('taxes','code')->ignore($this->tax->id)],
+            'percentage' => ['sometimes','numeric','min:0','max:100','decimal:0,2'],
+            'is_active' => ['sometimes','required','boolean']
         ];
     }
 }

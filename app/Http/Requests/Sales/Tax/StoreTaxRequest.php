@@ -1,13 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Users\Role;
+namespace App\Http\Requests\Sales\Tax;
 
-use App\Enums\Users\RoleEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class StoreRoleRequest extends FormRequest
+class StoreTaxRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,10 +23,10 @@ class StoreRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:2','max:50',Rule::notIn(RoleEnum::cases()),'unique:roles,name'],
-            'description' => ['required','string','min:3','max:500'],
-            'permissions' => ['required','array','min:1'],
-            'permissions.*' => ['required','integer','distinct','min:1','exists:permissions,id']
+            'name' => ['required','string','min:2','max:50','unique:taxes,name'],
+            'code' => ['required','string','min:7','max:12','unique:taxes,code'],
+            'percentage' => ['required','numeric','min:0','max:100','decimal:0,2'],
+            'is_active' => ['sometimes','required','boolean']
         ];
     }
 }

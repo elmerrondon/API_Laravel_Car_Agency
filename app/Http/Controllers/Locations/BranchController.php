@@ -26,6 +26,7 @@ class BranchController extends Controller
     }
 
     public function show(Branch $branch){
+        $branch->load('city');
         return new BranchResource($branch); 
     }
 

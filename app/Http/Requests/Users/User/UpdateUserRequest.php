@@ -32,7 +32,9 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes','required','string','email','max:255',Rule::unique('users','email')->ignore($this->user->id)->withoutTrashed()],
             'password' => ['sometimes','required','string','max:100','confirmed',Password::default()],
             'roles' => ['sometimes','array'],
-            'roles.*' => ['integer',Rule::exists('roles','id')],
+            'roles.*' => ['integer','distinct','exists:roles,id'],
+            'branches' => ['sometimes','array'],
+            'branches.*' => ['integer','distinct','exists:branches,id'],
             'is_active' => ['sometimes','required','boolean']
         ];
     }

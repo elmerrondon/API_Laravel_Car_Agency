@@ -2,6 +2,7 @@
 
 namespace App\Models\Sales;
 
+use App\Enums\Sales\SaleStatus;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Users\User;
@@ -13,24 +14,26 @@ class Sale extends Model
     use SoftDeletes;
 
     protected $fillable = [
-     "exchange_rate",
-     "base_price",
-     "tax_breakdown",
-     "total_taxes",
-     "discount",
-     "total_base_amount",
-     "total_amount_paid",
-     "status",
-     "sale_date",
-     "car_id",
-     "user_id",
-     "branch_id",
-     "payment_currency_id",
-     "base_currency_id",
-     "payment_method_id"
+     'exchange_rate',
+     'base_price',
+     'taxes',
+     'total_taxes',
+     'discount_percentage',
+     'total_discount',
+     'total_base_amount',
+     'total_amount_paid',
+     'status',
+     'sale_date',
+     'car_id',
+     'user_id',
+     'branch_id',
+     'payment_currency_id',
+     'base_currency_id',
+     'payment_method_id',
+     'notes'
     ];
 
-    protected $hidden = ["created_at","updated_at","deleted_at"];
+    protected $hidden = ['created_at','updated_at','deleted_at'];
 
     public function car(){
         return $this->belongsTo(Car::class);
@@ -49,14 +52,14 @@ class Sale extends Model
     }
 
     public function paymentCurrency(){
-        return $this->belongsTo(Currency::class, "payment_currency_id");
+        return $this->belongsTo(Currency::class, 'payment_currency_id');
     }
 
     public function baseCurrency(){
-        return $this->belongsTo(Currency::class, "base_currency_id");
+        return $this->belongsTo(Currency::class, 'base_currency_id');
     }
 
     public function casts() : array{
-        return ["tax_breakdown" => "array"];
+        return ['taxes' => 'array','status' => SaleStatus::class];
     }
 }

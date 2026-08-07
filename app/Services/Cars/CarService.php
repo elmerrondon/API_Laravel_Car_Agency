@@ -11,7 +11,7 @@ class CarService{
     }
 
     public function createCar(CarData $data) : Car{
-        $arrayData = ['price' => $data->price, 'mileage' => $data->mileage, 'year' => $data->mileage, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
+        $arrayData = ['price' => round($data->price, 2), 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
 
         $cleanData = array_filter($arrayData, function ($value) {
             return $value !== null;
@@ -23,7 +23,7 @@ class CarService{
     }
 
     public function updateCar(Car $car, CarData $data) : Car{
-        $arrayData = ['price' => $data->price, 'mileage' => $data->mileage, 'year' => $data->mileage, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
+        $arrayData = ['price' => $data->price !== null ? round($data->price, 2) : null, 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
 
         $cleanData = array_filter($arrayData, function ($value) {
             return $value !== null;

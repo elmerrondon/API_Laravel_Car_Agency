@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Users;
+namespace App\Http\Resources\Sales;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class RoleResource extends JsonResource
+class TaxResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -17,8 +17,9 @@ class RoleResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'description' => $this->description,
-            'permissions' => PermissionResource::collection($this->whenLoaded('permissions'))
+            'code' => $this->code,
+            'percentage' => $this->percentage,
+            'is_active' => $this->is_active
         ];
     }
 }

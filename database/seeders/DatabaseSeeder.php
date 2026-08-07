@@ -15,7 +15,7 @@ use Database\Seeders\Locations\CountrySeeder;
 use Database\Seeders\Locations\StateSeeder;
 use Database\Seeders\Sales\CurrencySeeder;
 use Database\Seeders\Sales\PaymentMethodSeeder;
-use Database\Seeders\Sales\TaxeSeeder;
+use Database\Seeders\Sales\TaxSeeder;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CurrencySeeder::class,
             PaymentMethodSeeder::class,
-            TaxeSeeder::class
+            TaxSeeder::class
         ]);
     }
 }
