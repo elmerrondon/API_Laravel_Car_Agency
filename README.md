@@ -68,8 +68,6 @@ CACHE_STORE=database
 SESSION_DRIVER=file
 ```
 
-```
-
 ---
 
 ## 🌐 Endpoints Principales de la API
@@ -123,4 +121,3 @@ SESSION_DRIVER=file
 ---
 
 _Desarrollado con arquitectura moderna en Laravel._
-```
