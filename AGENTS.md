@@ -98,7 +98,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - Soft deletes en `User` y `Car`. `Sale` no usa borrado lógico: se cancela con `SaleStatus::CANCELLED`, que además libera el coche.
 - Los códigos de sucursal se generan en el servidor a partir de `max(id)` (`SUC-0001`); el payload de la petición no aporta `code`.
 - Los datos demo están en español. `CarSeeder` busca nombres exactos (`Negro`, `Blanco`, `Sedán`, `Pick-up`, `Corolla`, `F-150`, etc.); mantén los seeders sincronizados si renombras. El orden de `DatabaseSeeder` importa: roles/permisos -> ubicaciones -> usuarios base -> coches -> catálogos de ventas, y `CarSeeder` necesita los catálogos y sucursales anteriores.
-- Los tests usan Pest con `RefreshDatabase` activo para `tests/Feature` (cada test arranca con migraciones limpias y debe sembrar lo que necesite). `UserFactory` sigue roto (importa `App\Models\User`, que no existe, y sus campos no coinciden con la migración `users`), y `User::factory()` resuelve a `Database\Factories\Users\UserFactory`, que tampoco existe; crea usuarios manualmente o corrige la factory (fase 4.5).
+- Los tests usan Pest con `RefreshDatabase` activo para `tests/Feature` (cada test arranca con migraciones limpias y debe sembrar lo que necesite). `UserFactory` vive en `database/factories/Users/UserFactory.php`, usa el modelo `App\Models\Users\User` y genera usuarios con las columnas reales; `User::factory()` funciona.
 - No hay workflows de CI, PHPStan ni tests JS configurados; la verificación disponible es `composer test` + `pint` dentro de Docker.
 
 ### Unicidad e índices
