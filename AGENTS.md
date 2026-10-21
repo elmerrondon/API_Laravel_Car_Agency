@@ -110,3 +110,5 @@ Registra aquí decisiones técnicas, bugs resueltos y hallazgos no obvios. Añad
 - 2026-10-20 — Usar siempre `docker compose exec -T` en automatizaciones; sin `-T`, los comandos interactivos pueden colgarse.
 - 2026-10-20 — `ROADMAP.md` absorbió todo `Pendientes.txt` y se eliminó el archivo original; el roadmap es la única lista de trabajo.
 - 2026-10-20 — Plan aprobado: `Sale` sin `SoftDeletes` (estado `cancelled`), solo `POST /api/auth/login` público, RBAC de 13 permisos, `vin`/`users.code` con unicidad global y reportes PDF con `barryvdh/laravel-dompdf:^3.1`.
+- 2026-10-20 — `ForceJsonResponse` solo corre en rutas registradas, así que un 404 de ruta `/api/*` inexistente salía en HTML. Se añadió `shouldRenderJsonWhen` en `bootstrap/app.php` para que todo `/api/*` responda JSON.
+- 2026-10-20 — `RefreshDatabase` está activo para `tests/Feature`; todo test de Feature arranca con migraciones limpias y debe sembrar lo que necesite.
