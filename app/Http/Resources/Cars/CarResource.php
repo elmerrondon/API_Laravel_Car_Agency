@@ -31,7 +31,7 @@ class CarResource extends JsonResource
             'category_id' => $this->category_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'branch_id' => $this->branch_id,
-            'branch' => new BranchResource($this->whenLoaded('branch'))
+            'branch' => new BranchResource($this->whenLoaded('branch')),
         ];
     }
 }

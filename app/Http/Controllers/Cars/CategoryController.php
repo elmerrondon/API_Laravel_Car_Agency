@@ -10,27 +10,26 @@ use App\Http\Requests\Cars\Category\UpdateCategoryRequest;
 use App\Http\Resources\Cars\CategoryResource;
 use App\Models\Cars\Category;
 use App\Services\Cars\CategoryService;
-use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function __construct(private readonly CategoryService $service)
-    {
-    
-    }
+    public function __construct(private readonly CategoryService $service) {}
 
-    public function index(IndexCategoryRequest $request){
+    public function index(IndexCategoryRequest $request)
+    {
         $perPage = $request->validated('per_page');
         $categories = $this->service->getAllPaginated($perPage);
-        
+
         return CategoryResource::collection($categories);
     }
 
-    public function show(Category $category){
+    public function show(Category $category)
+    {
         return new CategoryResource($category);
     }
 
-    public function store(StoreCategoryRequest $request){
+    public function store(StoreCategoryRequest $request)
+    {
         $dto = CategoryData::fromRequest($request);
 
         $category = $this->service->createCategory($dto);
@@ -38,15 +37,17 @@ class CategoryController extends Controller
         return new CategoryResource($category);
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category){
+    public function update(UpdateCategoryRequest $request, Category $category)
+    {
         $dto = CategoryData::fromRequest($request);
 
-        $category = $this->service->updateCategory($category,$dto);
-        
+        $category = $this->service->updateCategory($category, $dto);
+
         return new CategoryResource($category);
     }
 
-    public function destroy(Category $category){
+    public function destroy(Category $category)
+    {
         $this->service->deleteCategory($category);
 
         return response()->noContent();

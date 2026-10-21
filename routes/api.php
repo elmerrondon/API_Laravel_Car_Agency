@@ -36,18 +36,17 @@ Route::apiResource('car-models', CarModelController::class);
 Route::apiResource('colors', ColorController::class);
 Route::apiResource('cars', CarController::class);
 
-// Users 
+// Users
 Route::apiResource('users', UserController::class);
 Route::apiResource('roles', RoleController::class);
 Route::get('permissions', [PermissionController::class, 'index']);
 
-
 // Sales
-Route::apiResource('currencies', CurrencyController::class); 
+Route::apiResource('currencies', CurrencyController::class);
 Route::apiResource('payment-methods', PaymentMethodController::class);
 Route::apiResource('taxes', TaxController::class);
 Route::patch('sales/{sale}/cancel', [SaleController::class, 'cancelSale']);
-Route::apiResource('sales', SaleController::class)->only(['index','show','store']);
+Route::apiResource('sales', SaleController::class)->only(['index', 'show', 'store']);
 
 // Auth
 Route::post('auth/login', [AuthController::class, 'login']);

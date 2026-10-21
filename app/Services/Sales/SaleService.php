@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Services\Sales;
 
@@ -12,22 +12,24 @@ use App\Models\Sales\Tax;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
-class SaleService{
-
-    public function getAllPaginatedSales(?int $perPage = null){
-        return Sale::with(['car','user','branch','baseCurrency','paymentCurrency','paymentMethod'])->paginate($perPage);
+class SaleService
+{
+    public function getAllPaginatedSales(?int $perPage = null)
+    {
+        return Sale::with(['car', 'user', 'branch', 'baseCurrency', 'paymentCurrency', 'paymentMethod'])->paginate($perPage);
     }
 
-    public function createSale(SaleData $data){
+    public function createSale(SaleData $data)
+    {
 
         return DB::transaction(function () use ($data) {
             $car = Car::findOrFail($data->carId);
-        
-            if($car->status === CarStatus::SOLD){
+
+            if ($car->status === CarStatus::SOLD) {
                 throw new LogicException('The car cannot be sold because it is already marked as sold');
             }
 
-            if($car->status !== CarStatus::AVAILABLE){
+            if ($car->status !== CarStatus::AVAILABLE) {
                 throw new LogicException('The car is not available for sale');
             }
 
@@ -40,7 +42,7 @@ class SaleService{
             $totalTaxes = 0;
             $taxDetails = [];
 
-            foreach($taxesFromDb as $tax){
+            foreach ($taxesFromDb as $tax) {
                 $calculatedTaxAmount = round($taxableAmount * ($tax->percentage / 100), 2);
                 $totalTaxes += $calculatedTaxAmount;
 
@@ -48,15 +50,15 @@ class SaleService{
                     'id' => $tax->id,
                     'name' => $tax->name,
                     'percentage' => $tax->percentage,
-                    'amount_applied' => $calculatedTaxAmount
+                    'amount_applied' => $calculatedTaxAmount,
                 ];
             }
 
             $totalBaseAmount = $taxableAmount + $totalTaxes;
             $totalAmountPaid = round($totalBaseAmount * $data->exchangeRate, 2);
 
-            $baseCurrency = Currency::firstWhere('is_base',true);
-            
+            $baseCurrency = Currency::firstWhere('is_base', true);
+
             $sale = Sale::create(
                 [
                     'exchange_rate' => $data->exchangeRate,
@@ -75,30 +77,30 @@ class SaleService{
                     'payment_currency_id' => $data->paymentCurrencyId,
                     'base_currency_id' => $baseCurrency->id,
                     'payment_method_id' => $data->paymentMethodId,
-                    'notes' => $data->notes
-                    ]);
+                    'notes' => $data->notes,
+                ]);
 
-                    $car->update(['status' => CarStatus::SOLD]);
+            $car->update(['status' => CarStatus::SOLD]);
 
-                    return $sale->load(['car','user','branch','baseCurrency','paymentCurrency','paymentMethod']);
+            return $sale->load(['car', 'user', 'branch', 'baseCurrency', 'paymentCurrency', 'paymentMethod']);
 
         });
-    
+
     }
 
-    public function cancelSale(Sale $sale, string $notes){
-        return DB::transaction(function () use($sale, $notes){
+    public function cancelSale(Sale $sale, string $notes)
+    {
+        return DB::transaction(function () use ($sale, $notes) {
             $car = $sale->car;
 
             $sale->status = SaleStatus::CANCELLED;
             $sale->notes = $notes;
             $car->status = CarStatus::AVAILABLE;
 
-           
             $sale->save();
             $car->save();
 
-            return $sale->load(['car','user','branch','baseCurrency','paymentCurrency','paymentMethod']);
+            return $sale->load(['car', 'user', 'branch', 'baseCurrency', 'paymentCurrency', 'paymentMethod']);
         });
     }
 }

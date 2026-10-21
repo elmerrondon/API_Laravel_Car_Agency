@@ -23,8 +23,8 @@ class UpdateColorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes','required','string','min:3','max:50'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

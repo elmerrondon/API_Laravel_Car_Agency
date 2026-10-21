@@ -25,17 +25,17 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:2','max:50'],
-            'last_name' => ['required','string','min:2','max:50'],
-            'document_number' => ['required','string','min:5','max:20','regex:/^[a-zA-Z0-9\-]+$/',Rule::unique('users','document_number')->withoutTrashed()],
-            'code' => ['required','string','min:6','max:20','regex:/^[a-zA-Z0-9\-]+$/','unique:users,code'],
-            'email' => ['required','string','email','max:255',Rule::unique('users','email')->withoutTrashed()],
-            'password' => ['required','string','max:100','confirmed',Password::default()],
-            'roles' => ['required','array','min:1'],
-            'roles.*' => ['required', 'integer','distinct','exists:roles,id'],
-            'branches' => ['required','array','min:1'],
-            'branches.*' => ['required','integer','distinct','exists:branches,id'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:2', 'max:50'],
+            'last_name' => ['required', 'string', 'min:2', 'max:50'],
+            'document_number' => ['required', 'string', 'min:5', 'max:20', 'regex:/^[a-zA-Z0-9\-]+$/', Rule::unique('users', 'document_number')->withoutTrashed()],
+            'code' => ['required', 'string', 'min:6', 'max:20', 'regex:/^[a-zA-Z0-9\-]+$/', 'unique:users,code'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->withoutTrashed()],
+            'password' => ['required', 'string', 'max:100', 'confirmed', Password::default()],
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => ['required', 'integer', 'distinct', 'exists:roles,id'],
+            'branches' => ['required', 'array', 'min:1'],
+            'branches.*' => ['required', 'integer', 'distinct', 'exists:branches,id'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

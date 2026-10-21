@@ -10,17 +10,14 @@ use App\Http\Requests\Sales\Currency\UpdateCurrencyRequest;
 use App\Http\Resources\Sales\CurrencyResource;
 use App\Models\Sales\Currency;
 use App\Services\Sales\CurrencyService;
-use Illuminate\Http\Request;
 use LogicException;
 
 class CurrencyController extends Controller
 {
-    public function __construct(private readonly CurrencyService $service)
-    {
-    
-    }
+    public function __construct(private readonly CurrencyService $service) {}
 
-    public function index(IndexCurrencyRequest $request){
+    public function index(IndexCurrencyRequest $request)
+    {
         $perPage = $request->validated('per_page');
 
         $currencies = $this->service->getAllPaginatedCurrecies($perPage);
@@ -28,11 +25,13 @@ class CurrencyController extends Controller
         return CurrencyResource::collection($currencies);
     }
 
-    public function show(Currency $currency){
+    public function show(Currency $currency)
+    {
         return new CurrencyResource($currency);
     }
 
-    public function store(StoreCurrencyRequest $request){
+    public function store(StoreCurrencyRequest $request)
+    {
         try {
             $dto = CurrencyData::fromRequest($request);
 
@@ -41,10 +40,11 @@ class CurrencyController extends Controller
             return new CurrencyResource($currency);
         } catch (LogicException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
-        } 
+        }
     }
 
-    public function update(Currency $currency, UpdateCurrencyRequest $request){
+    public function update(Currency $currency, UpdateCurrencyRequest $request)
+    {
         try {
             $dto = CurrencyData::fromRequest($request);
 
@@ -52,18 +52,19 @@ class CurrencyController extends Controller
 
             return new CurrencyResource($currency);
 
-        } catch(LogicException $e){
+        } catch (LogicException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
     }
 
-    public function destroy(Currency $currency){
-        try{
+    public function destroy(Currency $currency)
+    {
+        try {
             $this->service->deleteCurrency($currency);
 
             return response()->noContent();
-            
-        } catch (LogicException $e){
+
+        } catch (LogicException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
     }

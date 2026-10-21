@@ -4,7 +4,6 @@ namespace App\Models\Users;
 
 use App\Models\Locations\Branch;
 use App\Models\Sales\Sale;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -15,7 +14,6 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-
     protected $fillable = [
         'name',
         'last_name',
@@ -23,34 +21,36 @@ class User extends Authenticatable
         'code',
         'email',
         'password',
-        'is_active'
+        'is_active',
     ];
 
-  
     protected $hidden = [
         'password',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
     ];
 
-    public function roles(){
+    public function roles()
+    {
         return $this->belongsToMany(Role::class);
     }
 
-    public function branches(){
+    public function branches()
+    {
         return $this->belongsToMany(Branch::class);
     }
 
-    public function sales(){
+    public function sales()
+    {
         return $this->hasMany(Sale::class);
     }
 
-      protected function casts(): array
+    protected function casts(): array
     {
         return [
             'password' => 'hashed',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
     }
 }

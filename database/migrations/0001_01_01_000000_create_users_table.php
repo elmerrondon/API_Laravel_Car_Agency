@@ -16,14 +16,14 @@ return new class extends Migration
             $table->string('name', 50);
             $table->string('last_name', 50);
             $table->string('document_number', 10);
-            $table->string('code',10)->unique();
+            $table->string('code', 10)->unique();
             $table->string('email');
             $table->string('password');
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
             $table->timestamps();
-            $table->unique(['email','deleted_at']);
-            $table->unique(['document_number','deleted_at']);
+            $table->unique(['email', 'deleted_at']);
+            $table->unique(['document_number', 'deleted_at']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -32,7 +32,6 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
         });
 
-       
     }
 
     /**

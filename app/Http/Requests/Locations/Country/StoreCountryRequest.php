@@ -23,8 +23,8 @@ class StoreCountryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','unique:countries,name', 'min:3', 'max:50'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'unique:countries,name', 'min:3', 'max:50'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

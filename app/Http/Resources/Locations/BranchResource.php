@@ -23,7 +23,7 @@ class BranchResource extends JsonResource
             'zip_code' => $this->zip_code,
             'is_active' => $this->is_active,
             'city_id' => $this->city_id,
-            'city' => new CityResource($this->whenLoaded('city'))
+            'city' => new CityResource($this->whenLoaded('city')),
         ];
     }
 }

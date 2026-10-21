@@ -6,31 +6,35 @@ use App\Models\Cars\Car;
 use App\Models\Sales\Sale;
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Branch extends Model
 {
-    protected $fillable = ["name","address","code","description","city_id","zip_code","is_active"];
+    protected $fillable = ['name', 'address', 'code', 'description', 'city_id', 'zip_code', 'is_active'];
 
-    protected $hidden = ["created_at","updated_at"];
+    protected $hidden = ['created_at', 'updated_at'];
 
-    public function city(){
+    public function city()
+    {
         return $this->belongsTo(City::class);
     }
 
-    public function cars(){
+    public function cars()
+    {
         return $this->hasMany(Car::class);
     }
 
-    public function users(){
+    public function users()
+    {
         return $this->belongsToMany(User::class);
     }
 
-    public function sales(){
+    public function sales()
+    {
         return $this->hasMany(Sale::class);
     }
 
-    public function casts() : array{
-        return ["is_active" => "boolean"];
+    public function casts(): array
+    {
+        return ['is_active' => 'boolean'];
     }
 }

@@ -10,16 +10,13 @@ use App\Http\Requests\Cars\CarModel\UpdateCarModelRequest;
 use App\Http\Resources\Cars\CarModelResource;
 use App\Models\Cars\CarModel;
 use App\Services\Cars\CarModelService;
-use Illuminate\Http\Request;
 
 class CarModelController extends Controller
 {
-    public function __construct(private readonly CarModelService $service)
-    {
-    
-    }
+    public function __construct(private readonly CarModelService $service) {}
 
-    public function index(IndexCarModelRequest $request){
+    public function index(IndexCarModelRequest $request)
+    {
         $perPage = $request->validated('per_page');
 
         $carModels = $this->service->getAllPaginated($perPage);
@@ -27,11 +24,13 @@ class CarModelController extends Controller
         return CarModelResource::collection($carModels);
     }
 
-    public function show(CarModel $carModel){
+    public function show(CarModel $carModel)
+    {
         return new CarModelResource($carModel);
     }
 
-    public function store(StoreCarModelRequest $request){
+    public function store(StoreCarModelRequest $request)
+    {
         $dto = CarModelData::fromRequest($request);
 
         $carModel = $this->service->createCarModel($dto);
@@ -39,15 +38,17 @@ class CarModelController extends Controller
         return new CarModelResource($carModel);
     }
 
-    public function update(CarModel $carModel, UpdateCarModelRequest $request){
+    public function update(CarModel $carModel, UpdateCarModelRequest $request)
+    {
         $dto = CarModelData::fromRequest($request);
 
-        $carModel = $this->service->updateCarModel($carModel,$dto);
+        $carModel = $this->service->updateCarModel($carModel, $dto);
 
         return new CarModelResource($carModel);
     }
 
-    public function destroy(CarModel $carModel){
+    public function destroy(CarModel $carModel)
+    {
         $this->service->deleteCarModel($carModel);
 
         return response()->noContent();

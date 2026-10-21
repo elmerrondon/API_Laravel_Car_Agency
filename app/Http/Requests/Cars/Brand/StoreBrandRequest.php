@@ -23,10 +23,10 @@ class StoreBrandRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:2','max:50','unique:brands,name'],
-            'description' => ['required','string','min:3','max:500'],
-            'country_id' => ['required','integer','exists:countries,id'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:2', 'max:50', 'unique:brands,name'],
+            'description' => ['required', 'string', 'min:3', 'max:500'],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

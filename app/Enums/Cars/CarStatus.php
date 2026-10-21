@@ -2,7 +2,7 @@
 
 namespace App\Enums\Cars;
 
-enum CarStatus : string
+enum CarStatus: string
 {
     case AVAILABLE = 'available';
     case RESERVED = 'reserved';

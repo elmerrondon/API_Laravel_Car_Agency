@@ -23,7 +23,7 @@ class CancelSaleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes' => ['required','string','min:10','max:500']
+            'notes' => ['required', 'string', 'min:10', 'max:500'],
         ];
     }
 }

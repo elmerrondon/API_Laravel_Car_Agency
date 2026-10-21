@@ -18,7 +18,7 @@ class CarTypeResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

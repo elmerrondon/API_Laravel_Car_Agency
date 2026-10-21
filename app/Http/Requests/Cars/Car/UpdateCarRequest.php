@@ -25,16 +25,16 @@ class UpdateCarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'price' => ['sometimes','required','numeric','decimal:0,2','min:1'],
-            'mileage' => ['sometimes','required','integer','min:0'],
-            'year' => ['sometimes','required','integer'],
-            'vin' => ['sometimes','required','string','min:17','max:17','regex:/^[a-zA-Z0-9]+$/',Rule::unique('cars','vin')->ignore($this->car->id)->withoutTrashed()],
-            'status' => ['sometimes','required','string',Rule::enum(CarStatus::class)],
-            'color_id' => ['sometimes','required','integer','exists:colors,id'],
-            'car_model_id' => ['sometimes','required','integer','exists:car_models,id'],
-            'car_type_id' => ['sometimes','required','integer','exists:car_types,id'],
-            'category_id' => ['sometimes','required','integer','exists:categories,id'],
-            'branch_id' => ['sometimes','required','integer','exists:branches,id']
+            'price' => ['sometimes', 'required', 'numeric', 'decimal:0,2', 'min:1'],
+            'mileage' => ['sometimes', 'required', 'integer', 'min:0'],
+            'year' => ['sometimes', 'required', 'integer'],
+            'vin' => ['sometimes', 'required', 'string', 'min:17', 'max:17', 'regex:/^[a-zA-Z0-9]+$/', Rule::unique('cars', 'vin')->ignore($this->car->id)->withoutTrashed()],
+            'status' => ['sometimes', 'required', 'string', Rule::enum(CarStatus::class)],
+            'color_id' => ['sometimes', 'required', 'integer', 'exists:colors,id'],
+            'car_model_id' => ['sometimes', 'required', 'integer', 'exists:car_models,id'],
+            'car_type_id' => ['sometimes', 'required', 'integer', 'exists:car_types,id'],
+            'category_id' => ['sometimes', 'required', 'integer', 'exists:categories,id'],
+            'branch_id' => ['sometimes', 'required', 'integer', 'exists:branches,id'],
         ];
     }
 }

@@ -24,8 +24,8 @@ class LoginAuthRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required','string','email','max:255'],
-            'password' => ['required','string','max:100',Password::default()]
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'password' => ['required', 'string', 'max:100', Password::default()],
         ];
     }
 }

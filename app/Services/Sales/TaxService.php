@@ -1,17 +1,19 @@
-<?php 
+<?php
 
 namespace App\Services\Sales;
 
 use App\DTOs\Sales\TaxData;
 use App\Models\Sales\Tax;
 
-class TaxService{
-    
-    public function getAllPaginatedTaxes(?int $perPage = null){
+class TaxService
+{
+    public function getAllPaginatedTaxes(?int $perPage = null)
+    {
         return Tax::paginate($perPage);
     }
 
-    public function createTax(TaxData $data) : Tax{
+    public function createTax(TaxData $data): Tax
+    {
         $dataArray = ['name' => $data->name, 'code' => $data->code, 'percentage' => $data->percentage, 'is_active' => $data->isActive];
 
         $cleanArray = array_filter($dataArray, function ($value) {
@@ -25,7 +27,8 @@ class TaxService{
         return $taxe;
     }
 
-    public function updateTax(Tax $taxe, TaxData $data) : Tax{
+    public function updateTax(Tax $taxe, TaxData $data): Tax
+    {
         $dataArray = ['name' => $data->name, 'code' => $data->code, 'percentage' => $data->percentage, 'is_active' => $data->isActive];
 
         $cleanArray = array_filter($dataArray, function ($value) {
@@ -37,8 +40,8 @@ class TaxService{
         return $taxe;
     }
 
-    public function deleteTax(Tax $taxe) : bool{
+    public function deleteTax(Tax $taxe): bool
+    {
         return $taxe->delete();
     }
-
 }

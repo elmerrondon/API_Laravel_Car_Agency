@@ -19,7 +19,7 @@ class StateResource extends JsonResource
             'name' => $this->name,
             'country_id' => $this->country_id,
             'country' => new CountryResource($this->whenLoaded('country')),
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

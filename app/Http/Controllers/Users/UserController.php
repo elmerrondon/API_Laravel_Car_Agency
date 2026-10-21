@@ -10,16 +10,13 @@ use App\Http\Requests\Users\User\UpdateUserRequest;
 use App\Http\Resources\Users\UserResource;
 use App\Models\Users\User;
 use App\Services\Users\UserService;
-use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function __construct(private readonly UserService $service)
+    public function __construct(private readonly UserService $service) {}
+
+    public function index(IndexUserRequest $request)
     {
-        
-    }
-    
-    public function index(IndexUserRequest $request){
         $perPage = $request->validated('per_page');
 
         $users = $this->service->getAllPaginated($perPage);
@@ -27,14 +24,16 @@ class UserController extends Controller
         return UserResource::collection($users);
     }
 
-    public function show(User $user){
+    public function show(User $user)
+    {
 
-        $user->load(['roles','branches']);
-        
+        $user->load(['roles', 'branches']);
+
         return new UserResource($user);
     }
 
-    public function store(StoreUserRequest $request){
+    public function store(StoreUserRequest $request)
+    {
         $dto = UserData::fromRequest($request);
 
         $user = $this->service->createUser($dto);
@@ -42,7 +41,8 @@ class UserController extends Controller
         return new UserResource($user);
     }
 
-    public function update(User $user, UpdateUserRequest $request){
+    public function update(User $user, UpdateUserRequest $request)
+    {
         $dto = UserData::fromRequest($request);
 
         $user = $this->service->updateUser($user, $dto);
@@ -50,8 +50,9 @@ class UserController extends Controller
         return new UserResource($user);
     }
 
-    public function destroy(User $user){
-        
+    public function destroy(User $user)
+    {
+
         $this->service->deleteUser($user);
 
         return response()->noContent();

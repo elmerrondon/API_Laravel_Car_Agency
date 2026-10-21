@@ -3,7 +3,6 @@
 namespace Database\Seeders\Locations;
 
 use App\Models\Locations\Country;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class CountrySeeder extends Seeder
@@ -14,25 +13,24 @@ class CountrySeeder extends Seeder
     public function run(): void
     {
         $countries = [
-            ["name" => "Venezuela"],
-            ["name" => "Colombia"],
-            ["name" => "Estados Unidos"],
-            ["name" => "Chile"],
-            ["name" => "Argentina"],
-            ["name" => "España"],
-            ["name" => "Brasil"],
-            ["name" => "Mexico"],
-            ["name" => "Alemania"],
-            ["name" => "Japon"],
-            ["name" => "Corea del Sur"],
-            ["name" => "Francia"],
-            ["name" => "Italia"],
-            ["name" => "China"] 
-            ];
+            ['name' => 'Venezuela'],
+            ['name' => 'Colombia'],
+            ['name' => 'Estados Unidos'],
+            ['name' => 'Chile'],
+            ['name' => 'Argentina'],
+            ['name' => 'España'],
+            ['name' => 'Brasil'],
+            ['name' => 'Mexico'],
+            ['name' => 'Alemania'],
+            ['name' => 'Japon'],
+            ['name' => 'Corea del Sur'],
+            ['name' => 'Francia'],
+            ['name' => 'Italia'],
+            ['name' => 'China'],
+        ];
 
-          
-            foreach($countries as $country){
-                Country::firstOrCreate($country);
-            }
+        foreach ($countries as $country) {
+            Country::firstOrCreate($country);
+        }
     }
 }

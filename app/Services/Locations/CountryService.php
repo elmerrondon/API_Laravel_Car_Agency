@@ -1,17 +1,19 @@
-<?php 
+<?php
 
 namespace App\Services\Locations;
 
 use App\DTOs\Locations\CountryData;
 use App\Models\Locations\Country;
 
-class CountryService{
-
-    public function getAllPaginated(?int $perPage = null){
+class CountryService
+{
+    public function getAllPaginated(?int $perPage = null)
+    {
         return Country::paginate($perPage);
     }
 
-    public function createCountry(CountryData $data) : Country{
+    public function createCountry(CountryData $data): Country
+    {
         $dataArray = ['name' => $data->name, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -25,7 +27,8 @@ class CountryService{
         return $country;
     }
 
-    public function updateCountry(Country $country, CountryData $data) : Country{
+    public function updateCountry(Country $country, CountryData $data): Country
+    {
         $dataArray = ['name' => $data->name, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -37,8 +40,8 @@ class CountryService{
         return $country;
     }
 
-    public function deleteCountry(Country $country) : bool{
+    public function deleteCountry(Country $country): bool
+    {
         return $country->delete();
     }
-
 }

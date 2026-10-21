@@ -23,9 +23,9 @@ class StoreCarTypeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:3','max:50','unique:car_types,name'],
-            'description' => ['required','string','min:2','max:500'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:3', 'max:50', 'unique:car_types,name'],
+            'description' => ['required', 'string', 'min:2', 'max:500'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

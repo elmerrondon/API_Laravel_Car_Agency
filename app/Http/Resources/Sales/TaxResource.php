@@ -19,7 +19,7 @@ class TaxResource extends JsonResource
             'name' => $this->name,
             'code' => $this->code,
             'percentage' => $this->percentage,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

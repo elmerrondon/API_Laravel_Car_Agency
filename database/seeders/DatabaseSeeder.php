@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Database\Seeders\Cars\BrandSeeder;
 use Database\Seeders\Cars\CarModelSeeder;
 use Database\Seeders\Cars\CarSeeder;
@@ -33,15 +32,15 @@ class DatabaseSeeder extends Seeder
         // Users
         $this->call([
             RoleSeeder::class,
-            PermissionSeeder::class
+            PermissionSeeder::class,
         ]);
 
-        // Locations 
+        // Locations
         $this->call([
             CountrySeeder::class,
             StateSeeder::class,
             CitySeeder::class,
-            BranchSeeder::class
+            BranchSeeder::class,
         ]);
 
         // Cars
@@ -51,14 +50,14 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             CarModelSeeder::class,
             ColorSeeder::class,
-            CarSeeder::class
+            CarSeeder::class,
         ]);
 
         // Sales
         $this->call([
             CurrencySeeder::class,
             PaymentMethodSeeder::class,
-            TaxSeeder::class
+            TaxSeeder::class,
         ]);
     }
 }

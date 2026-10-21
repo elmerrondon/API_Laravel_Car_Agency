@@ -24,7 +24,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

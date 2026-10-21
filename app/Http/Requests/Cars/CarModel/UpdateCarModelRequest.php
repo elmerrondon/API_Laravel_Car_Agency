@@ -24,10 +24,10 @@ class UpdateCarModelRequest extends FormRequest
     public function rules(): array
     {
         return [
-             'name' => ['sometimes','required','string','min:2','max:50',Rule::unique('car_models','name')->ignore($this->car_model->id)],
-             'description' => ['sometimes','required','string','min:3','max:500'],
-             'brand_id' => ['sometimes','required','integer','exists:brands,id'],
-             'is_active' => ['sometimes','required','boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:2', 'max:50', Rule::unique('car_models', 'name')->ignore($this->car_model->id)],
+            'description' => ['sometimes', 'required', 'string', 'min:3', 'max:500'],
+            'brand_id' => ['sometimes', 'required', 'integer', 'exists:brands,id'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

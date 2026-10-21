@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('taxes', function (Blueprint $table) {
             $table->id();
-            $table->string("name", 50)->unique();
-            $table->string("code", 12)->unique();
-            $table->decimal("percentage",5,2);
-            $table->boolean("is_active")->default(true);
+            $table->string('name', 50)->unique();
+            $table->string('code', 12)->unique();
+            $table->decimal('percentage', 5, 2);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

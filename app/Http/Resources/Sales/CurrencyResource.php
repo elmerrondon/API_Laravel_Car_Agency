@@ -19,7 +19,7 @@ class CurrencyResource extends JsonResource
             'name' => $this->name,
             'code' => $this->code,
             'is_base' => $this->is_base,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

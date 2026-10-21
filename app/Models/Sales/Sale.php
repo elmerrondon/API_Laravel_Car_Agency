@@ -14,52 +14,59 @@ class Sale extends Model
     use SoftDeletes;
 
     protected $fillable = [
-     'exchange_rate',
-     'base_price',
-     'taxes',
-     'total_taxes',
-     'discount_percentage',
-     'total_discount',
-     'total_base_amount',
-     'total_amount_paid',
-     'status',
-     'sale_date',
-     'car_id',
-     'user_id',
-     'branch_id',
-     'payment_currency_id',
-     'base_currency_id',
-     'payment_method_id',
-     'notes'
+        'exchange_rate',
+        'base_price',
+        'taxes',
+        'total_taxes',
+        'discount_percentage',
+        'total_discount',
+        'total_base_amount',
+        'total_amount_paid',
+        'status',
+        'sale_date',
+        'car_id',
+        'user_id',
+        'branch_id',
+        'payment_currency_id',
+        'base_currency_id',
+        'payment_method_id',
+        'notes',
     ];
 
-    protected $hidden = ['created_at','updated_at','deleted_at'];
+    protected $hidden = ['created_at', 'updated_at', 'deleted_at'];
 
-    public function car(){
+    public function car()
+    {
         return $this->belongsTo(Car::class);
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function branch(){
+    public function branch()
+    {
         return $this->belongsTo(Branch::class);
     }
 
-    public function paymentMethod(){
+    public function paymentMethod()
+    {
         return $this->belongsTo(PaymentMethod::class);
     }
 
-    public function paymentCurrency(){
+    public function paymentCurrency()
+    {
         return $this->belongsTo(Currency::class, 'payment_currency_id');
     }
 
-    public function baseCurrency(){
+    public function baseCurrency()
+    {
         return $this->belongsTo(Currency::class, 'base_currency_id');
     }
 
-    public function casts() : array{
-        return ['taxes' => 'array','status' => SaleStatus::class];
+    public function casts(): array
+    {
+        return ['taxes' => 'array', 'status' => SaleStatus::class];
     }
 }

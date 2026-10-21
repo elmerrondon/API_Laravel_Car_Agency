@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('car_models', function (Blueprint $table) {
             $table->id();
-            $table->string("name", 50)->unique();
-            $table->string("description",500);
-            $table->foreignId("brand_id")->constrained()->onDelete("restrict");
-            $table->boolean("is_active")->default(true);
+            $table->string('name', 50)->unique();
+            $table->string('description', 500);
+            $table->foreignId('brand_id')->constrained()->onDelete('restrict');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

@@ -23,8 +23,8 @@ class StorePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:2','max:50','unique:payment_methods,name'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:2', 'max:50', 'unique:payment_methods,name'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

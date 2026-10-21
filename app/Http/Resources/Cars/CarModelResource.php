@@ -20,7 +20,7 @@ class CarModelResource extends JsonResource
             'description' => $this->description,
             'is_active' => $this->is_active,
             'brand_id' => $this->brand_id,
-            'brand' => new BrandResource($this->whenLoaded('brand'))
+            'brand' => new BrandResource($this->whenLoaded('brand')),
         ];
     }
 }

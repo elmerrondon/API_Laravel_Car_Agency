@@ -24,10 +24,11 @@ class UpdateCarTypeRequest extends FormRequest
     public function rules(): array
     {
         $carType = $this->route('car_type');
+
         return [
-            'name' => ['sometimes','required','string','min:3','max:50',Rule::unique('car_types','name')->ignore($carType)],
-            'description' => ['sometimes','required','string','min:2','max:500'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', Rule::unique('car_types', 'name')->ignore($carType)],
+            'description' => ['sometimes', 'required', 'string', 'min:2', 'max:500'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

@@ -24,9 +24,9 @@ class StoreStateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:3','max:50', Rule::unique('states','name')->where('country_id', $this->country_id)],
-            'country_id' => ['required','integer','exists:countries,id'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:3', 'max:50', Rule::unique('states', 'name')->where('country_id', $this->country_id)],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }
