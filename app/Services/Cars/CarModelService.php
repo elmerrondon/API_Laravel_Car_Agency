@@ -16,7 +16,7 @@ class CarModelService
 
     public function getCarModel(CarModel $carModel): CarModel
     {
-        return $carModel->load('brand');
+        return $carModel->load('brand:id,name,description,country_id,is_active');
     }
 
     public function createCarModel(CarModelData $data): CarModel
