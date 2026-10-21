@@ -19,6 +19,12 @@
             margin: 0 0 4px;
         }
 
+        h2 {
+            color: #0f766e;
+            font-size: 13px;
+            margin: 16px 0 6px;
+        }
+
         .muted {
             color: #6b7280;
         }

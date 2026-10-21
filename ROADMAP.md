@@ -62,8 +62,8 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 ## Fase 5 — Reportes PDF
 
 - [x] `5.1` Instalar `barryvdh/laravel-dompdf:^3.1` con `composer require` dentro del contenedor y verificar que persiste en el volumen `vendor/`.
-- [ ] `5.2` Crear `SaleReportService` + vista Blade `resources/views/reports/sales-pdf.blade.php` + `GET /api/reports/sales/pdf` con filtros de fecha y sucursal, protegido por `view_reports`.
-- [ ] `5.3` Crear `GET /api/reports/cars` (agregado JSON por tipo, marca y estado) con variante PDF, protegido por `view_reports`.
+- [x] `5.2` Crear `SaleReportService` + vista Blade `resources/views/reports/sales-pdf.blade.php` + `GET /api/reports/sales/pdf` con filtros de fecha y sucursal, protegido por `view_reports`.
+- [x] `5.3` Crear `GET /api/reports/cars` (agregado JSON por tipo, marca y estado) con variante PDF, protegido por `view_reports`.
 - [ ] `5.4` Tests de reportes: autenticación, cabeceras `application/pdf` y contenido esperado.
 
 ## Fase 6 — Cierre

@@ -12,6 +12,7 @@ use App\Http\Controllers\Locations\BranchController;
 use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
+use App\Http\Controllers\Reports\CarReportController;
 use App\Http\Controllers\Reports\SaleReportController;
 use App\Http\Controllers\Sales\CurrencyController;
 use App\Http\Controllers\Sales\PaymentMethodController;
@@ -94,6 +95,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reportes
     Route::middleware('permission:view_reports')->group(function () {
         Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf']);
+        Route::get('reports/cars', [CarReportController::class, 'index']);
+        Route::get('reports/cars/pdf', [CarReportController::class, 'pdf']);
     });
 
     // Usuarios, roles y permisos
