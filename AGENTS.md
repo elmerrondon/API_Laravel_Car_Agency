@@ -1,0 +1,110 @@
+# AGENTS.md
+
+API Laravel 12 para una agencia de vehículos. La imagen de desarrollo usa PHP 8.3 (el proyecto declara `^8.2`). Casi todo es JSON bajo `/api`; la única ruta web es la página de bienvenida.
+
+## Entorno obligatorio: Docker (WSL sin PHP/MySQL local)
+
+Este entorno WSL **no tiene PHP, Composer ni MySQL instalados en el host**. No ejecutes `php`, `composer`, `artisan`, `pest`, `pint` ni `mysql` directamente.
+
+Todo comando dentro del contenedor `app` debe usar `docker compose exec -T` (`-T` desactiva la TTY y evita cuelgues en agentes no interactivos):
+
+```bash
+docker compose exec -T app php artisan ...
+docker compose exec -T app composer ...
+docker compose exec -T app ./vendor/bin/pest
+docker compose exec -T app ./vendor/bin/pint
+```
+
+Los comandos de orquestación (`docker compose up`, `down`, `ps`, `logs`) se ejecutan en el host porque son de Docker; no sustituyas `app` por un PHP local.
+
+## Infraestructura Docker
+
+- `docker/php/Dockerfile`: multi-stage con targets `base`, `dev` y `prod` sobre `php:8.3-fpm-alpine`. Incluye Composer y las extensiones `pdo_mysql`, `pdo_sqlite`, `bcmath`, `gd`, `zip`, `mbstring`, `exif`, `pcntl`, `opcache` y `dom`.
+- `docker-compose.yml`: `app` (target `dev`, FPM 9000 interno), `nginx` (host `8000`) y `mysql` 8.0 (host `3306`, DB `api_laravel_car_agency`, healthcheck).
+- `docker/nginx/default.conf`: sirve `/var/www/html/public` y pasa PHP a `app:9000`.
+- `.dockerignore` excluye `.git`, `vendor`, `node_modules`, `.env`, `storage/*.key`, logs, cachés y artefactos de build.
+- El target `dev` crea y usa el usuario local UID/GID 1000. Si tu usuario WSL usa otros IDs, reconstruye con `docker compose build --build-arg UID=$(id -u) --build-arg GID=$(id -g) app`.
+- `vendor/` es un volumen nombrado y la etapa `dev` no ejecuta `composer install`. En el primer arranque, o si cambia `composer.lock`, ejecuta `docker compose exec -T app composer install`; reconstruir la imagen no llena el volumen.
+- `composer setup` **no** es adecuado dentro de `app`: intenta ejecutar `npm install`/`npm run build` y la imagen PHP no incluye Node. Usa `composer install`; Vite no forma parte del stack Docker actual. `composer dev` tampoco aplica: el stack ya sirve con Nginx + PHP-FPM.
+- `.env` es local y está ignorado por Git. Valores de desarrollo: `DB_HOST=mysql`, `DB_DATABASE=api_laravel_car_agency`, `DB_USERNAME=root`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`.
+- No existe migración de la tabla `sessions`: con `SESSION_DRIVER=database` el login puede fallar. El `.env` local usa `file`; si se cambia a `database`, primero hay que crear esa migración.
+
+## Comandos
+
+```bash
+# Arranque y estado (host, no requieren -T)
+docker compose up -d --build
+docker compose ps
+docker compose logs -f app
+docker compose down
+
+# Dependencias PHP, clave y base de datos (siempre dentro de app con -T)
+docker compose exec -T app composer install
+docker compose exec -T app php artisan key:generate   # solo si APP_KEY está vacío
+docker compose exec -T app php artisan migrate --seed
+docker compose exec -T app php artisan migrate:fresh --seed
+
+# Tests
+docker compose exec -T app composer test              # limpia config y ejecuta artisan test
+docker compose exec -T app ./vendor/bin/pest          # suite completa
+docker compose exec -T app ./vendor/bin/pest --filter='nombre'
+docker compose exec -T app ./vendor/bin/pest tests/Feature/FooTest.php
+
+# Formato
+docker compose exec -T app ./vendor/bin/pint
+
+# Cliente MySQL dentro del contenedor mysql
+docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency
+```
+
+El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` usa MySQL con la base `api_laravel_car_agency`; `phpunit.xml` fuerza SQLite `:memory:` para los tests (por eso la imagen instala `pdo_sqlite`).
+
+## Reglas de Git
+
+- El usuario gestiona Git manualmente.
+- **Prohibido** ejecutar `git commit`, `git push`, `git checkout`, `git merge` o `git reset`; tampoco `git add` ni cualquier otro comando que modifique el índice o el historial.
+- Solo se permite lectura con `git status` y `git diff`.
+
+## Flujo de trabajo y roadmap
+
+- El plan detallado vive en `ROADMAP.md`, generado a partir de `Pendientes.txt`, y es la fuente de verdad del avance.
+- Marca cada tarea terminada con `[x]` en `ROADMAP.md`; no crees listas TODO paralelas.
+- Antes de empezar una tarea grande, revisa `ROADMAP.md` y actualízalo al terminarla.
+- `Pendientes.txt` son las notas originales; no lo reescribas salvo que el usuario lo pida.
+
+## Estructura del código
+
+La app está organizada por dominio de negocio, no por las carpetas estándar de Laravel:
+
+`app/{Enums,DTOs,Models,Services,Http/Controllers,Http/Requests,Http/Resources}/{Cars,Locations,Sales,Users}`
+
+Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -> `DTOs/.../*Data::fromRequest()` -> servicio en `app/Services` -> `Http/Resources/...`.
+
+- Mantén los controllers delgados; reglas de negocio, transacciones y eager loading viven en `app/Services`.
+- No hay capa repository, aunque el README mencione "Service-Repository".
+- Los modelos usan subnamespaces de dominio (`App\Models\Cars\Car`, `App\Models\Users\User`), no `App\Models\Car`. Mantén imports y factories alineados al añadir modelos.
+- Las rutas API viven solo en `routes/api.php` (Laravel añade el prefijo `/api`). El route-model binding usa los modelos de dominio directamente.
+
+## Convenciones y gotchas
+
+- Los DTOs son clases `readonly` con campos nullable y un `fromRequest(FormRequest)` estático. La mayoría de los servicios filtran nulls antes de crear/actualizar, así que las actualizaciones son parciales: omite un campo (o envía `null`) para dejarlo sin cambios.
+- Los endpoints de index paginados aceptan `per_page` (1-100) y lo pasan a `paginate()`; el tamaño de página por defecto es 15.
+- Los Enums son string-backed (`CarStatus`, `SaleStatus`, `RoleEnum`, `PermissionEnum`) y están casteados en los modelos. Valida con `Rule::enum(...)` y compara instancias del enum en los servicios, no strings crudos.
+- La creación de ventas es la ruta financiera: `SaleService` envuelve el trabajo en `DB::transaction`, redondea cada importe derivado a 2 decimales, rechaza coches que no estén `available` y marca el coche como `sold`; la cancelación lo devuelve a `available`. Mantén la nueva lógica financiera dentro de transacciones y con 2 decimales.
+- `StoreSaleRequest` exige `sale_date` exactamente como `Y-m-d H:i:s`, un array `taxes` no vacío con IDs de impuestos activos, y `discount_percentage`/`exchange_rate` con como máximo 2 decimales.
+- Los Resources exponen relaciones solo mediante `whenLoaded()`. Haz eager loading en el servicio o las claves de relación desaparecen; `SaleService` lo hace, pero muchos servicios de catálogos no (la limpieza de N+1 está en `Pendientes.txt`).
+- `ForceJsonResponse` está prepended a todo el grupo de middleware `api` en `bootstrap/app.php`; mantenlo para que los errores de validación y autenticación sigan siendo JSON.
+- La autenticación son tokens bearer de Sanctum desde `POST /api/auth/login`. Solo logout/refresh usan `auth:sanctum`; el resto de rutas son públicas y todos los `authorize()` de los FormRequest devuelven `true`. Los roles/permisos se siembran pero no se aplican, no hay filas pivote rol-permiso sembradas y no hay seeder de usuarios: no asumas que existen policies, Gates ni middleware RBAC.
+- Soft deletes en `User`, `Car` y `Sale`. `users.email`/`document_number` usan claves únicas compuestas con `deleted_at`, pero `users.code` y `cars.vin` también tienen índices únicos simples, así que esos valores no se pueden reutilizar tras un soft delete a nivel de BD.
+- Los códigos de sucursal se generan en el servidor a partir de `max(id)` (`SUC-0001`); el payload de la petición no aporta `code`.
+- Los datos demo están en español. `CarSeeder` busca nombres exactos (`Negro`, `Blanco`, `Sedán`, `Pick-up`, `Corolla`, `F-150`, etc.); mantén los seeders sincronizados si renombras. El orden de `DatabaseSeeder` importa: roles/permisos -> ubicaciones -> coches -> catálogos de ventas, y `CarSeeder` necesita los catálogos y sucursales anteriores.
+- Los tests usan Pest, pero solo existen los dos tests de ejemplo de Laravel y `RefreshDatabase` está comentado en `tests/Pest.php`; añádelo para tests de BD. `UserFactory` está roto (importa `App\Models\User`, que no existe, y sus campos no coinciden con la migración `users`) y `User::factory()` resuelve a `Database\Factories\Users\UserFactory`, que no existe; crea usuarios manualmente o corrige la factory primero.
+- No hay workflows de CI, PHPStan ni tests JS configurados; la verificación disponible es `composer test` + `pint` dentro de Docker.
+
+## Memoria y Lecciones Aprendidas
+
+Registra aquí decisiones técnicas, bugs resueltos y hallazgos no obvios. Añade una entrada fechada al terminar una tarea relevante; no borres entradas anteriores.
+
+- 2026-10-20 — Toolchain estandarizado en Docker (PHP 8.3-FPM + Nginx + MySQL 8.0) porque el host WSL no tiene PHP, Composer ni MySQL. Los tests siguen usando SQLite `:memory:`.
+- 2026-10-20 — `composer setup` no se usa dentro de `app` porque incluye npm/Vite y la imagen PHP no trae Node.
+- 2026-10-20 — Usar siempre `docker compose exec -T` en automatizaciones; sin `-T`, los comandos interactivos pueden colgarse.
