@@ -15,9 +15,12 @@ use App\Services\Sales\SaleService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(DatabaseSeeder::class);
+
+    Sanctum::actingAs(User::where('email', 'manager@caragency.test')->firstOrFail());
 });
 
 /**

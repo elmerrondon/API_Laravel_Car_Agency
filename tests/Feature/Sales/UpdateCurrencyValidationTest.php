@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\Users\RoleEnum;
 use App\Models\Sales\Currency;
+
+beforeEach(fn () => actingAsRole(RoleEnum::MANAGER));
 
 it('rechaza un code de moneda duplicado', function () {
     Currency::create(['name' => 'US Dollar', 'code' => 'USD', 'is_base' => false, 'is_active' => true]);

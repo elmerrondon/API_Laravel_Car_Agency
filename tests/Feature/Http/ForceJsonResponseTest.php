@@ -1,5 +1,11 @@
 <?php
 
+use App\Enums\Users\RoleEnum;
+
+beforeEach(function () {
+    actingAsRole(RoleEnum::ADMIN);
+});
+
 it('devuelve JSON en un 404 de API sin cabecera Accept', function () {
     $response = $this->get('/api/ruta-inexistente');
 

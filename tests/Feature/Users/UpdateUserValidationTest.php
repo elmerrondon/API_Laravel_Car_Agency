@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\Users\RoleEnum;
 use App\Models\Users\User;
+
+beforeEach(fn () => actingAsRole(RoleEnum::ADMIN));
 
 it('rechaza un document_number ya registrado', function () {
     $original = User::create([

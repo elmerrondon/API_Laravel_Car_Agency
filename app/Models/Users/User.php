@@ -46,13 +46,9 @@ class User extends Authenticatable
      */
     public function hasPermissionTo(PermissionEnum $permission): bool
     {
-        $this->loadMissing('roles.permissions');
-
-        return $this->roles->contains(
-            fn (Role $role) => $role->permissions->contains(
-                fn (Permission $rolePermission) => $rolePermission->name === $permission
-            )
-        );
+        return $this->roles()
+            ->whereHas('permissions', fn ($query) => $query->where('name', $permission->value))
+            ->exists();
     }
 
     protected function casts(): array

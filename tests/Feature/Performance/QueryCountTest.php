@@ -9,6 +9,7 @@ use App\Models\Sales\Sale;
 use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * Ejecuta la petición y devuelve cuántas consultas SQL dispara.
@@ -29,6 +30,8 @@ function countQueriesDuringRequest(Closure $callback): int
 
 beforeEach(function () {
     $this->seed(DatabaseSeeder::class);
+
+    Sanctum::actingAs(User::where('email', 'admin@caragency.test')->firstOrFail());
 });
 
 it('mantiene constante el número de consultas del listado de coches', function () {

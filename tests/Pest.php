@@ -1,6 +1,13 @@
 <?php
 
+use App\Enums\Users\RoleEnum;
+use App\Models\Users\Role;
+use App\Models\Users\User;
+use Database\Seeders\Users\PermissionSeeder;
+use Database\Seeders\Users\RolePermissionSeeder;
+use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /*
@@ -47,4 +54,23 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Siembra roles y permisos y autentica un usuario nuevo con el rol indicado.
+ */
+function actingAsRole(RoleEnum $role): User
+{
+    test()->seed([
+        RoleSeeder::class,
+        PermissionSeeder::class,
+        RolePermissionSeeder::class,
+    ]);
+
+    $user = User::factory()->create();
+    $user->roles()->sync([Role::where('name', $role->value)->value('id')]);
+
+    Sanctum::actingAs($user);
+
+    return $user;
 }
