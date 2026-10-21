@@ -10,6 +10,7 @@ use App\Models\Users\Permission;
 use App\Models\Users\Role;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\Users\PermissionSeeder;
+use Database\Seeders\Users\RolePermissionSeeder;
 use Illuminate\Support\Facades\Schema;
 
 $expectedTables = [
@@ -63,4 +64,21 @@ it('siembra los permisos de forma idempotente', function () {
     expect(Permission::count())->toBe(count(PermissionEnum::cases()))
         ->and(Permission::where('name', PermissionEnum::VIEW_REPORTS->value)->value('description'))
         ->toBe(PermissionEnum::VIEW_REPORTS->description());
+});
+
+it('asigna la matriz de permisos esperada a cada rol', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $permissionCount = fn (RoleEnum $role) => Role::where('name', $role->value)
+        ->firstOrFail()
+        ->permissions()
+        ->count();
+
+    expect($permissionCount(RoleEnum::ADMIN))->toBe(13)
+        ->and($permissionCount(RoleEnum::MANAGER))->toBe(10)
+        ->and($permissionCount(RoleEnum::SELLER))->toBe(5);
+
+    expect(RolePermissionSeeder::matrix()[RoleEnum::ADMIN->value])->toHaveCount(13)
+        ->and(RolePermissionSeeder::matrix()[RoleEnum::MANAGER->value])->toHaveCount(10)
+        ->and(RolePermissionSeeder::matrix()[RoleEnum::SELLER->value])->toHaveCount(5);
 });

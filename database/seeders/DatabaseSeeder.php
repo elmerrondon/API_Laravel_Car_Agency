@@ -16,6 +16,7 @@ use Database\Seeders\Sales\CurrencySeeder;
 use Database\Seeders\Sales\PaymentMethodSeeder;
 use Database\Seeders\Sales\TaxSeeder;
 use Database\Seeders\Users\PermissionSeeder;
+use Database\Seeders\Users\RolePermissionSeeder;
 use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             PermissionSeeder::class,
+            RolePermissionSeeder::class,
         ]);
 
         // Locations
