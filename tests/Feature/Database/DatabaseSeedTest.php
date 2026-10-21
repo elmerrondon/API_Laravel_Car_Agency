@@ -9,6 +9,7 @@ use App\Models\Sales\Tax;
 use App\Models\Users\Permission;
 use App\Models\Users\Role;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\Users\PermissionSeeder;
 use Illuminate\Support\Facades\Schema;
 
 $expectedTables = [
@@ -53,4 +54,13 @@ it('siembra los datos base con DatabaseSeeder', function () {
 
     expect(Role::where('name', RoleEnum::ADMIN->value)->exists())->toBeTrue()
         ->and(Permission::where('name', PermissionEnum::VIEW_CARS->value)->exists())->toBeTrue();
+});
+
+it('siembra los permisos de forma idempotente', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(PermissionSeeder::class);
+
+    expect(Permission::count())->toBe(count(PermissionEnum::cases()))
+        ->and(Permission::where('name', PermissionEnum::VIEW_REPORTS->value)->value('description'))
+        ->toBe(PermissionEnum::VIEW_REPORTS->description());
 });

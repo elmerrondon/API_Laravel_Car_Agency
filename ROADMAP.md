@@ -51,7 +51,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 ## Fase 4 — Roles, permisos y protección de rutas
 
 - [x] `4.1` Ampliar `PermissionEnum` a los 13 permisos con `description()`: coches (4), catálogos (2, coches y ventas), ubicaciones (2), ventas (3), usuarios (1, `manage_users`), reportes (1).
-- [ ] `4.2` Actualizar `PermissionSeeder` con `updateOrCreate` para que sea idempotente.
+- [x] `4.2` Actualizar `PermissionSeeder` con `updateOrCreate` para que sea idempotente.
 - [ ] `4.3` Crear `RolePermissionSeeder` con la matriz: `admin` (13), `manager` (10), `vendedor` (5).
 - [ ] `4.4` Crear `UserSeeder` con los tres usuarios base, asignación de rol y sucursal, e incorporarlo a `DatabaseSeeder` tras roles y permisos.
 - [ ] `4.5` Reparar `UserFactory` (namespace `App\Models\Users\User`, columnas reales de `users`) para que `User::factory()` funcione.
