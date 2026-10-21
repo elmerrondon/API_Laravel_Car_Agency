@@ -7,24 +7,22 @@ use App\Models\Locations\Branch;
 
 class BranchService
 {
+    private const RELATIONS = [
+        'city:id,name,state_id,is_active',
+        'city.state:id,name,country_id,is_active',
+        'city.state.country:id,name,is_active',
+    ];
+
     public function getAllPaginated(?int $perPage = null)
     {
-        return Branch::with([
-            'city:id,name,state_id,is_active',
-            'city.state:id,name,country_id,is_active',
-            'city.state.country:id,name,is_active',
-        ])
+        return Branch::with(self::RELATIONS)
             ->select(['id', 'name', 'code', 'address', 'description', 'zip_code', 'is_active', 'city_id'])
             ->paginate($perPage);
     }
 
     public function getBranch(Branch $branch): Branch
     {
-        return $branch->load([
-            'city:id,name,state_id,is_active',
-            'city.state:id,name,country_id,is_active',
-            'city.state.country:id,name,is_active',
-        ]);
+        return $branch->load(self::RELATIONS);
     }
 
     public function createBranch(BranchData $data): Branch

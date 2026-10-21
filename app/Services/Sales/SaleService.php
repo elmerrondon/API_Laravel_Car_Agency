@@ -14,9 +14,33 @@ use LogicException;
 
 class SaleService
 {
+    /**
+     * Relations consumed by SaleResource (including nested resources).
+     *
+     * @var list<string>
+     */
+    private const RELATIONS = [
+        'car.color',
+        'car.carModel.brand',
+        'car.carType',
+        'car.category',
+        'car.branch.city.state.country',
+        'user.roles.permissions',
+        'user.branches.city.state.country',
+        'branch.city.state.country',
+        'baseCurrency',
+        'paymentCurrency',
+        'paymentMethod',
+    ];
+
     public function getAllPaginatedSales(?int $perPage = null)
     {
-        return Sale::with(['car', 'user', 'branch', 'baseCurrency', 'paymentCurrency', 'paymentMethod'])->paginate($perPage);
+        return Sale::with(self::RELATIONS)->paginate($perPage);
+    }
+
+    public function getSale(Sale $sale): Sale
+    {
+        return $sale->load(self::RELATIONS);
     }
 
     public function createSale(SaleData $data)
@@ -82,7 +106,7 @@ class SaleService
 
             $car->update(['status' => CarStatus::SOLD]);
 
-            return $sale->load(['car', 'user', 'branch', 'baseCurrency', 'paymentCurrency', 'paymentMethod']);
+            return $sale->load(self::RELATIONS);
 
         });
 
@@ -100,7 +124,7 @@ class SaleService
             $sale->save();
             $car->save();
 
-            return $sale->load(['car', 'user', 'branch', 'baseCurrency', 'paymentCurrency', 'paymentMethod']);
+            return $sale->load(self::RELATIONS);
         });
     }
 }

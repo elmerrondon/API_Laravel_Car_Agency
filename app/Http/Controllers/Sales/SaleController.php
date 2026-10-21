@@ -26,7 +26,7 @@ class SaleController extends Controller
 
     public function show(Sale $sale)
     {
-        return new SaleResource($sale);
+        return new SaleResource($this->service->getSale($sale));
     }
 
     public function store(StoreSaleRequest $request)

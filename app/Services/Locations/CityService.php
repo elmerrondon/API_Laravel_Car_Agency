@@ -7,22 +7,21 @@ use App\Models\Locations\City;
 
 class CityService
 {
+    private const RELATIONS = [
+        'state:id,name,country_id,is_active',
+        'state.country:id,name,is_active',
+    ];
+
     public function getAllPaginated(?int $perPage = null)
     {
-        return City::with([
-            'state:id,name,country_id,is_active',
-            'state.country:id,name,is_active',
-        ])
+        return City::with(self::RELATIONS)
             ->select(['id', 'name', 'state_id', 'is_active'])
             ->paginate($perPage);
     }
 
     public function getCity(City $city): City
     {
-        return $city->load([
-            'state:id,name,country_id,is_active',
-            'state.country:id,name,is_active',
-        ]);
+        return $city->load(self::RELATIONS);
     }
 
     public function createCity(CityData $data): City
@@ -37,7 +36,7 @@ class CityService
 
         $city->refresh();
 
-        return $city;
+        return $this->getCity($city);
     }
 
     public function updateCity(City $city, CityData $data): City
@@ -50,7 +49,7 @@ class CityService
 
         $city->update($cleanData);
 
-        return $city;
+        return $this->getCity($city);
     }
 
     public function deleteCity(City $city): bool

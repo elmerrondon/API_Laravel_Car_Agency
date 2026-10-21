@@ -40,7 +40,7 @@ class CarService
 
         $car = Car::create($cleanData);
 
-        return $car;
+        return $car->load(self::RELATIONS);
     }
 
     public function updateCar(Car $car, CarData $data): Car
@@ -53,7 +53,7 @@ class CarService
 
         $car->update($cleanData);
 
-        return $car;
+        return $car->load(self::RELATIONS);
     }
 
     public function deleteCar(Car $car): bool

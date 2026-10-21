@@ -7,16 +7,18 @@ use App\Models\Locations\State;
 
 class StateService
 {
+    private const COUNTRY_RELATION = 'country:id,name,is_active';
+
     public function getAllPaginated(?int $perPage = null)
     {
-        return State::with('country:id,name,is_active')
+        return State::with(self::COUNTRY_RELATION)
             ->select(['id', 'name', 'country_id', 'is_active'])
             ->paginate($perPage);
     }
 
     public function getState(State $state): State
     {
-        return $state->load('country:id,name,is_active');
+        return $state->load(self::COUNTRY_RELATION);
     }
 
     public function createState(StateData $data): State
@@ -31,7 +33,7 @@ class StateService
 
         $state->refresh();
 
-        return $state;
+        return $this->getState($state);
     }
 
     public function updateState(State $state, StateData $data): State
@@ -44,7 +46,7 @@ class StateService
 
         $state->update($cleanData);
 
-        return $state;
+        return $this->getState($state);
     }
 
     public function deleteState(State $state): bool

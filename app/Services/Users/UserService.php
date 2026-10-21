@@ -8,9 +8,19 @@ use Illuminate\Support\Facades\DB;
 
 class UserService
 {
+    private const RELATIONS = [
+        'roles.permissions',
+        'branches.city.state.country',
+    ];
+
     public function getAllPaginated(?int $perPage = null)
     {
-        return User::with(['roles', 'branches'])->paginate($perPage);
+        return User::with(self::RELATIONS)->paginate($perPage);
+    }
+
+    public function getUser(User $user): User
+    {
+        return $user->load(self::RELATIONS);
     }
 
     public function createUser(UserData $data): User
@@ -35,7 +45,7 @@ class UserService
 
             $user->refresh();
 
-            return $user->load(['roles', 'branches']);
+            return $user->load(self::RELATIONS);
         });
     }
 
@@ -59,7 +69,7 @@ class UserService
                 $user->branches()->sync($data->branches);
             }
 
-            return $user->load(['roles', 'branches']);
+            return $user->load(self::RELATIONS);
         });
     }
 

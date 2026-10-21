@@ -26,10 +26,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
-
-        $user->load(['roles', 'branches']);
-
-        return new UserResource($user);
+        return new UserResource($this->service->getUser($user));
     }
 
     public function store(StoreUserRequest $request)

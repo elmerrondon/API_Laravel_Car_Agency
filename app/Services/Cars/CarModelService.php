@@ -7,16 +7,18 @@ use App\Models\Cars\CarModel;
 
 class CarModelService
 {
+    private const BRAND_RELATION = 'brand:id,name,description,country_id,is_active';
+
     public function getAllPaginated(?int $perPage = null)
     {
-        return CarModel::with('brand:id,name,description,country_id,is_active')
+        return CarModel::with(self::BRAND_RELATION)
             ->select(['id', 'name', 'description', 'brand_id', 'is_active'])
             ->paginate($perPage);
     }
 
     public function getCarModel(CarModel $carModel): CarModel
     {
-        return $carModel->load('brand:id,name,description,country_id,is_active');
+        return $carModel->load(self::BRAND_RELATION);
     }
 
     public function createCarModel(CarModelData $data): CarModel
@@ -31,7 +33,7 @@ class CarModelService
 
         $carModel->refresh();
 
-        return $carModel;
+        return $carModel->load(self::BRAND_RELATION);
     }
 
     public function updateCarModel(CarModel $carModel, CarModelData $data): CarModel
@@ -44,7 +46,7 @@ class CarModelService
 
         $carModel->update($cleanData);
 
-        return $carModel;
+        return $carModel->load(self::BRAND_RELATION);
     }
 
     public function deleteCarModel(CarModel $carModel): bool
