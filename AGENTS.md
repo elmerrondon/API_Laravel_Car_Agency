@@ -61,9 +61,9 @@ El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` usa MyS
 
 ## Reglas de Git
 
-- El usuario gestiona Git manualmente.
-- **Prohibido** ejecutar `git commit`, `git push`, `git checkout`, `git merge` o `git reset`; tampoco `git add` ni cualquier otro comando que modifique el índice o el historial.
-- Solo se permite lectura con `git status` y `git diff`.
+- **Commits Automáticos por Tarea:** El agente SÍ debe ejecutar `git add` y `git commit` automáticamente al finalizar cada micro-tarea del `ROADMAP.md`, siempre usando Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`) y solo después de verificar que el código funciona en Docker. Nunca incluir el archivo `.env` en los commits.
+- **Operaciones Prohibidas:** El agente tiene estrictamente prohibido ejecutar `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` o `git reset`. La gestión de ramas y subidas al remoto la hace únicamente el usuario.
+- Usa `git status` y `git diff` para preparar cada commit; revisa que no entren `.env`, `vendor/`, `node_modules/` ni artefactos de build.
 
 ## Flujo de trabajo y roadmap
 
