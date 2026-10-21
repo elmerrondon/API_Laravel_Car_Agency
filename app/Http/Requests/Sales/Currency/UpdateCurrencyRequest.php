@@ -25,7 +25,7 @@ class UpdateCurrencyRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'min:2', 'max:50', Rule::unique('currencies', 'name')->ignore($this->currency->id)],
-            'code' => ['sometimes', 'required', 'string', 'min:3', 'max:3', Rule::unique('currencies', 'name')->ignore($this->currency->id)],
+            'code' => ['sometimes', 'required', 'string', 'min:3', 'max:3', Rule::unique('currencies', 'code')->ignore($this->currency->id)],
             'is_base' => ['sometimes', 'required', 'boolean', Rule::unique('currencies')->where(fn ($query) => $query->where('is_base', true))->ignore($this->currency->id)],
             'is_active' => ['sometimes', 'required', 'boolean'],
         ];

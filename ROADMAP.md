@@ -27,7 +27,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 - [x] `1.1` Quitar `SoftDeletes` de `App\Models\Sales\Sale` y crear migración que elimina `sales.deleted_at`; ajustar Resource y servicios que filtren por borrado.
 - [x] `1.2` Crear migración de índices: `cars(status)`, `cars(branch_id)`, `cars(car_model_id)`, `sales(sale_date)`, `sales(status, sale_date)`, `sales(user_id)`, `users(is_active)` (`cars.branch_id`, `cars.car_model_id` y `sales.user_id` ya quedan cubiertos por sus claves foráneas, y se elimina el índice único duplicado `deleted_at` sobre `cars.vin`).
 - [x] `1.3` Eliminar relaciones inversas no usadas en los modelos (empezando por `CarType::cars`), verificando que ningún `with()` ni Resource las consuma.
-- [ ] `1.4` Corregir `UpdateUserRequest` (`Rule::unique('users','document')` → `document_number`) y `UpdateCurrencyRequest` (valida `code` contra la columna `name`).
+- [x] `1.4` Corregir `UpdateUserRequest` (`Rule::unique('users','document')` → `document_number`) y `UpdateCurrencyRequest` (valida `code` contra la columna `name`).
 - [ ] `1.5` Documentar en `AGENTS.md` la política de unicidad de `vin`/`users.code` y el comportamiento de los índices compuestos con `deleted_at` en MySQL.
 
 ## Fase 2 — N+1 y Resources
