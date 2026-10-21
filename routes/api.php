@@ -12,6 +12,7 @@ use App\Http\Controllers\Locations\BranchController;
 use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
+use App\Http\Controllers\Reports\SaleReportController;
 use App\Http\Controllers\Sales\CurrencyController;
 use App\Http\Controllers\Sales\PaymentMethodController;
 use App\Http\Controllers\Sales\SaleController;
@@ -88,6 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:cancel_sales')->group(function () {
         Route::patch('sales/{sale}/cancel', [SaleController::class, 'cancelSale']);
+    });
+
+    // Reportes
+    Route::middleware('permission:view_reports')->group(function () {
+        Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf']);
     });
 
     // Usuarios, roles y permisos
