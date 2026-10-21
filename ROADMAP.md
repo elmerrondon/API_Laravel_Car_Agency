@@ -38,7 +38,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 - [x] `2.3` Ubicaciones (`countries`, `states`, `cities`, `branches`): eager loading y `select` de columnas necesarias.
 - [x] `2.4` Catálogos de ventas (`currencies`, `payment_methods`, `taxes`): eager loading y `select` de columnas necesarias.
 - [x] `2.5` Revisar Resources: cada `whenLoaded()` debe tener su eager load y los controladores deben devolver `new XxxResource` en lugar del modelo crudo.
-- [ ] `2.6` Test de conteo de consultas (Query Log) para el listado de coches y el de ventas, asegurando que no crece con el número de filas.
+- [x] `2.6` Test de conteo de consultas (Query Log) para el listado de coches y el de ventas, asegurando que no crece con el número de filas.
 
 ## Fase 3 — Transacciones y excepciones
 
