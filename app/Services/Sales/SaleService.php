@@ -5,12 +5,14 @@ namespace App\Services\Sales;
 use App\DTOs\Sales\SaleData;
 use App\Enums\Cars\CarStatus;
 use App\Enums\Sales\SaleStatus;
+use App\Exceptions\Sales\CarNotAvailableException;
+use App\Exceptions\Sales\SaleAlreadyCancelledException;
+use App\Exceptions\Sales\SaleNotCancellableException;
 use App\Models\Cars\Car;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
 use Illuminate\Support\Facades\DB;
-use LogicException;
 
 class SaleService
 {
@@ -50,11 +52,11 @@ class SaleService
             $car = Car::findOrFail($data->carId);
 
             if ($car->status === CarStatus::SOLD) {
-                throw new LogicException('The car cannot be sold because it is already marked as sold');
+                throw CarNotAvailableException::sold();
             }
 
             if ($car->status !== CarStatus::AVAILABLE) {
-                throw new LogicException('The car is not available for sale');
+                throw CarNotAvailableException::notAvailable();
             }
 
             $basePrice = $car->price;
@@ -118,11 +120,11 @@ class SaleService
             $lockedSale = Sale::whereKey($sale->getKey())->lockForUpdate()->firstOrFail();
 
             if ($lockedSale->status === SaleStatus::CANCELLED) {
-                throw new LogicException('The sale has already been cancelled');
+                throw new SaleAlreadyCancelledException;
             }
 
             if ($lockedSale->status !== SaleStatus::COMPLETED) {
-                throw new LogicException('Only completed sales can be cancelled');
+                throw SaleNotCancellableException::withStatus($lockedSale->status);
             }
 
             $car = Car::whereKey($lockedSale->car_id)->lockForUpdate()->firstOrFail();
