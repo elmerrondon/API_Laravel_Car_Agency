@@ -34,7 +34,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 ## Fase 2 — N+1 y Resources
 
 - [x] `2.1` `CarService`: eager loading con `with()` en `getAllPaginated`/`show` y `load()` en el detalle.
-- [ ] `2.2` Catálogos de coches (`brands`, `car_models`, `car_types`, `categories`, `colors`): eager loading y `select` de columnas necesarias.
+- [x] `2.2` Catálogos de coches (`brands`, `car_models`, `car_types`, `categories`, `colors`): eager loading y `select` de columnas necesarias.
 - [ ] `2.3` Ubicaciones (`countries`, `states`, `cities`, `branches`): eager loading y `select` de columnas necesarias.
 - [ ] `2.4` Catálogos de ventas (`currencies`, `payment_methods`, `taxes`): eager loading y `select` de columnas necesarias.
 - [ ] `2.5` Revisar Resources: cada `whenLoaded()` debe tener su eager load y los controladores deben devolver `new XxxResource` en lugar del modelo crudo.

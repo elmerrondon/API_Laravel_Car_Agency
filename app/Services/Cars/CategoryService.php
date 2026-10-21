@@ -9,7 +9,7 @@ class CategoryService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return Category::paginate($perPage);
+        return Category::select(['id', 'name', 'description', 'is_active'])->paginate($perPage);
     }
 
     public function createCategory(CategoryData $data)

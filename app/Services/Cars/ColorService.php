@@ -9,7 +9,7 @@ class ColorService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return Color::paginate($perPage);
+        return Color::select(['id', 'name', 'is_active'])->paginate($perPage);
     }
 
     public function createColor(ColorData $data): Color

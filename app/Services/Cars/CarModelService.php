@@ -9,7 +9,14 @@ class CarModelService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return CarModel::paginate($perPage);
+        return CarModel::with('brand:id,name,description,country_id,is_active')
+            ->select(['id', 'name', 'description', 'brand_id', 'is_active'])
+            ->paginate($perPage);
+    }
+
+    public function getCarModel(CarModel $carModel): CarModel
+    {
+        return $carModel->load('brand');
     }
 
     public function createCarModel(CarModelData $data): CarModel
