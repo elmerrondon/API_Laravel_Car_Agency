@@ -68,7 +68,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 
 ## Fase 6 — Cierre
 
-- [ ] `6.1` Actualizar `AGENTS.md` (memoria y lecciones aprendidas) con las decisiones de esta iteración.
+- [x] `6.1` Actualizar `AGENTS.md` (memoria y lecciones aprendidas) con las decisiones de esta iteración.
 - [ ] `6.2` Ejecutar `docker compose exec -T app ./vendor/bin/pest` y `docker compose exec -T app ./vendor/bin/pint`, y marcar aquí el resultado.
 
 ## Verificación

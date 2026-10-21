@@ -16,6 +16,7 @@ Este proyecto es una **API RESTful** robusta desarrollada en **Laravel** para la
 | **Lenguaje**      | **PHP 8**   | Uso de características modernas como Enums nativos y tipado estricto. |
 | **Base de Datos** | **MySQL**   | Almacenamiento relacional de inventario, sucursales y transacciones.  |
 | **Seguridad**     | **Sanctum** | Autenticación mediante tokens y protección de endpoints de la API.    |
+| **Reportes**      | **Dompdf**  | Generación de reportes PDF de ventas e inventario.                    |
 
 ---
 
@@ -28,8 +29,8 @@ Este proyecto es una **API RESTful** robusta desarrollada en **Laravel** para la
 
 ### 2. Arquitectura Limpia y Patrones de Diseño 🏛️
 
-- **Separación de Responsabilidades (SoC):** Implementación del patrón _Service-Repository_. Los controladores se mantienen delgados ("Skinny Controllers") y toda la lógica de negocio compleja se aísla en clases especializadas `Service`.
-- **Enfoque por Dominios (DDD):** El código está estructurado por contextos de negocio independientes (`Cars`, `Sales`, `Locations`, `Users`) en lugar de la agrupación técnica genérica.
+- **Separación de Responsabilidades (SoC):** Implementación del patrón _Service_. Los controladores se mantienen delgados ("Skinny Controllers") y toda la lógica de negocio compleja se aísla en clases especializadas `Service`.
+- **Enfoque por Dominios (DDD):** El código está estructurado por contextos de negocio independientes (`Cars`, `Sales`, `Locations`, `Users`) en lugar de la agrupación técnica genérica; los reportes se agrupan en `Reports`.
 - **Data Transfer Objects (DTOs):** Se utilizan objetos de transferencia de datos inmutables para pasar información desde los `Controllers` hacia los `Services`, desacoplando la lógica interna del marco HTTP.
 
 ### 3. Motor Financiero y de Ventas 💰
@@ -39,24 +40,42 @@ Este proyecto es una **API RESTful** robusta desarrollada en **Laravel** para la
 
 ---
 
-## ⚙️ Configuración y Ejecución Local
+## ⚙️ Configuración y Ejecución Local (Docker)
 
-Para levantar el entorno local, asegúrate de tener PHP 8.x instalado, duplica el archivo `.env.example`, renómbralo a `.env` y configura tus credenciales de base de datos.
+El stack corre con Docker Compose: `app` (PHP 8.3-FPM), `nginx` (puerto 8000) y `mysql` 8.0 (puerto 3306). No hace falta PHP, Composer ni MySQL en el host.
+
+```bash
+# 1. Levantar los contenedores
+docker compose up -d --build
+
+# 2. Instalar dependencias PHP dentro del contenedor
+docker compose exec -T app composer install
+docker compose exec -T app php artisan key:generate   # solo si APP_KEY está vacío
+docker compose exec -T app php artisan migrate --seed
+
+# 3. Abrir la API
+# http://localhost:8000
+```
+
+`.env` (ignorado por Git) debe usar estos valores para el stack Docker:
 
 ```env
 APP_NAME="Car Agency"
 APP_ENV=local
-APP_KEY=base64:D2bWY6UZ1BBDphDcVDG7A4QjLHgq9Dhm/S00pPPqZEw=
+APP_KEY=
 APP_DEBUG=true
 APP_URL=http://localhost:8000
 
+# Usuarios demo creados por UserSeeder (solo desarrollo)
+SEED_USER_PASSWORD=password
+
 # Base de Datos
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=mysql
 DB_PORT=3306
-DB_DATABASE=car_agency
+DB_DATABASE=api_laravel_car_agency
 DB_USERNAME=root
-DB_PASSWORD=
+DB_PASSWORD=secret
 
 # Logs y Caché Local
 LOG_CHANNEL=stack
@@ -68,11 +87,24 @@ CACHE_STORE=database
 SESSION_DRIVER=file
 ```
 
+Usuarios demo: `admin@caragency.test`, `manager@caragency.test` y `vendedor@caragency.test`, con la contraseña definida en `SEED_USER_PASSWORD`.
+
+### Tests y formato
+
+```bash
+docker compose exec -T app composer test
+docker compose exec -T app ./vendor/bin/pest
+docker compose exec -T app ./vendor/bin/pint
+```
+
+
 ---
 
 ## 🌐 Endpoints Principales de la API
 
 > **⚠️ Nota de enrutamiento:** Las rutas marcadas como `apiResource` generan automáticamente los endpoints estándar REST: `GET` (Listar/Mostrar), `POST` (Crear), `PUT/PATCH` (Actualizar) y `DELETE` (Eliminar).
+>
+> **🔒 Autenticación:** salvo `POST /api/auth/login`, todas las rutas exigen `Authorization: Bearer <token>` y el permiso asociado al rol del usuario.
 
 ### 🔐 Autenticación y Usuarios (Auth & Users)
 
@@ -117,6 +149,16 @@ SESSION_DRIVER=file
 | `apiResource` | `/api/currencies`          | Gestión de monedas base y tasas de cambio.                  |
 | `apiResource` | `/api/payment-methods`     | Catálogo de métodos de pago.                                |
 | `apiResource` | `/api/taxes`               | Gestión de impuestos configurables (IVA, Lujo, etc).        |
+
+### 📊 Reportes (Reports)
+
+Todos los reportes requieren el permiso `view_reports`.
+
+| Método | Endpoint                  | Descripción                                                                    |
+| ------ | ------------------------- | ------------------------------------------------------------------------------ |
+| `GET`  | `/api/reports/sales/pdf`  | Reporte PDF de ventas con filtros `from`, `to` (`Y-m-d`, juntos) y `branch_id`. |
+| `GET`  | `/api/reports/cars`       | Agregado JSON del inventario por tipo, marca y estado; filtro `branch_id`.     |
+| `GET`  | `/api/reports/cars/pdf`   | El mismo agregado de inventario en PDF.                                         |
 
 ---
 
