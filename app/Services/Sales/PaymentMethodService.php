@@ -9,7 +9,7 @@ class PaymentMethodService
 {
     public function getAllPaginatedPaymentMethods(?int $perPage = null)
     {
-        return PaymentMethod::paginate($perPage);
+        return PaymentMethod::select(['id', 'name', 'is_active'])->paginate($perPage);
     }
 
     public function createPaymentMethod(PaymentMethodData $data): PaymentMethod

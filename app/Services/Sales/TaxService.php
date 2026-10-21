@@ -9,7 +9,7 @@ class TaxService
 {
     public function getAllPaginatedTaxes(?int $perPage = null)
     {
-        return Tax::paginate($perPage);
+        return Tax::select(['id', 'name', 'code', 'percentage', 'is_active'])->paginate($perPage);
     }
 
     public function createTax(TaxData $data): Tax
