@@ -67,10 +67,10 @@ El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` usa MyS
 
 ## Flujo de trabajo y roadmap
 
-- El plan detallado vive en `ROADMAP.md`, generado a partir de `Pendientes.txt`, y es la fuente de verdad del avance.
+- El plan detallado vive en `ROADMAP.md`, que absorbió por completo el antiguo `Pendientes.txt` (ya eliminado), y es la fuente de verdad del avance.
 - Marca cada tarea terminada con `[x]` en `ROADMAP.md`; no crees listas TODO paralelas.
 - Antes de empezar una tarea grande, revisa `ROADMAP.md` y actualízalo al terminarla.
-- `Pendientes.txt` son las notas originales; no lo reescribas salvo que el usuario lo pida.
+- Cada micro-tarea del roadmap equivale a un commit atómico.
 
 ## Estructura del código
 
@@ -108,3 +108,5 @@ Registra aquí decisiones técnicas, bugs resueltos y hallazgos no obvios. Añad
 - 2026-10-20 — Toolchain estandarizado en Docker (PHP 8.3-FPM + Nginx + MySQL 8.0) porque el host WSL no tiene PHP, Composer ni MySQL. Los tests siguen usando SQLite `:memory:`.
 - 2026-10-20 — `composer setup` no se usa dentro de `app` porque incluye npm/Vite y la imagen PHP no trae Node.
 - 2026-10-20 — Usar siempre `docker compose exec -T` en automatizaciones; sin `-T`, los comandos interactivos pueden colgarse.
+- 2026-10-20 — `ROADMAP.md` absorbió todo `Pendientes.txt` y se eliminó el archivo original; el roadmap es la única lista de trabajo.
+- 2026-10-20 — Plan aprobado: `Sale` sin `SoftDeletes` (estado `cancelled`), solo `POST /api/auth/login` público, RBAC de 13 permisos, `vin`/`users.code` con unicidad global y reportes PDF con `barryvdh/laravel-dompdf:^3.1`.
