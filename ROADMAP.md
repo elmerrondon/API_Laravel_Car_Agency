@@ -19,7 +19,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 - [x] `0.3` Configurar Nginx para `/var/www/html/public` y `fastcgi_pass app:9000`.
 - [x] `0.4` Crear `.dockerignore` y `.env` local con `DB_HOST=mysql`, `DB_DATABASE=api_laravel_car_agency`, `DB_USERNAME=root`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`.
 - [x] `0.5` Levantar el stack y validar `php artisan about`, migraciones, seeders, `composer test` y `pint`.
-- [ ] `0.6` Activar `RefreshDatabase` en `tests/Pest.php` y crear un test de humo que ejecute migraciones + `DatabaseSeeder`.
+- [x] `0.6` Activar `RefreshDatabase` en `tests/Pest.php` y crear un test de humo que ejecute migraciones + `DatabaseSeeder`.
 - [ ] `0.7` Añadir test base de respuesta JSON (`ForceJsonResponse`) para 404 y validación.
 
 ## Fase 1 — Modelos, borrado lógico e índices
