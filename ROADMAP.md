@@ -21,6 +21,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 - [x] `0.5` Levantar el stack y validar `php artisan about`, migraciones, seeders, `composer test` y `pint`.
 - [x] `0.6` Activar `RefreshDatabase` en `tests/Pest.php` y crear un test de humo que ejecute migraciones + `DatabaseSeeder`.
 - [x] `0.7` Añadir test base de respuesta JSON (`ForceJsonResponse`) para 404 y validación.
+- [x] `0.8` Aislar la suite del MySQL de Docker: PHPUnit solo escribía en `$_ENV`, pero Laravel prefiere `$_SERVER`, donde `env_file` inyecta el `.env` real; `RefreshDatabase` borraba la base de desarrollo.
 
 ## Fase 1 — Modelos, borrado lógico e índices
 
