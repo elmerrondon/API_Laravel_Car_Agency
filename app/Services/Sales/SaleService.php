@@ -49,7 +49,7 @@ class SaleService
     {
 
         return DB::transaction(function () use ($data) {
-            $car = Car::findOrFail($data->carId);
+            $car = Car::whereKey($data->carId)->lockForUpdate()->firstOrFail();
 
             if ($car->status === CarStatus::SOLD) {
                 throw CarNotAvailableException::sold();

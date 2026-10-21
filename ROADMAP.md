@@ -45,7 +45,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 - [x] `3.1` `SaleService::cancelSale`: ejecutar en `DB::transaction` con `lockForUpdate`, rechazar ventas ya canceladas y no cancelables, y devolver el coche a `available`.
 - [x] `3.2` Crear excepciones de dominio de ventas (`CarNotAvailableException`, `SaleAlreadyCancelledException`, `SaleNotCancellableException`) y mapearlas a JSON 409/422 en `bootstrap/app.php`.
 - [x] `3.3` Adelgazar `SaleController`: quitar `try/catch` genéricos y dejar que las excepciones de dominio se rendericen.
-- [ ] `3.4` Envolver en transacción los `create`/`update` de `CarService` y `UserService` cuando toquen pivotes o varias tablas.
+- [x] `3.4` Envolver en transacción los `create`/`update` de `CarService` y `UserService` cuando toquen pivotes o varias tablas.
 - [ ] `3.5` Tests de cancelación: éxito, doble cancelación (409), coche ya vendido (422) y liberación del coche.
 
 ## Fase 4 — Roles, permisos y protección de rutas
