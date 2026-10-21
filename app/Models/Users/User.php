@@ -3,7 +3,6 @@
 namespace App\Models\Users;
 
 use App\Models\Locations\Branch;
-use App\Models\Sales\Sale;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -39,11 +38,6 @@ class User extends Authenticatable
     public function branches()
     {
         return $this->belongsToMany(Branch::class);
-    }
-
-    public function sales()
-    {
-        return $this->hasMany(Sale::class);
     }
 
     protected function casts(): array

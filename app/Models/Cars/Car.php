@@ -4,7 +4,6 @@ namespace App\Models\Cars;
 
 use App\Enums\Cars\CarStatus;
 use App\Models\Locations\Branch;
-use App\Models\Sales\Sale;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -40,11 +39,6 @@ class Car extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
-    }
-
-    public function sales()
-    {
-        return $this->hasMany(Sale::class);
     }
 
     public function casts(): array

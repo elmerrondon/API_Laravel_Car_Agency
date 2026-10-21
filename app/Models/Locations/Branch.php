@@ -2,9 +2,6 @@
 
 namespace App\Models\Locations;
 
-use App\Models\Cars\Car;
-use App\Models\Sales\Sale;
-use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
@@ -16,21 +13,6 @@ class Branch extends Model
     public function city()
     {
         return $this->belongsTo(City::class);
-    }
-
-    public function cars()
-    {
-        return $this->hasMany(Car::class);
-    }
-
-    public function users()
-    {
-        return $this->belongsToMany(User::class);
-    }
-
-    public function sales()
-    {
-        return $this->hasMany(Sale::class);
     }
 
     public function casts(): array

@@ -15,11 +15,6 @@ class CarModel extends Model
         return $this->belongsTo(Brand::class);
     }
 
-    public function cars()
-    {
-        return $this->hasMany(Car::class);
-    }
-
     public function casts(): array
     {
         return ['is_active' => 'boolean'];

@@ -10,11 +10,6 @@ class Category extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function cars()
-    {
-        return $this->hasMany(Car::class);
-    }
-
     public function casts(): array
     {
         return ['is_active' => 'boolean'];

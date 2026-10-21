@@ -10,16 +10,6 @@ class Currency extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function baseSales()
-    {
-        return $this->hasMany(Sale::class, 'base_currency_id');
-    }
-
-    public function paymentSales()
-    {
-        return $this->hasMany(Sale::class, 'payment_currency_id');
-    }
-
     public function casts(): array
     {
         return ['is_active' => 'boolean', 'is_base' => 'boolean'];

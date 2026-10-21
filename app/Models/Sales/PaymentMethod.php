@@ -10,11 +10,6 @@ class PaymentMethod extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function sales()
-    {
-        return $this->hasMany(Sale::class);
-    }
-
     public function casts(): array
     {
         return ['is_active' => 'boolean'];

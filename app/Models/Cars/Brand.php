@@ -16,11 +16,6 @@ class Brand extends Model
         return $this->belongsTo(Country::class);
     }
 
-    public function models()
-    {
-        return $this->hasMany(CarModel::class);
-    }
-
     public function casts(): array
     {
         return [
