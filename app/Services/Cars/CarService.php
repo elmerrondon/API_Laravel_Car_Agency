@@ -7,9 +7,27 @@ use App\Models\Cars\Car;
 
 class CarService
 {
+    /**
+     * Relations consumed by CarResource (including nested resources).
+     *
+     * @var list<string>
+     */
+    private const RELATIONS = [
+        'color',
+        'carModel.brand',
+        'carType',
+        'category',
+        'branch.city.state.country',
+    ];
+
     public function getAllPaginated(?int $perPage = null)
     {
-        return Car::paginate($perPage);
+        return Car::with(self::RELATIONS)->paginate($perPage);
+    }
+
+    public function getCar(Car $car): Car
+    {
+        return $car->load(self::RELATIONS);
     }
 
     public function createCar(CarData $data): Car
