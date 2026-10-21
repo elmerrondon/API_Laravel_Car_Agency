@@ -69,7 +69,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 ## Fase 6 — Cierre
 
 - [x] `6.1` Actualizar `AGENTS.md` (memoria y lecciones aprendidas) con las decisiones de esta iteración.
-- [ ] `6.2` Ejecutar `docker compose exec -T app ./vendor/bin/pest` y `docker compose exec -T app ./vendor/bin/pint`, y marcar aquí el resultado.
+- [x] `6.2` Ejecutar `docker compose exec -T app ./vendor/bin/pest` y `docker compose exec -T app ./vendor/bin/pint`, y marcar aquí el resultado. Resultado 2026-10-21: `migrate:fresh --seed` OK, **48 tests / 215 aserciones** y **Pint limpio (233 archivos)**; smoke test HTTP con login real y reportes PDF `%PDF-1.7`.
 
 ## Verificación
 
