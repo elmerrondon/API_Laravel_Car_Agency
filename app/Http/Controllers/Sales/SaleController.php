@@ -10,7 +10,6 @@ use App\Http\Requests\Sales\Sale\StoreSaleRequest;
 use App\Http\Resources\Sales\SaleResource;
 use App\Models\Sales\Sale;
 use App\Services\Sales\SaleService;
-use LogicException;
 
 class SaleController extends Controller
 {
@@ -31,15 +30,9 @@ class SaleController extends Controller
 
     public function store(StoreSaleRequest $request)
     {
-        try {
-            $dto = SaleData::fromRequest($request);
-            $sale = $this->service->createSale($dto);
+        $dto = SaleData::fromRequest($request);
 
-            return new SaleResource($sale);
-
-        } catch (LogicException $e) {
-            return response()->json(['message' => $e->getMessage()], 409);
-        }
+        return new SaleResource($this->service->createSale($dto));
     }
 
     public function cancelSale(Sale $sale, CancelSaleRequest $request)
