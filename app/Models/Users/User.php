@@ -2,6 +2,7 @@
 
 namespace App\Models\Users;
 
+use App\Enums\Users\PermissionEnum;
 use App\Models\Locations\Branch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -38,6 +39,20 @@ class User extends Authenticatable
     public function branches()
     {
         return $this->belongsToMany(Branch::class);
+    }
+
+    /**
+     * Indica si alguno de los roles del usuario concede el permiso indicado.
+     */
+    public function hasPermissionTo(PermissionEnum $permission): bool
+    {
+        $this->loadMissing('roles.permissions');
+
+        return $this->roles->contains(
+            fn (Role $role) => $role->permissions->contains(
+                fn (Permission $rolePermission) => $rolePermission->name === $permission
+            )
+        );
     }
 
     protected function casts(): array

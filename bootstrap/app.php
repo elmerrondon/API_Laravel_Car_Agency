@@ -3,6 +3,7 @@
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
+use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\ForceJsonResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [ForceJsonResponse::class]);
+
+        $middleware->alias([
+            'permission' => EnsureUserHasPermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
