@@ -25,7 +25,7 @@ class CityController extends Controller
 
     public function show(City $city)
     {
-        return new CityResource($city);
+        return new CityResource($this->service->getCity($city));
     }
 
     public function store(StoreCityRequest $request)

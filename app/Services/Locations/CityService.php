@@ -9,7 +9,20 @@ class CityService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return City::paginate($perPage);
+        return City::with([
+            'state:id,name,country_id,is_active',
+            'state.country:id,name,is_active',
+        ])
+            ->select(['id', 'name', 'state_id', 'is_active'])
+            ->paginate($perPage);
+    }
+
+    public function getCity(City $city): City
+    {
+        return $city->load([
+            'state:id,name,country_id,is_active',
+            'state.country:id,name,is_active',
+        ]);
     }
 
     public function createCity(CityData $data): City

@@ -9,7 +9,14 @@ class StateService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return State::paginate($perPage);
+        return State::with('country:id,name,is_active')
+            ->select(['id', 'name', 'country_id', 'is_active'])
+            ->paginate($perPage);
+    }
+
+    public function getState(State $state): State
+    {
+        return $state->load('country:id,name,is_active');
     }
 
     public function createState(StateData $data): State

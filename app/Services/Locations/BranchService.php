@@ -9,7 +9,22 @@ class BranchService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return Branch::with('city')->paginate($perPage);
+        return Branch::with([
+            'city:id,name,state_id,is_active',
+            'city.state:id,name,country_id,is_active',
+            'city.state.country:id,name,is_active',
+        ])
+            ->select(['id', 'name', 'code', 'address', 'description', 'zip_code', 'is_active', 'city_id'])
+            ->paginate($perPage);
+    }
+
+    public function getBranch(Branch $branch): Branch
+    {
+        return $branch->load([
+            'city:id,name,state_id,is_active',
+            'city.state:id,name,country_id,is_active',
+            'city.state.country:id,name,is_active',
+        ]);
     }
 
     public function createBranch(BranchData $data): Branch
@@ -37,9 +52,7 @@ class BranchService
 
         $branch->refresh();
 
-        $branch->load('city');
-
-        return $branch;
+        return $this->getBranch($branch);
     }
 
     public function updateBranch(Branch $branch, BranchData $data): Branch
@@ -59,9 +72,7 @@ class BranchService
 
         $branch->update($cleanData);
 
-        $branch->load('city');
-
-        return $branch;
+        return $this->getBranch($branch);
     }
 
     public function deleteBranch(Branch $branch): bool

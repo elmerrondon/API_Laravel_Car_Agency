@@ -25,7 +25,7 @@ class StateController extends Controller
 
     public function show(State $state)
     {
-        return new StateResource($state);
+        return new StateResource($this->service->getState($state));
     }
 
     public function store(StoreStateRequest $request)

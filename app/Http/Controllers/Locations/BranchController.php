@@ -25,9 +25,7 @@ class BranchController extends Controller
 
     public function show(Branch $branch)
     {
-        $branch->load('city');
-
-        return new BranchResource($branch);
+        return new BranchResource($this->service->getBranch($branch));
     }
 
     public function store(StoreBranchRequest $request)
