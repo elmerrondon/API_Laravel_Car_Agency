@@ -8,9 +8,11 @@ use App\Models\Sales\Currency;
 use App\Models\Sales\Tax;
 use App\Models\Users\Permission;
 use App\Models\Users\Role;
+use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RolePermissionSeeder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 $expectedTables = [
@@ -64,6 +66,25 @@ it('siembra los permisos de forma idempotente', function () {
     expect(Permission::count())->toBe(count(PermissionEnum::cases()))
         ->and(Permission::where('name', PermissionEnum::VIEW_REPORTS->value)->value('description'))
         ->toBe(PermissionEnum::VIEW_REPORTS->description());
+});
+
+it('siembra los usuarios base con rol y sucursal', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $password = env('SEED_USER_PASSWORD', 'password');
+
+    foreach ([
+        'admin@caragency.test' => RoleEnum::ADMIN,
+        'manager@caragency.test' => RoleEnum::MANAGER,
+        'vendedor@caragency.test' => RoleEnum::SELLER,
+    ] as $email => $role) {
+        $user = User::where('email', $email)->first();
+
+        expect($user)->not->toBeNull()
+            ->and($user->roles()->pluck('name')->all())->toBe([$role->value])
+            ->and($user->branches()->count())->toBe(1)
+            ->and(Hash::check($password, $user->password))->toBeTrue();
+    }
 });
 
 it('asigna la matriz de permisos esperada a cada rol', function () {

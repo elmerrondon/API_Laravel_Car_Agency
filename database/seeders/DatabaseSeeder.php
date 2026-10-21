@@ -18,6 +18,7 @@ use Database\Seeders\Sales\TaxSeeder;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RolePermissionSeeder;
 use Database\Seeders\Users\RoleSeeder;
+use Database\Seeders\Users\UserSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -30,7 +31,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Users
+        // Users (roles y permisos ya sembrados)
         $this->call([
             RoleSeeder::class,
             PermissionSeeder::class,
@@ -44,6 +45,9 @@ class DatabaseSeeder extends Seeder
             CitySeeder::class,
             BranchSeeder::class,
         ]);
+
+        // Usuarios base: necesitan roles, permisos y sucursal
+        $this->call(UserSeeder::class);
 
         // Cars
         $this->call([
