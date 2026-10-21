@@ -112,19 +112,31 @@ class SaleService
 
     }
 
-    public function cancelSale(Sale $sale, string $notes)
+    public function cancelSale(Sale $sale, string $notes): Sale
     {
         return DB::transaction(function () use ($sale, $notes) {
-            $car = $sale->car;
+            $lockedSale = Sale::whereKey($sale->getKey())->lockForUpdate()->firstOrFail();
 
-            $sale->status = SaleStatus::CANCELLED;
-            $sale->notes = $notes;
-            $car->status = CarStatus::AVAILABLE;
+            if ($lockedSale->status === SaleStatus::CANCELLED) {
+                throw new LogicException('The sale has already been cancelled');
+            }
 
-            $sale->save();
-            $car->save();
+            if ($lockedSale->status !== SaleStatus::COMPLETED) {
+                throw new LogicException('Only completed sales can be cancelled');
+            }
 
-            return $sale->load(self::RELATIONS);
+            $car = Car::whereKey($lockedSale->car_id)->lockForUpdate()->firstOrFail();
+
+            $lockedSale->status = SaleStatus::CANCELLED;
+            $lockedSale->notes = $notes;
+            $lockedSale->save();
+
+            if ($car->status === CarStatus::SOLD) {
+                $car->status = CarStatus::AVAILABLE;
+                $car->save();
+            }
+
+            return $lockedSale->load(self::RELATIONS);
         });
     }
 }
