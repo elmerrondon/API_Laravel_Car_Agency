@@ -7,12 +7,9 @@ use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Sale extends Model
 {
-    use SoftDeletes;
-
     protected $fillable = [
         'exchange_rate',
         'base_price',
@@ -33,7 +30,7 @@ class Sale extends Model
         'notes',
     ];
 
-    protected $hidden = ['created_at', 'updated_at', 'deleted_at'];
+    protected $hidden = ['created_at', 'updated_at'];
 
     public function car()
     {
