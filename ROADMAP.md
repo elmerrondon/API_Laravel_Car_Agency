@@ -57,7 +57,7 @@ El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento
 - [x] `4.5` Reparar `UserFactory` (namespace `App\Models\Users\User`, columnas reales de `users`) para que `User::factory()` funcione.
 - [x] `4.6` Implementar `User::hasPermissionTo(PermissionEnum)` y el middleware `permission` registrado en `bootstrap/app.php`.
 - [x] `4.7` Aplicar `auth:sanctum` + `permission:` a todas las rutas; dejar público solo `POST /api/auth/login`.
-- [ ] `4.8` Tests de autorización: 401 sin token, 403 sin permiso, 200 con permiso, y login público.
+- [x] `4.8` Tests de autorización: 401 sin token, 403 sin permiso, 200 con permiso, y login público.
 
 ## Fase 5 — Reportes PDF
 
