@@ -23,7 +23,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [x] `7.5` Publicar `config/scramble.php`: versión OpenAPI explícita (3.1.2, único soporte de Scramble 0.13.x), info del API, UI, `security_strategy` Bearer (`bearerAuth`) de Sanctum y dev tools por entorno.
 - [x] `7.6` Crear `config/docs.php` + Gate `viewApiDocs` (`local`/`testing` o `DOCS_ENABLED=true`) y test de acceso 200/403.
 - [x] `7.7` Mover la expiración de Sanctum a `SANCTUM_EXPIRATION` y completar `.env.example` (`API_VERSION`, `DOCS_ENABLED`, `SCRAMBLE_DEV_TOOLS`, `CORS_ALLOWED_ORIGINS`, `SANCTUM_EXPIRATION`).
-- [ ] `7.8` Definir limitadores `api` (120/min) y `reports` (30/min) con límites configurables, aplicarlos en `routes/api.php` y testear el 429.
+- [x] `7.8` Definir limitadores `api` (120/min) y `reports` (30/min) con límites configurables (`config/rate_limits.php`), aplicarlos en `routes/api.php` y testear el 429.
 - [ ] `7.9` Publicar `config/cors.php` con orígenes desde `CORS_ALLOWED_ORIGINS` y test de cabeceras CORS.
 
 ## Fase 8 — PHPStan nivel 5 hasta 0 errores

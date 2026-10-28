@@ -32,8 +32,22 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(5)->by(
+            return Limit::perMinute((int) config('rate_limits.login'))->by(
                 mb_strtolower((string) $request->input('email')).'|'.$request->ip()
+            );
+        });
+
+        // Límite general del API agrupado por usuario (o IP si no hay token).
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute((int) config('rate_limits.api'))->by(
+                'api|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+            );
+        });
+
+        // Los reportes generan PDFs y agregan datos: límite más estricto.
+        RateLimiter::for('reports', function (Request $request) {
+            return Limit::perMinute((int) config('rate_limits.reports'))->by(
+                'reports|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
             );
         });
 

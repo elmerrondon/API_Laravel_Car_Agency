@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 // Autenticación: la única ruta pública es el login.
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
 
@@ -93,7 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Reportes
-    Route::middleware('permission:view_reports')->group(function () {
+    Route::middleware(['permission:view_reports', 'throttle:reports'])->group(function () {
         Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf']);
         Route::get('reports/cars', [CarReportController::class, 'index']);
         Route::get('reports/cars/pdf', [CarReportController::class, 'pdf']);
