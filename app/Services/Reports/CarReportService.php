@@ -6,6 +6,7 @@ use App\Enums\Cars\CarStatus;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Sales\Currency;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CarReportService
@@ -29,20 +30,24 @@ class CarReportService
         $byType = $this->groupByRelation($branchId, 'car_types', 'cars.car_type_id');
         $byBrand = $this->groupByBrand($branchId);
 
-        $byStatus = Car::query()
+        /** @var Collection<int, Car> $statusRows */
+        $statusRows = Car::query()
             ->when($branchId !== null, fn ($query) => $query->where('cars.branch_id', $branchId))
             ->select('status', DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(price), 0) as total_price'))
             ->groupBy('status')
             ->orderBy('status')
-            ->get()
-            ->map(fn ($row) => [
-                'status' => $row->status->value,
-                'label' => $this->statusLabel($row->status),
-                'count' => (int) $row->count,
-                'total_price' => round((float) $row->total_price, 2),
-            ])
-            ->values()
-            ->all();
+            ->get();
+
+        $byStatus = array_values($statusRows
+            ->map(function (Car $row): array {
+                return [
+                    'status' => $row->status->value,
+                    'label' => $this->statusLabel($row->status),
+                    'count' => (int) $row->getAttribute('count'),
+                    'total_price' => round((float) $row->getAttribute('total_price'), 2),
+                ];
+            })
+            ->all());
 
         return [
             'filters' => ['branch_id' => $branchId],
@@ -63,20 +68,17 @@ class CarReportService
      */
     private function groupByRelation(?int $branchId, string $table, string $foreignKey): array
     {
-        return Car::query()
+        /** @var Collection<int, Car> $rows */
+        $rows = Car::query()
             ->join($table, "{$table}.id", '=', $foreignKey)
             ->when($branchId !== null, fn ($query) => $query->where('cars.branch_id', $branchId))
             ->select("{$table}.name as name", DB::raw('COUNT(*) as count'), DB::raw('COALESCE(SUM(cars.price), 0) as total_price'))
             ->groupBy("{$table}.name")
             ->orderByDesc('count')
             ->orderBy("{$table}.name")
-            ->get()
-            ->map(fn ($row) => [
-                'name' => $row->name,
-                'count' => (int) $row->count,
-                'total_price' => round((float) $row->total_price, 2),
-            ])
-            ->all();
+            ->get();
+
+        return $this->formatRows($rows);
     }
 
     /**
@@ -86,7 +88,8 @@ class CarReportService
      */
     private function groupByBrand(?int $branchId): array
     {
-        return Car::query()
+        /** @var Collection<int, Car> $rows */
+        $rows = Car::query()
             ->join('car_models', 'car_models.id', '=', 'cars.car_model_id')
             ->join('brands', 'brands.id', '=', 'car_models.brand_id')
             ->when($branchId !== null, fn ($query) => $query->where('cars.branch_id', $branchId))
@@ -94,13 +97,28 @@ class CarReportService
             ->groupBy('brands.name')
             ->orderByDesc('count')
             ->orderBy('brands.name')
-            ->get()
-            ->map(fn ($row) => [
-                'name' => $row->name,
-                'count' => (int) $row->count,
-                'total_price' => round((float) $row->total_price, 2),
-            ])
-            ->all();
+            ->get();
+
+        return $this->formatRows($rows);
+    }
+
+    /**
+     * Normalize the aggregate rows returned by the grouped queries.
+     *
+     * @param  Collection<int, Car>  $rows
+     * @return list<array{name: string, count: int, total_price: float}>
+     */
+    private function formatRows(Collection $rows): array
+    {
+        return array_values($rows
+            ->map(function (Car $row): array {
+                return [
+                    'name' => (string) $row->getAttribute('name'),
+                    'count' => (int) $row->getAttribute('count'),
+                    'total_price' => round((float) $row->getAttribute('total_price'), 2),
+                ];
+            })
+            ->all());
     }
 
     private function statusLabel(CarStatus $status): string

@@ -30,7 +30,7 @@ class BranchService
 
         $maxId = (int) Branch::max('id');
         $nextNumber = $maxId + 1;
-        $generatedCode = 'SUC-'.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        $generatedCode = 'SUC-'.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
 
         $dataArray = [
             'name' => $data->name,

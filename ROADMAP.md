@@ -31,7 +31,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 
 - [x] `8.1` Modelos: `casts()` protegido, tipos de retorno en relaciones y `parseModelCastsMethod` en Larastan (180 → 107 errores; desaparecen los 60 `relationExistence`).
 - [x] `8.2` Resources: anotar `@mixin` con el modelo subyacente en los 17 Resources (107 → 12 errores).
-- [ ] `8.3` Servicios: corregir `withStatus()` con string, `statusLabel()`, `str_pad()`, los `map()` no resolubles y el `??` sobre `SaleData::$discountPercentage`.
+- [x] `8.3` Servicios: `str_pad()` casteado en `BranchService`, `CarReportService` tipado con `Collection<int, Car>` + `getAttribute()` en los agregados, y `SaleData::$discountPercentage` sin `??` (12 → 0 errores).
 - [ ] `8.4` Controllers, Requests, DTOs, Enums, Seeders y Middleware: cerrar los errores restantes hasta `[OK] No errors`.
 
 ## Fase 9 — Tipado estricto y arquitectura

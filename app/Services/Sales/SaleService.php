@@ -60,7 +60,7 @@ class SaleService
             }
 
             $basePrice = $car->price;
-            $discountPercentage = $data->discountPercentage ?? 0;
+            $discountPercentage = $data->discountPercentage;
             $totalDiscount = round($basePrice * ($discountPercentage / 100), 2);
             $taxableAmount = $basePrice - $totalDiscount;
 
