@@ -4,6 +4,7 @@ namespace App\Services\Users;
 
 use App\DTOs\Users\RoleData;
 use App\Enums\Users\RoleEnum;
+use App\Exceptions\Users\RoleInUseException;
 use App\Models\Users\Role;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -71,6 +72,10 @@ class RoleService
 
         if (in_array($role->name, $systemRoles)) {
             throw new LogicException('The role cannot be deleted because it is a base system role');
+        }
+
+        if ($role->users()->exists()) {
+            throw RoleInUseException::assignedToUsers();
         }
 
         return $role->delete();

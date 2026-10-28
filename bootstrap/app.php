@@ -3,8 +3,10 @@
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
+use App\Exceptions\Users\RoleInUseException;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\ForceJsonResponse;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -37,4 +39,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(
             fn (SaleAlreadyCancelledException|SaleNotCancellableException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
         );
+
+        $exceptions->render(
+            fn (RoleInUseException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
+        );
+
+        $exceptions->render(function (QueryException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $message = mb_strtolower($e->getMessage());
+            $isForeignKeyViolation = (string) $e->getCode() === '23000'
+                && (str_contains($message, 'foreign key') || str_contains($message, '1451'));
+
+            return $isForeignKeyViolation
+                ? response()->json(['message' => 'The record cannot be deleted because it is referenced by other records.'], 409)
+                : null;
+        });
     })->create();

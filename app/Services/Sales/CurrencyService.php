@@ -46,6 +46,10 @@ class CurrencyService
         $isBase = $cleanArray['is_base'] ?? false;
         $existsBase = Currency::where('is_base', true)->where('id', '!=', $currency->id)->exists();
 
+        if ($currency->is_base && array_key_exists('is_base', $cleanArray) && $cleanArray['is_base'] === false) {
+            throw new LogicException('The base currency cannot be unset because the system needs a base currency');
+        }
+
         if (($isBase && Sale::exists())) {
             throw new LogicException('The currency base cannot be updated because sales already exists in the system');
         }
