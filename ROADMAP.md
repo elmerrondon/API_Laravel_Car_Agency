@@ -12,7 +12,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 2. **Alcance multi-sucursal sin scoping (decisión de negocio intencional).** Un usuario con permiso consulta coches y ventas de todas las sucursales para ver stock y operaciones entre sedes. No se añade filtro por sucursal ni control de acceso por objeto; se documenta en `AGENTS.md`.
 3. **Documentación OpenAPI por entorno.** Habilitada por defecto en `local` y `testing`; en producción queda cerrada salvo que `DOCS_ENABLED=true`. La compuerta es el Gate `viewApiDocs` que ya consume `RestrictedDocsAccess`.
 4. **Sin `pest-plugin-mutate` ni drivers de cobertura.** No se toca el `Dockerfile` para instalar Xdebug/PCOV; la calidad se mide con PHPStan, Pint y la suite funcional.
-5. **Compatibilidad Postman con versión de OpenAPI fijada explícitamente.** Scramble 0.13.x solo emite 3.1 y 3.2 (el enum `OpenApiVersion` no tiene 3.0), así que se fija `V3_1` (documento `3.1.2`), versión que Postman moderno importa directamente desde `/docs/api.json`. Se documenta la limitación y la alternativa de exportar a colección Postman si se necesitara 3.0.
+5. **Compatibilidad Postman (resuelto sin degradar el paquete).** Scramble 0.13.x solo emite 3.1/3.2 (no existe `V3_0` en su enum) y la rama 0.12 también emite `3.1.0`, así que degradar no da acceso a OpenAPI 3.0. Se fija `V3_1` (documento `3.1.2`), versión que Postman importa de forma oficial, con un servidor relativo `/api` resuelto por `APP_URL` y export local con `composer docs:export` a `storage/app/openapi.json`.
 
 ## Fase 7 — Dependencias, configuración y endurecimiento base
 
@@ -67,7 +67,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [ ] `12.2` Documentar los PDF como `application/pdf` binario en lugar de JSON.
 - [ ] `12.3` Documentar explícitamente paginación (`page`, `per_page`) y filtros de reportes (`from`, `to`, `branch_id`).
 - [ ] `12.4` Añadir tags y summaries en español por dominio (coches, catálogos, ubicaciones, ventas, reportes, usuarios, auth).
-- [ ] `12.5` Exportar `api.json` con `php artisan scramble:export` y validar la importación en Postman.
+- [ ] `12.5` Exportar el documento con `composer docs:export` (`storage/app/openapi.json`) y validar la importación en Postman (OpenAPI 3.1.2 está soportado).
 - [ ] `12.6` Test del documento OpenAPI: 200 en `testing`, `securitySchemes` Bearer, paths esperados, PDFs binarios y 403 en producción sin `DOCS_ENABLED`.
 
 ## Fase 13 — Cierre y documentación

@@ -31,8 +31,11 @@ return [
 
     /*
      * The path where your OpenAPI specification will be exported.
+     *
+     * Se guarda dentro de storage/ (ignorado por Git) para importarlo en
+     * Postman sin ensuciar el repositorio con artefactos generados.
      */
-    'export_path' => 'api.json',
+    'export_path' => 'storage/app/openapi.json',
 
     /*
      * Cache configuration for the generated OpenAPI document.
@@ -121,8 +124,14 @@ return [
      *     'Prod' => 'https://scramble.dedoc.co/api',
      * ],
      * ```
+     *
+     * Se fija un único servidor relativo (`/api`), que Laravel resuelve con la
+     * `APP_URL` de cada entorno. Así Postman importa la URL correcta tanto en
+     * local como en producción.
      */
-    'servers' => null,
+    'servers' => [
+        'API' => '/api',
+    ],
 
     /**
      * Determines how Scramble stores the descriptions of enum cases.
