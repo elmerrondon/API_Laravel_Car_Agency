@@ -27,8 +27,9 @@ class UpdateCarRequest extends FormRequest
         return [
             'price' => ['sometimes', 'required', 'numeric', 'decimal:0,2', 'min:1'],
             'mileage' => ['sometimes', 'required', 'integer', 'min:0'],
-            'year' => ['sometimes', 'required', 'integer'],
-            'vin' => ['sometimes', 'required', 'string', 'min:17', 'max:17', 'regex:/^[a-zA-Z0-9]+$/', Rule::unique('cars', 'vin')->ignore($this->car->id)->withoutTrashed()],
+            'year' => ['sometimes', 'required', 'integer', 'min:1900', 'max:2100'],
+            // El VIN es único global, incluso entre coches con soft delete.
+            'vin' => ['sometimes', 'required', 'string', 'min:17', 'max:17', 'regex:/^[a-zA-Z0-9]+$/', Rule::unique('cars', 'vin')->ignore($this->car->id)],
             'status' => ['sometimes', 'required', 'string', Rule::enum(CarStatus::class)],
             'color_id' => ['sometimes', 'required', 'integer', 'exists:colors,id'],
             'car_model_id' => ['sometimes', 'required', 'integer', 'exists:car_models,id'],

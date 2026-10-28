@@ -27,8 +27,9 @@ class StoreCarRequest extends FormRequest
         return [
             'price' => ['required', 'numeric', 'decimal:0,2', 'min:1'],
             'mileage' => ['required', 'integer', 'min:0'],
-            'year' => ['required', 'integer'],
-            'vin' => ['required', 'string', 'min:17', 'max:17', 'regex:/^[a-zA-Z0-9]+$/', Rule::unique('cars', 'vin')->withoutTrashed()],
+            'year' => ['required', 'integer', 'min:1900', 'max:2100'],
+            // El VIN es único global, incluso entre coches con soft delete.
+            'vin' => ['required', 'string', 'min:17', 'max:17', 'regex:/^[a-zA-Z0-9]+$/', 'unique:cars,vin'],
             'status' => ['required', 'string', Rule::enum(CarStatus::class)],
             'color_id' => ['required', 'integer', 'exists:colors,id'],
             'car_model_id' => ['required', 'integer', 'exists:car_models,id'],

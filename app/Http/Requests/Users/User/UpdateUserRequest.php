@@ -27,8 +27,8 @@ class UpdateUserRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'min:2', 'max:50'],
             'last_name' => ['sometimes', 'required', 'string', 'min:2', 'max:50'],
-            'document_number' => ['sometimes', 'required', 'string', 'min:5', 'max:20', 'regex:/^[a-zA-Z0-9\-]+$/', Rule::unique('users', 'document_number')->ignore($this->user->id)->withoutTrashed()],
-            'code' => ['sometimes', 'required', 'string', 'min:6', 'max:20', 'regex:/^[a-zA-Z0-9\-]+$/', Rule::unique('users', 'code')->ignore($this->user->id)],
+            'document_number' => ['sometimes', 'required', 'string', 'min:5', 'max:10', 'regex:/^[a-zA-Z0-9\-]+$/', Rule::unique('users', 'document_number')->ignore($this->user->id)->withoutTrashed()],
+            'code' => ['sometimes', 'required', 'string', 'min:6', 'max:10', 'regex:/^[a-zA-Z0-9\-]+$/', Rule::unique('users', 'code')->ignore($this->user->id)],
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)->withoutTrashed()],
             'password' => ['sometimes', 'required', 'string', 'max:100', 'confirmed', Password::default()],
             'roles' => ['sometimes', 'array'],
