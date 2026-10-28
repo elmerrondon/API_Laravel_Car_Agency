@@ -1,6 +1,6 @@
 # AGENTS.md
 
-API Laravel 12 para una agencia de vehículos. La imagen de desarrollo usa PHP 8.3 (el proyecto declara `^8.2`). Casi todo es JSON bajo `/api`; la única ruta web es la página de bienvenida.
+API Laravel 12 para una agencia de vehículos. La imagen de desarrollo usa PHP 8.3 (el proyecto declara `^8.2`). Casi todo es JSON bajo `/api`; la única vista web es la página de bienvenida y `/up` es el healthcheck.
 
 ## Entorno obligatorio: Docker (WSL sin PHP/MySQL local)
 
@@ -26,12 +26,19 @@ Los comandos de orquestación (`docker compose up`, `down`, `ps`, `logs`) se eje
 - El target `dev` crea y usa el usuario local UID/GID 1000. Si tu usuario WSL usa otros IDs, reconstruye con `docker compose build --build-arg UID=$(id -u) --build-arg GID=$(id -g) app`.
 - `vendor/` es un volumen nombrado y la etapa `dev` no ejecuta `composer install`. En el primer arranque, o si cambia `composer.lock`, ejecuta `docker compose exec -T app composer install`; reconstruir la imagen no llena el volumen.
 - `composer setup` **no** es adecuado dentro de `app`: intenta ejecutar `npm install`/`npm run build` y la imagen PHP no incluye Node. Usa `composer install`; Vite no forma parte del stack Docker actual. `composer dev` tampoco aplica: el stack ya sirve con Nginx + PHP-FPM.
-- `.env` es local y está ignorado por Git. Valores de desarrollo: `DB_HOST=mysql`, `DB_DATABASE=api_laravel_car_agency`, `DB_USERNAME=root`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`.
+- `.env` es local y está ignorado por Git. `.env.example` ya trae los valores del stack Docker (`APP_URL=http://localhost:8000`, `DB_HOST=mysql`, `DB_DATABASE=api_laravel_car_agency`, `DB_USERNAME=root`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`); en el primer arranque cópialo con `cp .env.example .env`.
 - No existe migración de la tabla `sessions`: con `SESSION_DRIVER=database` el login puede fallar. El `.env` local usa `file`; si se cambia a `database`, primero hay que crear esa migración.
 
 ## Comandos
 
 ```bash
+# Primer arranque
+cp .env.example .env
+docker compose up -d --build
+docker compose exec -T app composer install
+docker compose exec -T app php artisan key:generate   # solo si APP_KEY está vacío
+docker compose exec -T app php artisan migrate --seed
+
 # Arranque y estado (host, no requieren -T)
 docker compose up -d --build
 docker compose ps
@@ -57,7 +64,7 @@ docker compose exec -T app ./vendor/bin/pint
 docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency
 ```
 
-El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` usa MySQL con la base `api_laravel_car_agency`; `phpunit.xml` fuerza SQLite `:memory:` para los tests (por eso la imagen instala `pdo_sqlite`).
+El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya está alineado con Docker Compose (`DB_HOST=mysql`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`, `APP_URL=http://localhost:8000`) y usa MySQL con la base `api_laravel_car_agency`; `phpunit.xml` fuerza SQLite `:memory:` para los tests (por eso la imagen instala `pdo_sqlite`).
 
 ## Reglas de Git
 
@@ -81,7 +88,7 @@ La app está organizada por dominio de negocio, no por las carpetas estándar de
 Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -> `DTOs/.../*Data::fromRequest()` -> servicio en `app/Services` -> `Http/Resources/...`.
 
 - Mantén los controllers delgados; reglas de negocio, transacciones y eager loading viven en `app/Services`.
-- No hay capa repository, aunque el README mencione "Service-Repository".
+- No hay capa repository; los servicios concentran la lógica y el README describe la arquitectura por dominio.
 - Los modelos usan subnamespaces de dominio (`App\Models\Cars\Car`, `App\Models\Users\User`), no `App\Models\Car`. Mantén imports y factories alineados al añadir modelos.
 - Las rutas API viven solo en `routes/api.php` (Laravel añade el prefijo `/api`). El route-model binding usa los modelos de dominio directamente.
 
@@ -130,3 +137,4 @@ Registra aquí decisiones técnicas, bugs resueltos y hallazgos no obvios. Añad
 - 2026-10-21 — Fase 5 (reportes PDF): `barryvdh/laravel-dompdf` ^3.1 (v3.1.2) se instala en el volumen `vendor/` con `composer require`. `GET /api/reports/sales/pdf`, `GET /api/reports/cars` y `GET /api/reports/cars/pdf` exigen `view_reports`; las ventas se filtran por `from`/`to` (juntos o ninguno) y `branch_id`, y sus totales se expresan en moneda base. `CarReportService` agrega por SQL (tipo, marca y estado) y excluye soft deletes; los reportes comparten `resources/views/reports/layout.blade.php`. Los tests validan 401/403, `application/pdf`, `%PDF` y el contenido renderizado de las vistas.
 - 2026-10-21 — Verificación final (fase 6): `migrate:fresh --seed` OK (50 coches y 3 usuarios demo), `pest` 48 tests / 215 aserciones y `pint` limpio en 233 archivos. Smoke test HTTP real: login de `admin@caragency.test`, `GET /api/reports/cars` responde 50 coches y las dos variantes PDF devuelven `%PDF-1.7` con `Content-Type: application/pdf`; sin token la API responde 401.
 - 2026-10-28 — Endurecimiento de auth y validaciones: el login exige `is_active`, el limiter `login` permite 5 intentos/minuto por email+IP (`429` al sexto), cambiar contraseña/desactivar/eliminar revoca tokens, los FormRequest alinean `document_number`/`code` a 10, la regla `unique` del VIN incluye los coches con soft delete, `year` se limita a 1900-2100 y la descripción de sucursal a 300. Las violaciones de FK se renderizan como `409` y borrar un rol con usuarios también devuelve `409` (`RoleInUseException`). El seed conserva 8 sucursales (Ventura Plaza al final, `SUC-0008`) y 52 coches (50 factory + 2 manuales, IDs 51-52), con tests nuevos y la suite en 63 tests / 260 aserciones.
+- 2026-10-28 — README reescrito como guía de onboarding Docker: copiar `.env.example`, levantar el stack, crear/verificar la base, migrar/sembrar, mapear rutas con permisos, ejemplos `curl`, tests, comandos y troubleshooting. `.env.example` se alineó con Compose (`APP_URL=http://localhost:8000`, `DB_HOST=mysql`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`) para que `cp .env.example .env` funcione sin ajustes manuales.
