@@ -5,9 +5,13 @@ namespace App\Http\Resources\Sales;
 use App\Http\Resources\Cars\CarResource;
 use App\Http\Resources\Locations\BranchResource;
 use App\Http\Resources\Users\UserResource;
+use App\Models\Sales\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Sale
+ */
 class SaleResource extends JsonResource
 {
     /**

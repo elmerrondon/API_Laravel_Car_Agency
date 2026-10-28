@@ -3,9 +3,13 @@
 namespace App\Http\Resources\Users;
 
 use App\Http\Resources\Locations\BranchResource;
+use App\Models\Users\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin User
+ */
 class UserResource extends JsonResource
 {
     /**

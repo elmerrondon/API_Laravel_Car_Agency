@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources\Locations;
 
+use App\Models\Locations\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Branch
+ */
 class BranchResource extends JsonResource
 {
     /**

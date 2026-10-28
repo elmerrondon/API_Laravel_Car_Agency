@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources\Locations;
 
+use App\Models\Locations\Country;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Country
+ */
 class CountryResource extends JsonResource
 {
     /**

@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources\Sales;
 
+use App\Models\Sales\Tax;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Tax
+ */
 class TaxResource extends JsonResource
 {
     /**

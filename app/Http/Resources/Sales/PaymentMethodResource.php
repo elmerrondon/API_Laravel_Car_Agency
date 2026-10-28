@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources\Sales;
 
+use App\Models\Sales\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin PaymentMethod
+ */
 class PaymentMethodResource extends JsonResource
 {
     /**

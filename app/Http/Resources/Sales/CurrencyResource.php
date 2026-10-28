@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources\Sales;
 
+use App\Models\Sales\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Currency
+ */
 class CurrencyResource extends JsonResource
 {
     /**

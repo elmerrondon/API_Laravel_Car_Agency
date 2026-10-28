@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources\Cars;
 
+use App\Models\Cars\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Brand
+ */
 class BrandResource extends JsonResource
 {
     /**
