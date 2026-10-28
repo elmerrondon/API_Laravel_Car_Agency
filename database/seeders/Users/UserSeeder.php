@@ -16,7 +16,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $branch = Branch::where('is_active', true)->orderBy('id')->first();
-        $password = env('SEED_USER_PASSWORD', 'password');
+        $password = config('seeders.user_password');
 
         $users = [
             [

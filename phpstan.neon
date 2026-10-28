@@ -6,6 +6,9 @@ parameters:
 
     paths:
         - app
+        - routes
+        - database
+        - config
 
     # Larastan resuelve propiedades y relaciones de los modelos Eloquent.
     checkModelProperties: true
