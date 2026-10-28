@@ -7,6 +7,7 @@ use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Sale extends Model
 {
@@ -32,37 +33,37 @@ class Sale extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function car()
+    public function car(): BelongsTo
     {
         return $this->belongsTo(Car::class);
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function branch()
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }
 
-    public function paymentMethod()
+    public function paymentMethod(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class);
     }
 
-    public function paymentCurrency()
+    public function paymentCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'payment_currency_id');
     }
 
-    public function baseCurrency()
+    public function baseCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'base_currency_id');
     }
 
-    public function casts(): array
+    protected function casts(): array
     {
         return ['taxes' => 'array', 'status' => SaleStatus::class];
     }

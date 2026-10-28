@@ -10,7 +10,7 @@ class PaymentMethod extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function casts(): array
+    protected function casts(): array
     {
         return ['is_active' => 'boolean'];
     }

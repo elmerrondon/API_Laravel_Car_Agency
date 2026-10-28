@@ -6,6 +6,7 @@ use App\Enums\Cars\CarStatus;
 use App\Models\Locations\Branch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Car extends Model
@@ -16,32 +17,32 @@ class Car extends Model
 
     protected $hidden = ['created_at', 'updated_at', 'deleted_at'];
 
-    public function color()
+    public function color(): BelongsTo
     {
         return $this->belongsTo(Color::class);
     }
 
-    public function carModel()
+    public function carModel(): BelongsTo
     {
         return $this->belongsTo(CarModel::class);
     }
 
-    public function carType()
+    public function carType(): BelongsTo
     {
         return $this->belongsTo(CarType::class);
     }
 
-    public function category()
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function branch()
+    public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }
 
-    public function casts(): array
+    protected function casts(): array
     {
         return [
             'price' => 'float',

@@ -3,6 +3,7 @@
 namespace App\Models\Locations;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class State extends Model
 {
@@ -10,12 +11,12 @@ class State extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function country()
+    public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
     }
 
-    public function casts()
+    protected function casts(): array
     {
         return ['is_active' => 'boolean'];
     }

@@ -3,6 +3,7 @@
 namespace App\Models\Locations;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Branch extends Model
 {
@@ -10,12 +11,12 @@ class Branch extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function city()
+    public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
     }
 
-    public function casts(): array
+    protected function casts(): array
     {
         return ['is_active' => 'boolean'];
     }

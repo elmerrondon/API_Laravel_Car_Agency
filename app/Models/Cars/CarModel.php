@@ -3,6 +3,7 @@
 namespace App\Models\Cars;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CarModel extends Model
 {
@@ -10,12 +11,12 @@ class CarModel extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function brand()
+    public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
     }
 
-    public function casts(): array
+    protected function casts(): array
     {
         return ['is_active' => 'boolean'];
     }

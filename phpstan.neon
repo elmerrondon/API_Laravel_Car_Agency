@@ -10,6 +10,10 @@ parameters:
     # Larastan resuelve propiedades y relaciones de los modelos Eloquent.
     checkModelProperties: true
 
+    # Lee los casts declarados en `casts()` (enums, floats, arrays) para tipar
+    # los atributos del modelo; por defecto Larastan no parsea ese método.
+    parseModelCastsMethod: true
+
 # Nota: PHPStan no admite `memoryLimit` en este archivo. El contenedor de
 # desarrollo arranca con memory_limit=128M, así que el análisis debe lanzarse
 # con `--memory-limit=1G` (el script `composer analyse` ya lo incluye).

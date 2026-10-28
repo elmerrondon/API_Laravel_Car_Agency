@@ -3,6 +3,7 @@
 namespace App\Models\Locations;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Override;
 
 class City extends Model
@@ -11,13 +12,13 @@ class City extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function state()
+    public function state(): BelongsTo
     {
         return $this->belongsTo(State::class);
     }
 
     #[Override]
-    public function casts()
+    protected function casts(): array
     {
         return ['is_active' => 'boolean'];
     }

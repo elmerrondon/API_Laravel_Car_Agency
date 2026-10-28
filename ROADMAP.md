@@ -29,7 +29,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 
 ## Fase 8 — PHPStan nivel 5 hasta 0 errores
 
-- [ ] `8.1` Modelos: `casts()` protegido, tipos de retorno en relaciones y `@property`/`@mixin` donde PHPStan los necesita.
+- [x] `8.1` Modelos: `casts()` protegido, tipos de retorno en relaciones y `parseModelCastsMethod` en Larastan (180 → 107 errores; desaparecen los 60 `relationExistence`).
 - [ ] `8.2` Resources: anotar `@mixin` (17 archivos) y ajustar `whenLoaded()` sin perder tipos.
 - [ ] `8.3` Servicios: corregir `withStatus()` con string, `statusLabel()`, `str_pad()`, los `map()` no resolubles y el `??` sobre `SaleData::$discountPercentage`.
 - [ ] `8.4` Controllers, Requests, DTOs, Enums, Seeders y Middleware: cerrar los errores restantes hasta `[OK] No errors`.

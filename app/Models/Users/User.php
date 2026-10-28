@@ -5,6 +5,7 @@ namespace App\Models\Users;
 use App\Enums\Users\PermissionEnum;
 use App\Models\Locations\Branch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -31,12 +32,12 @@ class User extends Authenticatable
         'deleted_at',
     ];
 
-    public function roles()
+    public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
     }
 
-    public function branches()
+    public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class);
     }

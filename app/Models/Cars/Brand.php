@@ -4,6 +4,7 @@ namespace App\Models\Cars;
 
 use App\Models\Locations\Country;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Brand extends Model
 {
@@ -11,12 +12,12 @@ class Brand extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function country()
+    public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
     }
 
-    public function casts(): array
+    protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
