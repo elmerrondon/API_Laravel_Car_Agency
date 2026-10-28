@@ -64,15 +64,6 @@ class BranchSeeder extends Seeder
 
                 // --- COLOMBIA ---
                 [
-                    'name' => 'Sede Ventura Plaza',
-                    'code' => 'SUC-0004',
-                    'address' => 'Calle 10 y 11 Diagonal Santander, Barrio Caobos',
-                    'description' => 'Centro de ventas fronterizo Norte de Santander.',
-                    'zip_code' => '540001', // Colombia usa 6 dígitos
-                    'is_active' => true,
-                    'city_id' => $cucuta->id,
-                ],
-                [
                     'name' => 'Concesionario Milla de Oro',
                     'code' => 'SUC-0005',
                     'address' => 'Carrera 43A, El Poblado, cerca del Centro Comercial Santafé',
@@ -100,6 +91,18 @@ class BranchSeeder extends Seeder
                     'zip_code' => '92101',
                     'is_active' => true,
                     'city_id' => $sanDiego->id,
+                ],
+
+                // Se mantiene al final para conservar los IDs históricos de
+                // las siete primeras sucursales del entorno demo.
+                [
+                    'name' => 'Sede Ventura Plaza',
+                    'code' => 'SUC-0008',
+                    'address' => 'Calle 10 y 11 Diagonal Santander, Barrio Caobos',
+                    'description' => 'Centro de ventas fronterizo Norte de Santander.',
+                    'zip_code' => '540001', // Colombia usa 6 dígitos
+                    'is_active' => true,
+                    'city_id' => $cucuta->id,
                 ],
             ];
 

@@ -50,13 +50,14 @@ it('siembra los datos base con DatabaseSeeder', function () {
 
     expect(Role::count())->toBe(count(RoleEnum::cases()))
         ->and(Permission::count())->toBe(count(PermissionEnum::cases()))
-        ->and(Branch::count())->toBeGreaterThan(0)
+        ->and(Branch::count())->toBe(8)
         ->and(Currency::count())->toBeGreaterThan(0)
         ->and(Tax::count())->toBeGreaterThan(0)
-        ->and(Car::count())->toBeGreaterThanOrEqual(50);
+        ->and(Car::count())->toBe(52);
 
     expect(Role::where('name', RoleEnum::ADMIN->value)->exists())->toBeTrue()
-        ->and(Permission::where('name', PermissionEnum::VIEW_CARS->value)->exists())->toBeTrue();
+        ->and(Permission::where('name', PermissionEnum::VIEW_CARS->value)->exists())->toBeTrue()
+        ->and(Branch::where('name', 'Sede Ventura Plaza')->exists())->toBeTrue();
 });
 
 it('siembra los permisos de forma idempotente', function () {

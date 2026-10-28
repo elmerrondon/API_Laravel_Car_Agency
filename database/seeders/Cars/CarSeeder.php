@@ -35,17 +35,19 @@ class CarSeeder extends Seeder
 
         $dataCars = [$sedan, $pickup, $black, $white, $corolla, $f150, $family, $work, $branch1, $branch2];
 
+        // Los 50 coches de factory ocupan los IDs 1-50; los dos coches
+        // manuales quedan al final para no alterar los IDs de referencia.
+        Car::factory()->count(50)->create();
+
         if (! in_array(null, $dataCars, true)) {
             $cars = [
-                ['price' => '10000', 'mileage' => 0, 'year' => 2026, 'vin' => '01234567890', 'status' => CarStatus::AVAILABLE->value, 'color_id' => $black->id, 'car_model_id' => $corolla->id, 'car_type_id' => $sedan->id, 'category_id' => $family->id, 'branch_id' => $branch1->id],
-                ['price' => '30000', 'mileage' => 0, 'year' => 2026, 'vin' => '01234567891', 'status' => CarStatus::AVAILABLE->value, 'color_id' => $white->id, 'car_model_id' => $f150->id, 'car_type_id' => $pickup->id, 'category_id' => $work->id, 'branch_id' => $branch2->id],
+                ['price' => '10000', 'mileage' => 0, 'year' => 2026, 'vin' => '01234567890123456', 'status' => CarStatus::AVAILABLE->value, 'color_id' => $black->id, 'car_model_id' => $corolla->id, 'car_type_id' => $sedan->id, 'category_id' => $family->id, 'branch_id' => $branch1->id],
+                ['price' => '30000', 'mileage' => 0, 'year' => 2026, 'vin' => '01234567890123457', 'status' => CarStatus::AVAILABLE->value, 'color_id' => $white->id, 'car_model_id' => $f150->id, 'car_type_id' => $pickup->id, 'category_id' => $work->id, 'branch_id' => $branch2->id],
             ];
 
             foreach ($cars as $car) {
                 Car::firstOrCreate($car);
             }
         }
-
-        Car::factory()->count(50)->create();
     }
 }
