@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Documentos locales de pruebas e informes (no versionar)
+probar.md
+reportes.md
+autenticacion.md
