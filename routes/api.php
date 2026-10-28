@@ -24,7 +24,7 @@ use App\Http\Controllers\Users\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Autenticación: la única ruta pública es el login.
-Route::post('auth/login', [AuthController::class, 'login']);
+Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);

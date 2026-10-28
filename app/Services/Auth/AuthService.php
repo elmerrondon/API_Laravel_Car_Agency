@@ -10,11 +10,11 @@ class AuthService
 {
     public function login(string $email, string $password): string
     {
-        if (! Auth::attempt(['email' => $email, 'password' => $password])) {
+        if (! Auth::attempt(['email' => $email, 'password' => $password, 'is_active' => true])) {
             throw new AuthenticationException('Incorrect Credentials');
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         return $user->createToken('api-token')->plainTextToken;
@@ -22,13 +22,11 @@ class AuthService
 
     public function logout(User $user): void
     {
-        /** @var \App\Models\User $user */
         $user->currentAccessToken()->delete();
     }
 
     public function refresh(User $user): string
     {
-        /** @var \App\Models\User $user */
         $user->currentAccessToken()->delete();
 
         return $user->createToken('api_token')->plainTextToken;

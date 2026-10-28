@@ -61,6 +61,12 @@ class UserService
 
             $user->update($cleanData);
 
+            // Una contraseña nueva o una cuenta desactivada invalidan las
+            // sesiones abiertas para que el cambio tenga efecto inmediato.
+            if ($data->password !== null || $data->isActive === false) {
+                $user->tokens()->delete();
+            }
+
             if ($data->roles !== null) {
                 $user->roles()->sync($data->roles);
             }
@@ -75,6 +81,10 @@ class UserService
 
     public function deleteUser(User $user): bool
     {
-        return $user->delete();
+        return DB::transaction(function () use ($user) {
+            $user->tokens()->delete();
+
+            return $user->delete();
+        });
     }
 }
