@@ -37,7 +37,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 ## Fase 9 — Tipado estricto y arquitectura
 
 - [x] `9.1` `declare(strict_types=1)` en `app/Enums`, `app/DTOs` y `app/Models` (21 + 16 archivos). Los DTOs castean con el trait `NormalizesRequestValues` porque `validated()` devuelve `mixed` y la validación acepta `"5"`/`"1"`; `ColorData::fromData()` pasa a `fromRequest()`.
-- [ ] `9.2` Añadir `declare(strict_types=1)` a `app/Services`, `app/Exceptions` y `app/Providers`.
+- [x] `9.2` `declare(strict_types=1)` en `app/Services`, `app/Exceptions` y `app/Providers` (26 archivos, sin cambios de comportamiento: los DTOs ya entregan tipos exactos).
 - [ ] `9.3` Añadir `declare(strict_types=1)` a `app/Http` (Controllers, Requests, Resources, Middleware) y `bootstrap/app.php`.
 - [ ] `9.4` Crear `tests/Feature/ArchitectureTest.php` con `arch()`: `strict_types`, capas (Controller → Service → Model), sin `dd`/`dump`/`var_dump`/`env()` fuera de `config`, DTOs `readonly`, controllers delgados y Resources sin queries.
 - [ ] `9.5` Activar la regla `declare_strict_types` en `pint.json` y dejar `pint` + `phpstan` + `pest` en verde.
