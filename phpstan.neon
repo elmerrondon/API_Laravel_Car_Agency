@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - app
+
+    # Larastan resuelve propiedades y relaciones de los modelos Eloquent.
+    checkModelProperties: true
+
+# Nota: PHPStan no admite `memoryLimit` en este archivo. El contenedor de
+# desarrollo arranca con memory_limit=128M, así que el análisis debe lanzarse
+# con `--memory-limit=1G` (el script `composer analyse` ya lo incluye).

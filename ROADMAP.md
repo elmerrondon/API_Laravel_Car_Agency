@@ -18,7 +18,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 
 - [x] `7.1` Consolidar `dedoc/scramble:^0.13.52` y `larastan/larastan:^3.13` en `composer.json`/`composer.lock` y verificar que el volumen `vendor/` los tiene instalados.
 - [x] `7.2` Actualizar las dependencias con avisos de `composer audit` (guzzle, laravel/framework, league/*, symfony/*) hasta dejar la auditoría en 0.
-- [ ] `7.3` Crear `phpstan.neon` en nivel 5 (sin baseline) con memoria suficiente para el contenedor y el script `composer analyse`.
+- [x] `7.3` Crear `phpstan.neon` en nivel 5 (sin baseline) con memoria suficiente para el contenedor y el script `composer analyse`. Baseline al configurarlo (2026-10-28): **180 errores** que la fase 8 debe llevar a 0.
 - [ ] `7.4` Crear `pint.json` (preset `laravel`) y comprobar que `pint --test` sigue limpio.
 - [ ] `7.5` Publicar `config/scramble.php`: versión OpenAPI explícita, info del API, UI en español, `security_strategy` Bearer de Sanctum y dev tools por entorno.
 - [ ] `7.6` Crear `config/docs.php` + Gate `viewApiDocs` (`local`/`testing` o `DOCS_ENABLED=true`) y test de acceso 200/403.
