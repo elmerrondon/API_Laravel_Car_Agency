@@ -31,7 +31,7 @@ class ColorController extends Controller
 
     public function store(StoreColorRequest $request)
     {
-        $dto = ColorData::fromData($request);
+        $dto = ColorData::fromRequest($request);
 
         $color = $this->service->createColor($dto);
 
@@ -40,7 +40,7 @@ class ColorController extends Controller
 
     public function update(Color $color, UpdateColorRequest $request)
     {
-        $dto = ColorData::fromData($request);
+        $dto = ColorData::fromRequest($request);
 
         $color = $this->service->updateColor($color, $dto);
 
