@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Reports;
 
+use App\Exceptions\Reports\ReportTooLargeException;
 use App\Models\Locations\Branch;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
@@ -51,10 +52,14 @@ class SaleReportService
         $fromDate = $from !== null ? Carbon::parse($from)->startOfDay() : null;
         $toDate = $to !== null ? Carbon::parse($to)->startOfDay()->addDay() : null;
 
-        $sales = Sale::with(self::RELATIONS)
+        $query = Sale::query()
             ->when($fromDate !== null, fn ($query) => $query->where('sale_date', '>=', $fromDate))
             ->when($toDate !== null, fn ($query) => $query->where('sale_date', '<', $toDate))
-            ->when($branchId !== null, fn ($query) => $query->where('branch_id', $branchId))
+            ->when($branchId !== null, fn ($query) => $query->where('branch_id', $branchId));
+
+        $this->ensureWithinRowLimit((clone $query)->count());
+
+        $sales = $query->with(self::RELATIONS)
             ->orderBy('sale_date')
             ->get();
 
@@ -74,5 +79,17 @@ class SaleReportService
             'branch' => $branchId !== null ? Branch::find($branchId) : null,
             'base_currency' => Currency::where('is_base', true)->value('code') ?? 'USD',
         ];
+    }
+
+    /**
+     * Corta la generación del PDF si el rango devuelve demasiadas ventas.
+     */
+    private function ensureWithinRowLimit(int $rows): void
+    {
+        $maxRows = (int) config('reports.max_rows');
+
+        if ($maxRows > 0 && $rows > $maxRows) {
+            throw ReportTooLargeException::forSales($rows, $maxRows);
+        }
     }
 }

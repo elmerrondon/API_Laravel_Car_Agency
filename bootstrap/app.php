@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\Reports\ReportTooLargeException;
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
@@ -44,6 +45,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(
             fn (RoleInUseException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
+        );
+
+        $exceptions->render(
+            fn (ReportTooLargeException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 422)
         );
 
         $exceptions->render(function (QueryException $e, Request $request) {
