@@ -39,6 +39,24 @@ final class ApiDocumentation
         $path = Str::after($routeInfo->route->uri(), 'api/');
 
         self::documentErrors($operation, $routeInfo->route, $path);
+        self::documentBinaryResponses($operation, $path);
+    }
+
+    /**
+     * Los PDF se sirven como binario: quitamos el `application/json` que
+     * Scramble infiere del tipo de retorno de Laravel.
+     */
+    private static function documentBinaryResponses(Operation $operation, string $path): void
+    {
+        if (! Str::endsWith($path, '/pdf')) {
+            return;
+        }
+
+        foreach ($operation->responses ?? [] as $response) {
+            if ($response instanceof Response && (int) $response->code === 200) {
+                unset($response->content['application/json']);
+            }
+        }
     }
 
     /**

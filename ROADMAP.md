@@ -64,7 +64,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 ## Fase 12 — OpenAPI y Postman
 
 - [x] `12.1` `app/OpenApi/ApiDocumentation` (transformador de operaciones registrado en `AppServiceProvider::booted()` para correr después de los de Scramble) documenta `429` en todas las rutas, `403` en las que llevan `permission:*` y `409` en cancelar venta y en los `DELETE` con claves foráneas `RESTRICT` (no en `cars`/`users`, que son borrado lógico). El `429` y el `409` se añaden solo si el código no venía ya inferido por Scramble. `401`, `404` y `422` siguen saliendo del análisis de middleware, route-model binding y FormRequest.
-- [ ] `12.2` Documentar los PDF como `application/pdf` binario en lugar de JSON.
+- [x] `12.2` Los dos endpoints PDF (`GET /api/reports/cars/pdf` y `GET /api/reports/sales/pdf`) declaran `#[Response(200, mediaType: 'application/pdf', format: 'binary')]`; el transformador elimina el `application/json` que Scramble infería del tipo de retorno, así que el 200 solo ofrece `application/pdf` con `schema: {type: string, format: binary}`.
 - [ ] `12.3` Documentar explícitamente paginación (`page`, `per_page`) y filtros de reportes (`from`, `to`, `branch_id`).
 - [ ] `12.4` Añadir tags y summaries en español por dominio (coches, catálogos, ubicaciones, ventas, reportes, usuarios, auth).
 - [ ] `12.5` Exportar el documento con `composer docs:export` (`storage/app/openapi.json`) y validar la importación en Postman (OpenAPI 3.1.2 está soportado).
