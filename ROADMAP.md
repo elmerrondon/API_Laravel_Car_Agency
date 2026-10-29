@@ -47,7 +47,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [x] `10.1` `tests/Feature/Auth/LogoutTest.php`: 200 y mensaje, token borrado en `personal_access_tokens` (siguiente petición 401), logout sin token 401 y `logout` solo revoca el token usado (el de otro dispositivo sigue funcionando).
 - [x] `10.2` `tests/Feature/Auth/RefreshTokenTest.php`: 200 con token nuevo (distinto), el anterior queda revocado (401), solo queda un token y la expiración se renueva (tras 150 min el original caduca pero el renovado sigue válido); refresh sin token 401.
 - [x] `10.3` `tests/Feature/Auth/TokenExpirationTest.php` con `Carbon::setTestNow`: 119 min válido, 121 min 401, `sanctum.expiration` configurable (30 min) y re-resolución del guard al cambiar la config.
-- [ ] `10.4` Test de filtros de reportes: `from`/`to` juntos o ninguno, `branch_id`, totales en moneda base y 422 por fechas inválidas.
+- [x] `10.4` `tests/Feature/Reports/SaleReportFiltersTest.php`: `from`/`to` juntos o ninguno (422 en ambos sentidos), fechas inválidas o invertidas (422), `branch_id` inexistente (422), extremos del rango inclusivos, totales en moneda base (no en la de pago) y `branch_id` normalizado desde query string.
 - [ ] `10.5` Tests de creación de venta: impuestos, descuento, tipo de cambio, redondeo a 2 decimales, coche no disponible (422) y `sale_date` inválido.
 - [ ] `10.6` Tests de catálogos y ubicaciones: CRUD completo, `manage_*` vs `view_*` (403) y `per_page` fuera de rango.
 - [ ] `10.7` Tests de usuarios: alta/edición/baja, email y documento duplicados, revocación de tokens al desactivar/eliminar.
