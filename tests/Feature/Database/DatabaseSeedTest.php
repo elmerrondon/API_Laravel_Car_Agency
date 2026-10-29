@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\Users\PermissionEnum;
 use App\Enums\Users\RoleEnum;
 use App\Models\Cars\Car;

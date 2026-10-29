@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 it('devuelve cabeceras cors en las respuestas del api', function () {
     $this->withHeaders(['Origin' => 'http://localhost:3000'])
         ->getJson('/api/cars')

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\Users\RoleEnum;
 
 it('limita las peticiones generales del API por usuario', function () {

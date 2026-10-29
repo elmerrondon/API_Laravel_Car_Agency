@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories\Cars;
 
 use App\Enums\Cars\CarStatus;

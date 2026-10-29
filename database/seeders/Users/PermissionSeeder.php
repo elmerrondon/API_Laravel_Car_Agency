@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders\Users;
 
 use App\Enums\Users\PermissionEnum;

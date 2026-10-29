@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\Users\PermissionEnum;
 use App\Models\Users\Permission;
 use App\Models\Users\Role;

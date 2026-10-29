@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\Sales\SaleStatus;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;

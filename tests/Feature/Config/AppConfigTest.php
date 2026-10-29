@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Dedoc\Scramble\OpenApiVersion;
 
 it('expone la configuración base esperada del API', function () {
