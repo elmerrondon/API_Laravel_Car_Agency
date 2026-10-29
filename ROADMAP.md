@@ -45,7 +45,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 ## Fase 10 — Cobertura de tests faltante
 
 - [x] `10.1` `tests/Feature/Auth/LogoutTest.php`: 200 y mensaje, token borrado en `personal_access_tokens` (siguiente petición 401), logout sin token 401 y `logout` solo revoca el token usado (el de otro dispositivo sigue funcionando).
-- [ ] `10.2` Test de `POST /api/auth/refresh`: 200 con token nuevo, token anterior revocado y expiración renovada.
+- [x] `10.2` `tests/Feature/Auth/RefreshTokenTest.php`: 200 con token nuevo (distinto), el anterior queda revocado (401), solo queda un token y la expiración se renueva (tras 150 min el original caduca pero el renovado sigue válido); refresh sin token 401.
 - [ ] `10.3` Test de expiración de token (120 min configurables) con `Carbon::setTestNow`.
 - [ ] `10.4` Test de filtros de reportes: `from`/`to` juntos o ninguno, `branch_id`, totales en moneda base y 422 por fechas inválidas.
 - [ ] `10.5` Tests de creación de venta: impuestos, descuento, tipo de cambio, redondeo a 2 decimales, coche no disponible (422) y `sale_date` inválido.
