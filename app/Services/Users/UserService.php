@@ -46,6 +46,7 @@ class UserService
             }
 
             $user->refresh();
+            $user->forgetPermissionCache();
 
             return $user->load(self::RELATIONS);
         });
@@ -77,6 +78,10 @@ class UserService
                 $user->branches()->sync($data->branches);
             }
 
+            // Los roles pueden haber cambiado: la siguiente petición debe
+            // resolver los permisos contra la base de datos.
+            $user->forgetPermissionCache();
+
             return $user->load(self::RELATIONS);
         });
     }
@@ -85,6 +90,7 @@ class UserService
     {
         return DB::transaction(function () use ($user) {
             $user->tokens()->delete();
+            $user->forgetPermissionCache();
 
             return $user->delete();
         });

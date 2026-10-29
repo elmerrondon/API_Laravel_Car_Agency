@@ -56,7 +56,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 ## Fase 11 — Rendimiento y consultas
 
 - [x] `11.1` `Model::preventLazyLoading(! app()->isProduction())` en `AppServiceProvider`: los N+1 rompen la petición en `local`/`testing` y se degradan a consulta perezosa en producción. La fase 2.5 ya había centralizado los eager loads, así que no quedó ningún N+1 por corregir; `tests/Feature/Performance/PreventLazyLoadingTest.php` fija el ajuste (colección perezosa lanza `LazyLoadingViolationException`, eager loading y modelos sueltos siguen funcionando).
-- [ ] `11.2` Cachear los permisos de `User::hasPermissionTo()` con TTL corto e invalidar al cambiar roles o permisos.
+- [x] `11.2` `User::permissionNames()` cachea los nombres de permiso (`config/permissions.php`, `PERMISSIONS_CACHE_TTL=300`, 0 lo desactiva) y `hasPermissionTo()` compara contra esa lista. Invalidación explícita: `forgetPermissionCache()` al crear/editar/borrar usuario (roles, contraseña o baja) y `flushPermissionCacheForRole()` en `RoleService::updateRole`. `tests/Feature/Users/PermissionCacheTest.php` cubre caché caliente (0 consultas), acumulación sin duplicados, invalidación por cambio de rol, invalidación al cambiar los permisos del rol, expiración del TTL y TTL 0. Baja las consultas de `/api/sales` de 24 a 22.
 - [ ] `11.3` Revisar `EXPLAIN` de los listados principales y añadir solo los índices que falten (evitando duplicados de FK).
 - [ ] `11.4` Ampliar `QueryCountTest` a catálogos, ubicaciones, usuarios y reportes.
 - [ ] `11.5` Medir el coste de los reportes PDF y documentar el límite de filas o la paginación aplicada.

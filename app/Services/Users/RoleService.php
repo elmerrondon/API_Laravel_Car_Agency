@@ -8,6 +8,7 @@ use App\DTOs\Users\RoleData;
 use App\Enums\Users\RoleEnum;
 use App\Exceptions\Users\RoleInUseException;
 use App\Models\Users\Role;
+use App\Models\Users\User;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -62,6 +63,9 @@ class RoleService
             if ($data->permissions !== null) {
                 $role->permissions()->sync($data->permissions);
             }
+
+            // La matriz del rol cambió: invalidar a sus usuarios.
+            User::flushPermissionCacheForRole((int) $role->getKey());
 
             return $role->load('permissions');
         });

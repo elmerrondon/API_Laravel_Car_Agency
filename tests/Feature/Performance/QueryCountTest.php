@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Sales\SaleStatus;
+use App\Enums\Users\PermissionEnum;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Sales\Currency;
@@ -33,7 +34,14 @@ function countQueriesDuringRequest(Closure $callback): int
 beforeEach(function () {
     $this->seed(DatabaseSeeder::class);
 
-    Sanctum::actingAs(User::where('email', 'admin@caragency.test')->firstOrFail());
+    $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
+
+    Sanctum::actingAs($admin);
+
+    // La primera comprobación de permisos calienta la caché; sin este
+    // warm-up el primer request del test pagaría el join extra y la
+    // comparación entre páginas dejaría de ser simétrica.
+    $admin->hasPermissionTo(PermissionEnum::VIEW_CARS);
 });
 
 it('mantiene constante el número de consultas del listado de coches', function () {
