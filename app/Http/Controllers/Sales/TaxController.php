@@ -21,9 +21,9 @@ class TaxController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $Taxs = $this->service->getAllPaginatedTaxes($perPage);
+        $taxes = $this->service->getAllPaginatedTaxes($perPage);
 
-        return TaxResource::collection($Taxs);
+        return TaxResource::collection($taxes);
     }
 
     public function show(Tax $tax)
@@ -35,23 +35,23 @@ class TaxController extends Controller
     {
         $dto = TaxData::fromRequest($request);
 
-        $Tax = $this->service->createTax($dto);
+        $tax = $this->service->createTax($dto);
 
-        return new TaxResource($Tax);
+        return new TaxResource($tax);
     }
 
-    public function update(Tax $Tax, UpdateTaxRequest $request)
+    public function update(Tax $tax, UpdateTaxRequest $request)
     {
         $dto = TaxData::fromRequest($request);
 
-        $TaxUpdated = $this->service->updateTax($Tax, $dto);
+        $taxUpdated = $this->service->updateTax($tax, $dto);
 
-        return new TaxResource($TaxUpdated);
+        return new TaxResource($taxUpdated);
     }
 
-    public function destroy(Tax $Tax)
+    public function destroy(Tax $tax)
     {
-        $this->service->deleteTax($Tax);
+        $this->service->deleteTax($tax);
 
         return response()->noContent();
     }
