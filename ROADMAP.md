@@ -48,7 +48,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [x] `10.2` `tests/Feature/Auth/RefreshTokenTest.php`: 200 con token nuevo (distinto), el anterior queda revocado (401), solo queda un token y la expiración se renueva (tras 150 min el original caduca pero el renovado sigue válido); refresh sin token 401.
 - [x] `10.3` `tests/Feature/Auth/TokenExpirationTest.php` con `Carbon::setTestNow`: 119 min válido, 121 min 401, `sanctum.expiration` configurable (30 min) y re-resolución del guard al cambiar la config.
 - [x] `10.4` `tests/Feature/Reports/SaleReportFiltersTest.php`: `from`/`to` juntos o ninguno (422 en ambos sentidos), fechas inválidas o invertidas (422), `branch_id` inexistente (422), extremos del rango inclusivos, totales en moneda base (no en la de pago) y `branch_id` normalizado desde query string.
-- [ ] `10.5` Tests de creación de venta: impuestos, descuento, tipo de cambio, redondeo a 2 decimales, coche no disponible (422) y `sale_date` inválido.
+- [x] `10.5` `tests/Feature/Sales/CreateSaleTest.php`: cálculo de impuestos (16 % + 3 %), descuento (7,5 %) y tipo de cambio (1,15) sobre un precio conocido, importes derivados redondeados a 2 decimales, coche reservado → 422, `sale_date` fuera de `Y-m-d H:i:s` → 422 e impuestos vacíos/inactivos/duplicados, descuento > 100 y tipo de cambio con 3 decimales → 422.
 - [ ] `10.6` Tests de catálogos y ubicaciones: CRUD completo, `manage_*` vs `view_*` (403) y `per_page` fuera de rango.
 - [ ] `10.7` Tests de usuarios: alta/edición/baja, email y documento duplicados, revocación de tokens al desactivar/eliminar.
 - [ ] `10.8` Tests de errores transversales: 404 JSON, 405, 429 de login y de API, y `permission` inexistente.
