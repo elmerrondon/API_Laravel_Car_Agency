@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\OpenApi;
 
 use Dedoc\Scramble\Support\Generator\Operation;
+use Dedoc\Scramble\Support\Generator\Parameter;
 use Dedoc\Scramble\Support\Generator\Response;
 use Dedoc\Scramble\Support\Generator\Schema;
+use Dedoc\Scramble\Support\Generator\Types\IntegerType;
 use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
 use Dedoc\Scramble\Support\RouteInfo;
@@ -32,14 +34,58 @@ final class ApiDocumentation
     private const SOFT_DELETED = ['cars/{car}', 'users/{user}'];
 
     /**
+     * Descripciones de los parámetros de paginación y de los filtros de reportes.
+     *
+     * @var array<string, string>
+     */
+    private const PARAMETERS = [
+        'page' => 'Página solicitada, empezando en 1.',
+        'per_page' => 'Elementos por página (1-100). Por defecto 15.',
+        'from' => 'Fecha inicial en formato `Y-m-d`. Se envía junto con `to`.',
+        'to' => 'Fecha final en formato `Y-m-d` (incluida). Se envía junto con `from`.',
+        'branch_id' => 'Filtra por sucursal. Sin valor se incluyen todas.',
+    ];
+
+    /**
      * Completa la operación con los errores que la aplicación puede devolver.
      */
     public static function transform(Operation $operation, RouteInfo $routeInfo): void
     {
         $path = Str::after($routeInfo->route->uri(), 'api/');
 
+        self::documentParameters($operation);
         self::documentErrors($operation, $routeInfo->route, $path);
         self::documentBinaryResponses($operation, $path);
+    }
+
+    /**
+     * Añade `page` a los listados y describe la paginación y los filtros.
+     */
+    private static function documentParameters(Operation $operation): void
+    {
+        $documented = [];
+
+        foreach ($operation->parameters as $parameter) {
+            if (! $parameter instanceof Parameter || $parameter->in !== 'query') {
+                continue;
+            }
+
+            $documented[] = $parameter->name;
+
+            if (isset(self::PARAMETERS[$parameter->name])) {
+                $parameter->description = self::PARAMETERS[$parameter->name];
+            }
+        }
+
+        if (! in_array('per_page', $documented, true) || in_array('page', $documented, true)) {
+            return;
+        }
+
+        $page = Parameter::make('page', 'query');
+        $page->description = self::PARAMETERS['page'];
+        $page->setSchema(Schema::fromType((new IntegerType)->setMin(1)));
+
+        $operation->addParameters([$page]);
     }
 
     /**
