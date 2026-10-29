@@ -69,9 +69,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Scramble registra sus transformadores en su propio `boot()`, que
         // corre después de este. El documento necesita que el nuestro corra el
-        // último para no perder los metadatos que añadimos.
+        // último para no perder los grupos ni los resúmenes en español.
         $this->app->booted(function (): void {
             Scramble::configure()
+                ->withTags(ApiDocumentation::tags())
                 ->withOperationTransformers(ApiDocumentation::transform(...));
         });
     }
