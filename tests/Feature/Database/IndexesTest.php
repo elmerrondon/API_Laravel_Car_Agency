@@ -8,6 +8,7 @@ it('crea los índices de consulta previstos', function () {
     expect(Schema::hasIndex('cars', ['status']))->toBeTrue()
         ->and(Schema::hasIndex('sales', ['sale_date']))->toBeTrue()
         ->and(Schema::hasIndex('sales', ['status', 'sale_date']))->toBeTrue()
+        ->and(Schema::hasIndex('sales', ['branch_id', 'sale_date']))->toBeTrue()
         ->and(Schema::hasIndex('users', ['is_active']))->toBeTrue();
 });
 
