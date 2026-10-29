@@ -6,8 +6,10 @@ use App\Models\Cars\Brand;
 use App\Models\Locations\Branch;
 use App\Models\Locations\City;
 use App\Models\Locations\Country;
+use App\Models\Locations\State;
 use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -139,6 +141,49 @@ it('permite al manager gestionar catálogos pero no ubicaciones', function () {
     // El rol manager no incluye `manage_locations` en la matriz de permisos.
     $this->patchJson('/api/branches/'.Branch::firstOrFail()->id, ['description' => 'No permitido'])
         ->assertForbidden();
+});
+
+it('mantiene el nombre de estados y ciudades único dentro de su padre', function () {
+    $country = Country::firstOrFail();
+    $otherCountry = Country::whereKeyNot($country->id)->firstOrFail();
+    $stateName = 'Estado '.Str::random(6);
+
+    $state = $this->postJson('/api/states', ['name' => $stateName, 'country_id' => $country->id])
+        ->assertCreated()
+        ->json('data');
+
+    // El mismo nombre en el mismo país choca.
+    $this->postJson('/api/states', ['name' => $stateName, 'country_id' => $country->id])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('name');
+
+    // El propio estado puede reenviar su nombre al actualizarse.
+    $this->patchJson("/api/states/{$state['id']}", ['name' => $stateName])
+        ->assertOk()
+        ->assertJsonPath('data.name', $stateName);
+
+    // En otro país el nombre se puede repetir.
+    $this->postJson('/api/states', ['name' => $stateName, 'country_id' => $otherCountry->id])
+        ->assertCreated();
+
+    $cityName = 'Ciudad '.Str::random(6);
+
+    $city = $this->postJson('/api/cities', ['name' => $cityName, 'state_id' => $state['id']])
+        ->assertCreated()
+        ->json('data');
+
+    $this->postJson('/api/cities', ['name' => $cityName, 'state_id' => $state['id']])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('name');
+
+    $this->patchJson("/api/cities/{$city['id']}", ['name' => $cityName])
+        ->assertOk()
+        ->assertJsonPath('data.name', $cityName);
+
+    $otherState = State::whereKeyNot($state['id'])->firstOrFail();
+
+    $this->postJson('/api/cities', ['name' => $cityName, 'state_id' => $otherState->id])
+        ->assertCreated();
 });
 
 it('valida el rango de per_page en los listados', function () {
