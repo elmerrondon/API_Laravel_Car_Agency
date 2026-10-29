@@ -51,7 +51,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [x] `10.5` `tests/Feature/Sales/CreateSaleTest.php`: cálculo de impuestos (16 % + 3 %), descuento (7,5 %) y tipo de cambio (1,15) sobre un precio conocido, importes derivados redondeados a 2 decimales, coche reservado → 422, `sale_date` fuera de `Y-m-d H:i:s` → 422 e impuestos vacíos/inactivos/duplicados, descuento > 100 y tipo de cambio con 3 decimales → 422.
 - [x] `10.6` `tests/Feature/Catalogs/CatalogAndLocationCrudTest.php`: CRUD completo de marcas y de sucursales (código `SUC-0000` generado en servidor y `city.state` cargada), vendedor con `view_*` puede leer catálogos/ubicaciones pero recibe 403 en `store`/`update`/`destroy`, manager gestiona catálogos pero no ubicaciones (matriz de permisos) y `per_page` fuera de 1-100 o no numérico → 422.
 - [x] `10.7` `tests/Feature/Users/UserCrudTest.php`: alta con roles/sucursales (contraseña hasheada y permisos derivados del rol), duplicados de email/documento/código → 422, edición de nombre/email/roles, email de otro usuario → 422, desactivar revoca tokens, borrado lógico con revocación y 404 posterior, reutilización de email/documento tras el soft delete (el `code` sigue siendo global) e index/show con relaciones.
-- [ ] `10.8` Tests de errores transversales: 404 JSON, 405, 429 de login y de API, y `permission` inexistente.
+- [x] `10.8` `tests/Feature/Http/TransversalErrorsTest.php`: 404 de ruta y de recurso con soft delete, 405 JSON (con y sin `Accept`), 429 de login con `Retry-After` y liberación tras 61 s, 401 JSON en los grupos protegidos, 403 con mensaje del middleware y 500 explícito si una ruta exige un `permission` que no existe en el enum.
 
 ## Fase 11 — Rendimiento y consultas
 
