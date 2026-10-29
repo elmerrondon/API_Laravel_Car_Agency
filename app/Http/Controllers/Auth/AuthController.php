@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -13,10 +15,10 @@ class AuthController extends Controller
 
     public function login(LoginAuthRequest $request)
     {
-        $email = $request->validated('email');
-        $pasword = $request->validated('password');
+        $email = (string) $request->validated('email');
+        $password = (string) $request->validated('password');
 
-        $token = $this->service->login($email, $pasword);
+        $token = $this->service->login($email, $password);
 
         return response()->json(['message' => 'Success Login', 'token' => $token]);
     }

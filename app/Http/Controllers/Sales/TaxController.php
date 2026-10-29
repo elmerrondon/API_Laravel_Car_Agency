@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
 use App\DTOs\Sales\TaxData;
@@ -17,7 +19,7 @@ class TaxController extends Controller
 
     public function index(IndexTaxRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
 
         $Taxs = $this->service->getAllPaginatedTaxes($perPage);
 

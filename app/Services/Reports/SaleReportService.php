@@ -42,7 +42,7 @@ class SaleReportService
     {
         $from = $filters['from'] ?? null;
         $to = $filters['to'] ?? null;
-        $branchId = $filters['branch_id'] ?? null;
+        $branchId = isset($filters['branch_id']) ? (int) $filters['branch_id'] : null;
 
         $sales = Sale::with(self::RELATIONS)
             ->when($from !== null, fn ($query) => $query->whereDate('sale_date', '>=', $from))

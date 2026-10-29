@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
 use App\DTOs\Sales\SaleData;
@@ -17,7 +19,7 @@ class SaleController extends Controller
 
     public function index(IndexSaleRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $sales = $this->service->getAllPaginatedSales($perPage);
 
         return SaleResource::collection($sales);
@@ -37,7 +39,7 @@ class SaleController extends Controller
 
     public function cancelSale(Sale $sale, CancelSaleRequest $request)
     {
-        $notes = $request->validated('notes');
+        $notes = (string) $request->validated('notes');
         $canceledSale = $this->service->cancelSale($sale, $notes);
 
         return new SaleResource($canceledSale);

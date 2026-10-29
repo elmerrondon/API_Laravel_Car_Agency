@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Users;
 
 use App\DTOs\Users\RoleData;
@@ -18,7 +20,7 @@ class RoleController extends Controller
 
     public function index(IndexRoleRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $roles = $this->service->getAllPaginatedRoles($perPage);
 
         return RoleResource::collection($roles);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\BranchData;
@@ -17,7 +19,7 @@ class BranchController extends Controller
 
     public function index(IndexBranchRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $branches = $this->service->getAllPaginated($perPage);
 
         return BranchResource::collection($branches);

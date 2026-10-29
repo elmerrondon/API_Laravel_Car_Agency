@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\CountryData;
@@ -17,7 +19,7 @@ class CountryController extends Controller
 
     public function index(IndexCountryRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $countries = $this->service->getAllPaginated($perPage);
 
         return CountryResource::collection($countries);

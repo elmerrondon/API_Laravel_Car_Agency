@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\CityData;
@@ -17,7 +19,7 @@ class CityController extends Controller
 
     public function index(IndexCityRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $cities = $this->service->getAllPaginated($perPage);
 
         return CityResource::collection($cities);

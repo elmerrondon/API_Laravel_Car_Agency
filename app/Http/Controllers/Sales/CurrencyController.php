@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
 use App\DTOs\Sales\CurrencyData;
@@ -18,7 +20,7 @@ class CurrencyController extends Controller
 
     public function index(IndexCurrencyRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
 
         $currencies = $this->service->getAllPaginatedCurrecies($perPage);
 

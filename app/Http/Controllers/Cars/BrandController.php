@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\BrandData;
@@ -17,7 +19,7 @@ class BrandController extends Controller
 
     public function index(IndexBrandRequest $indexBrand)
     {
-        $perPage = $indexBrand->validated('per_page');
+        $perPage = $this->perPage($indexBrand);
 
         $brands = $this->service->getAllPaginated($perPage);
 

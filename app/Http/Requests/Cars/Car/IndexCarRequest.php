@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Cars\Car;
 
 use Illuminate\Contracts\Validation\ValidationRule;

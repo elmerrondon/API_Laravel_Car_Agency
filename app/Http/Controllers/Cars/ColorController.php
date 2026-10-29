@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\ColorData;
@@ -17,7 +19,7 @@ class ColorController extends Controller
 
     public function index(IndexColorRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
 
         $colors = $this->service->getAllPaginated($perPage);
 

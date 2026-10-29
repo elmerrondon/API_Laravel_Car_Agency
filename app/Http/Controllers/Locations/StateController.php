@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\StateData;
@@ -17,7 +19,7 @@ class StateController extends Controller
 
     public function index(IndexStateRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $states = $this->service->getAllPaginated($perPage);
 
         return StateResource::collection($states);

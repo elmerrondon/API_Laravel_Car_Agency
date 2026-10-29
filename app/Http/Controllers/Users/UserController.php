@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Users;
 
 use App\DTOs\Users\UserData;
@@ -17,7 +19,7 @@ class UserController extends Controller
 
     public function index(IndexUserRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
 
         $users = $this->service->getAllPaginated($perPage);
 

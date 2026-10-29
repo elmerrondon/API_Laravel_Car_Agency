@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Sales\PaymentMethod;
 
 use Illuminate\Contracts\Validation\ValidationRule;

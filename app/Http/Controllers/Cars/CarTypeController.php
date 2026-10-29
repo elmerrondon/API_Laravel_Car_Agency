@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\CarTypeData;
@@ -17,7 +19,7 @@ class CarTypeController extends Controller
 
     public function index(IndexCarTypeRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $carTypes = $this->service->getAllPaginated($perPage);
 
         return CarTypeResource::collection($carTypes);

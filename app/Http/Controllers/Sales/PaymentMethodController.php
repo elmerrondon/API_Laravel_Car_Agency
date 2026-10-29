@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
 use App\DTOs\Sales\PaymentMethodData;
@@ -17,7 +19,7 @@ class PaymentMethodController extends Controller
 
     public function index(IndexPaymentMethodRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
 
         $paymentMethods = $this->service->getAllPaginatedPaymentMethods($perPage);
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\CategoryData;
@@ -17,7 +19,7 @@ class CategoryController extends Controller
 
     public function index(IndexCategoryRequest $request)
     {
-        $perPage = $request->validated('per_page');
+        $perPage = $this->perPage($request);
         $categories = $this->service->getAllPaginated($perPage);
 
         return CategoryResource::collection($categories);
