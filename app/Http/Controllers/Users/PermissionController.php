@@ -10,9 +10,11 @@ use App\Services\Users\PermissionService;
 
 class PermissionController extends Controller
 {
-    public function index(PermissionService $service)
+    public function __construct(private readonly PermissionService $service) {}
+
+    public function index()
     {
-        $permissions = $service->getAllPermission();
+        $permissions = $this->service->getAllPermission();
 
         return PermissionResource::collection($permissions);
     }

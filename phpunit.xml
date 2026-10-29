@@ -18,6 +18,9 @@
         </include>
     </source>
     <php>
+        <!-- El test de arquitectura analiza todo `app/` con phpunit/arch y
+             necesita más memoria que el memory_limit por defecto (128M). -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
