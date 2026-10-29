@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Models\Users\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -27,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Un N+1 debe doler en desarrollo y en tests, no en producción:
+        // allí se degrada a consulta perezosa en lugar de romper la petición.
+        Model::preventLazyLoading(! app()->isProduction());
+
         Password::defaults(function () {
             return app()->isProduction()
               ? Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()

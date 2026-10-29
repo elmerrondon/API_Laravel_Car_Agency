@@ -55,7 +55,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 
 ## Fase 11 — Rendimiento y consultas
 
-- [ ] `11.1` Activar `Model::preventLazyLoading()` fuera de producción y corregir los N+1 que destape.
+- [x] `11.1` `Model::preventLazyLoading(! app()->isProduction())` en `AppServiceProvider`: los N+1 rompen la petición en `local`/`testing` y se degradan a consulta perezosa en producción. La fase 2.5 ya había centralizado los eager loads, así que no quedó ningún N+1 por corregir; `tests/Feature/Performance/PreventLazyLoadingTest.php` fija el ajuste (colección perezosa lanza `LazyLoadingViolationException`, eager loading y modelos sueltos siguen funcionando).
 - [ ] `11.2` Cachear los permisos de `User::hasPermissionTo()` con TTL corto e invalidar al cambiar roles o permisos.
 - [ ] `11.3` Revisar `EXPLAIN` de los listados principales y añadir solo los índices que falten (evitando duplicados de FK).
 - [ ] `11.4` Ampliar `QueryCountTest` a catálogos, ubicaciones, usuarios y reportes.
