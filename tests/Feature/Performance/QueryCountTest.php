@@ -31,43 +31,40 @@ function countQueriesDuringRequest(Closure $callback): int
     }
 }
 
-beforeEach(function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
-
-    Sanctum::actingAs($admin);
-
-    // La primera comprobación de permisos calienta la caché; sin este
-    // warm-up el primer request del test pagaría el join extra y la
-    // comparación entre páginas dejaría de ser simétrica.
-    $admin->hasPermissionTo(PermissionEnum::VIEW_CARS);
-});
-
-it('mantiene constante el número de consultas del listado de coches', function () {
-    $smallPage = countQueriesDuringRequest(function () {
-        $this->getJson('/api/cars?per_page=5')->assertOk();
+/**
+ * Comprueba que el listado no añade consultas al crecer la página.
+ */
+function assertConstantQueriesFor(string $url, int $smallPage, int $largePage): void
+{
+    $small = countQueriesDuringRequest(function () use ($url, $smallPage) {
+        test()->getJson("{$url}?per_page={$smallPage}")->assertOk();
     });
 
-    $largePage = countQueriesDuringRequest(function () {
-        $this->getJson('/api/cars?per_page=50')->assertOk();
+    $large = countQueriesDuringRequest(function () use ($url, $largePage) {
+        test()->getJson("{$url}?per_page={$largePage}")->assertOk();
     });
 
-    expect($largePage)->toBe($smallPage);
-});
+    expect($large)->toBe($small);
+}
 
-it('mantiene constante el número de consultas del listado de ventas', function () {
-    $user = User::create([
-        'name' => 'Ana',
-        'last_name' => 'Pérez',
-        'document_number' => 'DOC10001',
-        'code' => 'USR-001',
-        'email' => 'ana@example.test',
-        'password' => 'password',
-        'is_active' => true,
-    ]);
+/**
+ * Siembra ventas con fechas conocidas para los reportes.
+ */
+function seedSalesForQueryCount(int $count): void
+{
+    $user = User::firstOrCreate(
+        ['email' => 'ana@example.test'],
+        [
+            'name' => 'Ana',
+            'last_name' => 'Pérez',
+            'document_number' => 'DOC10001',
+            'code' => 'USR-001',
+            'password' => 'password',
+            'is_active' => true,
+        ],
+    );
 
-    $cars = Car::query()->take(20)->get();
+    $cars = Car::query()->take($count)->get();
     $branch = Branch::firstOrFail();
     $baseCurrency = Currency::where('is_base', true)->firstOrFail();
     $paymentCurrency = Currency::where('code', 'EUR')->firstOrFail();
@@ -93,14 +90,96 @@ it('mantiene constante el número de consultas del listado de ventas', function 
             'payment_method_id' => $paymentMethod->id,
         ]);
     }
+}
 
-    $smallPage = countQueriesDuringRequest(function () {
-        $this->getJson('/api/sales?per_page=5')->assertOk();
+beforeEach(function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
+
+    Sanctum::actingAs($admin);
+
+    // La primera comprobación de permisos calienta la caché; sin este
+    // warm-up el primer request del test pagaría el join extra y la
+    // comparación entre páginas dejaría de ser simétrica.
+    $admin->hasPermissionTo(PermissionEnum::VIEW_CARS);
+});
+
+it('mantiene constante el número de consultas del listado de coches', function () {
+    assertConstantQueriesFor('/api/cars', 5, 50);
+});
+
+it('mantiene constante el número de consultas del listado de ventas', function () {
+    seedSalesForQueryCount(20);
+
+    assertConstantQueriesFor('/api/sales', 5, 20);
+});
+
+it('mantiene constante el número de consultas de los catálogos', function (string $url) {
+    assertConstantQueriesFor($url, 1, 40);
+})->with([
+    '/api/brands',
+    '/api/colors',
+    '/api/categories',
+    '/api/car-types',
+    '/api/car-models',
+    '/api/taxes',
+    '/api/currencies',
+    '/api/payment-methods',
+]);
+
+it('mantiene constante el número de consultas de las ubicaciones', function (string $url, int $large) {
+    assertConstantQueriesFor($url, 1, $large);
+})->with([
+    ['/api/branches', 8],
+    ['/api/cities', 50],
+    ['/api/states', 50],
+    ['/api/countries', 50],
+]);
+
+it('mantiene constante el número de consultas del listado de usuarios', function () {
+    assertConstantQueriesFor('/api/users', 1, 3);
+});
+
+it('no escala las consultas de los reportes de coches con el número de filas', function () {
+    $small = countQueriesDuringRequest(function () {
+        $this->getJson('/api/reports/cars')->assertOk();
     });
 
-    $largePage = countQueriesDuringRequest(function () {
-        $this->getJson('/api/sales?per_page=20')->assertOk();
+    Car::factory()->count(100)->create();
+
+    $large = countQueriesDuringRequest(function () {
+        $this->getJson('/api/reports/cars')->assertOk();
     });
 
-    expect($largePage)->toBe($smallPage);
+    $branchId = Branch::firstOrFail()->id;
+
+    $filtered = countQueriesDuringRequest(function () use ($branchId) {
+        $this->getJson("/api/reports/cars?branch_id={$branchId}")->assertOk();
+    });
+
+    $pdf = countQueriesDuringRequest(function () use ($branchId) {
+        $this->get("/api/reports/cars/pdf?branch_id={$branchId}")->assertOk();
+    });
+
+    // El agregado vive en SQL: 100 coches más no añaden consultas.
+    expect($large)->toBe($small)
+        // El PDF reutiliza el mismo servicio y no añade consultas.
+        ->and($pdf)->toBe($filtered);
+});
+
+it('no escala las consultas del reporte de ventas con el número de ventas', function () {
+    seedSalesForQueryCount(5);
+
+    $small = countQueriesDuringRequest(function () {
+        $this->get('/api/reports/sales/pdf')->assertOk();
+    });
+
+    seedSalesForQueryCount(15);
+
+    $large = countQueriesDuringRequest(function () {
+        $this->get('/api/reports/sales/pdf')->assertOk();
+    });
+
+    expect($large)->toBe($small);
 });
