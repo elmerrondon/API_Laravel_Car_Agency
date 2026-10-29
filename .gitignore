@@ -23,5 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Documento local sobre rate limits (no versionar)
+# Documentos locales de apoyo (no versionar)
 rate-limits.md
+testing.md
