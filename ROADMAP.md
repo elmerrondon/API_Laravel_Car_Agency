@@ -63,7 +63,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 
 ## Fase 12 — OpenAPI y Postman
 
-- [ ] `12.1` Documentar las respuestas de error 401/403/404/409/422/429 en las rutas o controladores (`#[Response]`/extensiones).
+- [x] `12.1` `app/OpenApi/ApiDocumentation` (transformador de operaciones registrado en `AppServiceProvider::booted()` para correr después de los de Scramble) documenta `429` en todas las rutas, `403` en las que llevan `permission:*` y `409` en cancelar venta y en los `DELETE` con claves foráneas `RESTRICT` (no en `cars`/`users`, que son borrado lógico). El `429` y el `409` se añaden solo si el código no venía ya inferido por Scramble. `401`, `404` y `422` siguen saliendo del análisis de middleware, route-model binding y FormRequest.
 - [ ] `12.2` Documentar los PDF como `application/pdf` binario en lugar de JSON.
 - [ ] `12.3` Documentar explícitamente paginación (`page`, `per_page`) y filtros de reportes (`from`, `to`, `branch_id`).
 - [ ] `12.4` Añadir tags y summaries en español por dominio (coches, catálogos, ubicaciones, ventas, reportes, usuarios, auth).

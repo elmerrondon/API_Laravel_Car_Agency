@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\Users\User;
+use App\OpenApi\ApiDocumentation;
+use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -63,6 +65,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewApiDocs', function (?User $user = null): bool {
             return app()->environment(['local', 'testing'])
                 || (bool) config('docs.enabled');
+        });
+
+        // Scramble registra sus transformadores en su propio `boot()`, que
+        // corre después de este. El documento necesita que el nuestro corra el
+        // último para no perder los metadatos que añadimos.
+        $this->app->booted(function (): void {
+            Scramble::configure()
+                ->withOperationTransformers(ApiDocumentation::transform(...));
         });
     }
 }
