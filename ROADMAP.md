@@ -49,7 +49,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [x] `10.3` `tests/Feature/Auth/TokenExpirationTest.php` con `Carbon::setTestNow`: 119 min válido, 121 min 401, `sanctum.expiration` configurable (30 min) y re-resolución del guard al cambiar la config.
 - [x] `10.4` `tests/Feature/Reports/SaleReportFiltersTest.php`: `from`/`to` juntos o ninguno (422 en ambos sentidos), fechas inválidas o invertidas (422), `branch_id` inexistente (422), extremos del rango inclusivos, totales en moneda base (no en la de pago) y `branch_id` normalizado desde query string.
 - [x] `10.5` `tests/Feature/Sales/CreateSaleTest.php`: cálculo de impuestos (16 % + 3 %), descuento (7,5 %) y tipo de cambio (1,15) sobre un precio conocido, importes derivados redondeados a 2 decimales, coche reservado → 422, `sale_date` fuera de `Y-m-d H:i:s` → 422 e impuestos vacíos/inactivos/duplicados, descuento > 100 y tipo de cambio con 3 decimales → 422.
-- [ ] `10.6` Tests de catálogos y ubicaciones: CRUD completo, `manage_*` vs `view_*` (403) y `per_page` fuera de rango.
+- [x] `10.6` `tests/Feature/Catalogs/CatalogAndLocationCrudTest.php`: CRUD completo de marcas y de sucursales (código `SUC-0000` generado en servidor y `city.state` cargada), vendedor con `view_*` puede leer catálogos/ubicaciones pero recibe 403 en `store`/`update`/`destroy`, manager gestiona catálogos pero no ubicaciones (matriz de permisos) y `per_page` fuera de 1-100 o no numérico → 422.
 - [ ] `10.7` Tests de usuarios: alta/edición/baja, email y documento duplicados, revocación de tokens al desactivar/eliminar.
 - [ ] `10.8` Tests de errores transversales: 404 JSON, 405, 429 de login y de API, y `permission` inexistente.
 
