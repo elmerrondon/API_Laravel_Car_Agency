@@ -94,13 +94,14 @@ it('usa los siete grupos de negocio en español con resumen en cada operación',
     }
 });
 
-it('documenta la seguridad bearer y las respuestas de error de la API', function () {
+it('declara la licencia del proyecto y la seguridad bearer', function () {
     $document = openApiDocument();
 
-    expect($document['components']['securitySchemes']['bearerAuth'])->toMatchArray([
-        'type' => 'http',
-        'scheme' => 'bearer',
-    ]);
+    expect($document['info']['license'])->toMatchArray(['name' => 'MIT', 'identifier' => 'MIT'])
+        ->and($document['components']['securitySchemes']['bearerAuth'])->toMatchArray([
+            'type' => 'http',
+            'scheme' => 'bearer',
+        ]);
 
     // Login: público (sin 401 ni 403) y con límite de intentos.
     expect($document['paths']['/auth/login']['post']['responses'])

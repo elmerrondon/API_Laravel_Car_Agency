@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\OpenApi;
 
+use Dedoc\Scramble\Support\Generator\License;
+use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\Parameter;
 use Dedoc\Scramble\Support\Generator\Response;
@@ -104,6 +106,14 @@ final class ApiDocumentation
         'reports/sales/pdf' => 'Descargar el reporte de ventas en PDF',
         'sales/{sale}/cancel' => 'Cancelar una venta',
     ];
+
+    /**
+     * Completa el documento con la licencia del proyecto.
+     */
+    public static function document(OpenApi $document): void
+    {
+        $document->info->setLicense(new License('MIT', 'MIT'));
+    }
 
     /**
      * Grupos con su orden de aparición en la documentación.

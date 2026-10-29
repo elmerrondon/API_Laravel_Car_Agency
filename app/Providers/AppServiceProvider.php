@@ -73,7 +73,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->booted(function (): void {
             Scramble::configure()
                 ->withTags(ApiDocumentation::tags())
-                ->withOperationTransformers(ApiDocumentation::transform(...));
+                ->withOperationTransformers(ApiDocumentation::transform(...))
+                ->withDocumentTransformers(ApiDocumentation::document(...));
         });
     }
 }
