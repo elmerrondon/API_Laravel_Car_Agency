@@ -37,6 +37,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Ventas transaccionales:** cálculo de impuestos, descuentos y tipos de cambio con redondeo a 2 decimales.
 - **Soft deletes:** en `User` y `Car`. Las ventas no se borran: se cancelan con `SaleStatus::CANCELLED`.
 - **Reportes PDF:** ventas e inventario, con filtros por fecha y sucursal.
+- **Documentación OpenAPI 3.1.2:** `/docs/api` y `/docs/api.json`, con grupos, resúmenes y errores por dominio; importable en Postman.
 - **Datos demo en español:** 8 sucursales, 52 coches y 3 usuarios con roles `admin`, `manager` y `vendedor`.
 
 ---
@@ -220,7 +221,19 @@ Los tokens expiran a los **120 minutos**. `POST /api/auth/logout` invalida el to
 | `404` | Recurso inexistente o con soft delete. |
 | `409` | Conflicto de estado o integridad: venta ya cancelada, rol con usuarios, borrado con FK o moneda base. |
 | `422` | Error de validación. El detalle viene en `errors`. |
-| `429` | Demasiados intentos de login. Espera un minuto. |
+| `429` | Demasiadas peticiones: se superó el límite del *rate limiter*. Espera un minuto. |
+
+### Rate limits
+
+Los límites se definen en `config/rate_limits.php` y se pueden ajustar con variables de entorno:
+
+| Limiter | Rutas | Límite | Se cuenta por |
+| :--- | :--- | :--- | :--- |
+| `login` | `POST /api/auth/login` | 5/min (`RATE_LIMIT_LOGIN`) | email + IP |
+| `api` | Resto de rutas autenticadas | 120/min (`RATE_LIMIT_API`) | usuario (o IP sin token) |
+| `reports` | `/api/reports/*` | 30/min (`RATE_LIMIT_REPORTS`) | usuario (o IP sin token) |
+
+El reporte PDF es la ruta más cara: además del límite, corta en `REPORTS_MAX_ROWS` (500 por defecto) y responde `422` si el rango de fechas lo supera.
 
 Ejemplos:
 
@@ -279,12 +292,45 @@ Las ventas solo permiten `index`, `show`, `store` y `PATCH /{sale}/cancel`.
 
 ### Paginación
 
-Los endpoints de listado aceptan `per_page` entre **1 y 100**. El valor por defecto es **15**:
+Los endpoints de listado aceptan `page` (desde 1) y `per_page` entre **1 y 100**. El tamaño por defecto es **15**:
 
 ```bash
-curl -s "http://localhost:8000/api/cars?per_page=25" \
+curl -s "http://localhost:8000/api/cars?page=2&per_page=25" \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+La respuesta incluye `data`, `links` (`first`, `last`, `prev`, `next`) y `meta` con `current_page`, `last_page`, `per_page` y `total`. `GET /api/car-statuses` y `GET /api/permissions` devuelven la colección completa, sin paginar.
+
+---
+
+## 📘 Documentación OpenAPI y Postman
+
+El contrato se genera con **Scramble** en **OpenAPI 3.1.2** a partir de las rutas, los `FormRequest` y los `Resource`. `app/OpenApi/ApiDocumentation.php` añade encima los grupos en español, los resúmenes de cada operación, la paginación, los filtros de reportes y los errores `403`, `409` y `429`.
+
+| Recurso | URL |
+| :--- | :--- |
+| Referencia interactiva | `http://localhost:8000/docs/api` |
+| Documento JSON | `http://localhost:8000/docs/api.json` |
+
+Las dos rutas viven fuera de `/api` y las protege el Gate `viewApiDocs`: se abren en `local` y `testing`; en cualquier otro entorno, solo con `DOCS_ENABLED=true`.
+
+### Exportar el documento
+
+```bash
+docker compose exec -T app composer docs:export
+# → storage/app/openapi.json (ignorado por Git)
+```
+
+### Importar en Postman
+
+1. Exporta el documento con el comando anterior.
+2. En Postman: **Import → File** y selecciona `storage/app/openapi.json`.
+3. Rellena las variables de la colección: `baseUrl` llega con `http://localhost:8000/api` y `bearerToken` queda vacía.
+4. Ejecuta `POST /auth/login` y copia el `token` de la respuesta en `bearerToken`.
+
+La colección importada contiene las 87 peticiones de la API, con `Authorization: Bearer {{bearerToken}}` ya configurado a nivel de colección.
+
+> Si en algún momento ejecutas `php artisan scramble:cache`, el documento queda congelado en caché; usa `php artisan scramble:clear` después de cambiar rutas o validaciones.
 
 ---
 
@@ -324,6 +370,7 @@ app/
 │   ├── Requests/         # Validación con FormRequest
 │   └── Resources/        # Serialización JSON
 ├── Models/               # Modelos Eloquent por dominio
+├── OpenApi/              # Metadatos de la documentación (grupos, errores)
 └── Services/             # Reglas de negocio y transacciones
 
 resources/views/reports/  # Vistas Blade para PDF
@@ -374,9 +421,22 @@ docker compose exec -T app ./vendor/bin/pint
 
 # Comprobar formato sin modificar archivos
 docker compose exec -T app ./vendor/bin/pint --test
+
+# Análisis estático (PHPStan/Larastan nivel 5, incluye `--memory-limit=1G`)
+docker compose exec -T app composer analyse
+
+# Vulnerabilidades conocidas en dependencias PHP
+docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite: **63 tests / 260 aserciones**.
+Estado verificado de la suite (2026-10-28): **169 tests / 1376 aserciones**, **PHPStan 0 errores** y **Pint limpio (269 archivos)**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+
+### Reglas que fijan los tests
+
+- El número de consultas de cada listado no crece con las filas (`tests/Feature/Performance/QueryCountTest.php`).
+- Ningún N+1 pasa desapercibido: `Model::preventLazyLoading()` está activo fuera de producción.
+- El 403/401/429 de cada ruta y el contrato de la documentación OpenAPI están cubiertos en `tests/Feature/Docs`.
+- Los importes se comparan redondeados a 2 decimales.
 
 ---
 
@@ -459,6 +519,8 @@ Luego actualiza `APP_URL` en `.env` si cambias el puerto de Nginx.
 | Cambios en `.env` no se aplican | Configuración cacheada. | `php artisan config:clear` y reinicia `app`. |
 | `npm: not found` | La imagen PHP no incluye Node. | No uses `npm`; este stack no requiere Vite. |
 | `429` al hacer login | Se superaron 5 intentos por minuto. | Espera un minuto o revisa el limiter `login`. |
+| `403` en `/docs/api` | El entorno no es `local`/`testing` y `DOCS_ENABLED=false`. | Activa `DOCS_ENABLED=true` o consulta el documento en desarrollo. |
+| `422` en `/api/reports/sales/pdf` | El rango supera `REPORTS_MAX_ROWS` (500 ventas). | Acota `from`/`to` o sube el límite junto con la memoria PHP. |
 | `401` con un usuario válido | La cuenta está inactiva. | Actívala con `is_active=true` o desde `/api/users`. |
 | `409` al borrar un catálogo | Está referenciado por otros registros. | Elimina o reasigna las referencias primero. |
 
@@ -480,6 +542,8 @@ docker compose exec -T app php artisan migrate --seed
 - El plan de trabajo y las tareas pendientes viven en `ROADMAP.md`.
 - Las reglas para agentes y el contexto técnico del repositorio están en `AGENTS.md`.
 - `phpunit.xml` fuerza SQLite `:memory:` para los tests.
+- PHPStan/Larastan corre en **nivel 5 sin baseline**: si añades código, `composer analyse` debe seguir en 0 errores.
+- La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
 - Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local.
 - El stack Docker es de desarrollo; el `Dockerfile` incluye un target `prod`, pero no hay un `docker-compose.prod.yml` en el repositorio.
 

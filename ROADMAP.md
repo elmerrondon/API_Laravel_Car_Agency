@@ -72,7 +72,7 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 
 ## Fase 13 — Cierre y documentación
 
-- [ ] `13.1` README: sección de OpenAPI/Postman, comandos de calidad (`analyse`, `pint`, `test`) y rate limits.
+- [x] `13.1` README: sección «Documentación OpenAPI y Postman» (URLs `/docs/api` y `/docs/api.json`, Gate `viewApiDocs`, `composer docs:export`, importación en Postman con `baseUrl`/`bearerToken`, aviso de `scramble:cache`), tabla de rate limits (`login` 5, `api` 120, `reports` 30), `page`/`per_page` en paginación, `composer analyse` y `composer audit` en la sección de calidad, estado de la suite (169 tests / 1376 aserciones) y filas nuevas de troubleshooting (`403` en `/docs/api`, `422` por `REPORTS_MAX_ROWS`).
 - [ ] `13.2` `AGENTS.md`: decisión multi-sucursal, política de docs, límites, PHPStan nivel 5 y lecciones de la iteración.
 - [ ] `13.3` Verificación final: `composer audit`, `pest`, `phpstan`, `pint` y `migrate:fresh --seed` con resultados anotados aquí.
 - [ ] `13.4` Smoke test HTTP real: login, `/docs/api`, `/docs/api.json`, reportes PDF y 429.
