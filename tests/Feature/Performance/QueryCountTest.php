@@ -2,13 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Enums\Sales\SaleStatus;
 use App\Enums\Users\PermissionEnum;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
-use App\Models\Sales\Currency;
-use App\Models\Sales\PaymentMethod;
-use App\Models\Sales\Sale;
 use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\DB;
@@ -47,51 +43,6 @@ function assertConstantQueriesFor(string $url, int $smallPage, int $largePage): 
     expect($large)->toBe($small);
 }
 
-/**
- * Siembra ventas con fechas conocidas para los reportes.
- */
-function seedSalesForQueryCount(int $count): void
-{
-    $user = User::firstOrCreate(
-        ['email' => 'ana@example.test'],
-        [
-            'name' => 'Ana',
-            'last_name' => 'Pérez',
-            'document_number' => 'DOC10001',
-            'code' => 'USR-001',
-            'password' => 'password',
-            'is_active' => true,
-        ],
-    );
-
-    $cars = Car::query()->take($count)->get();
-    $branch = Branch::firstOrFail();
-    $baseCurrency = Currency::where('is_base', true)->firstOrFail();
-    $paymentCurrency = Currency::where('code', 'EUR')->firstOrFail();
-    $paymentMethod = PaymentMethod::firstOrFail();
-
-    foreach ($cars as $index => $car) {
-        Sale::create([
-            'exchange_rate' => 1,
-            'base_price' => $car->price,
-            'taxes' => [],
-            'total_taxes' => 0,
-            'discount_percentage' => 0,
-            'total_base_amount' => $car->price,
-            'total_amount_paid' => $car->price,
-            'total_discount' => 0,
-            'status' => SaleStatus::COMPLETED,
-            'sale_date' => now()->subMinutes($index),
-            'car_id' => $car->id,
-            'user_id' => $user->id,
-            'branch_id' => $branch->id,
-            'payment_currency_id' => $paymentCurrency->id,
-            'base_currency_id' => $baseCurrency->id,
-            'payment_method_id' => $paymentMethod->id,
-        ]);
-    }
-}
-
 beforeEach(function () {
     $this->seed(DatabaseSeeder::class);
 
@@ -110,7 +61,7 @@ it('mantiene constante el número de consultas del listado de coches', function 
 });
 
 it('mantiene constante el número de consultas del listado de ventas', function () {
-    seedSalesForQueryCount(20);
+    seedSales(20);
 
     assertConstantQueriesFor('/api/sales', 5, 20);
 });
@@ -169,13 +120,13 @@ it('no escala las consultas de los reportes de coches con el número de filas', 
 });
 
 it('no escala las consultas del reporte de ventas con el número de ventas', function () {
-    seedSalesForQueryCount(5);
+    seedSales(5);
 
     $small = countQueriesDuringRequest(function () {
         $this->get('/api/reports/sales/pdf')->assertOk();
     });
 
-    seedSalesForQueryCount(15);
+    seedSales(15);
 
     $large = countQueriesDuringRequest(function () {
         $this->get('/api/reports/sales/pdf')->assertOk();

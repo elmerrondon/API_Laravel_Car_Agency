@@ -17,7 +17,10 @@ class UserService
 
     public function getAllPaginated(?int $perPage = null)
     {
-        return User::with(self::RELATIONS)->paginate($perPage);
+        return User::with(self::RELATIONS)
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getUser(User $user): User

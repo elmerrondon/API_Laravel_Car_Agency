@@ -13,7 +13,10 @@ class CurrencyService
 {
     public function getAllPaginatedCurrecies(?int $perPage = null)
     {
-        return Currency::select(['id', 'name', 'code', 'is_base', 'is_active'])->paginate($perPage);
+        return Currency::select(['id', 'name', 'code', 'is_base', 'is_active'])
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createCurrency(CurrencyData $data)

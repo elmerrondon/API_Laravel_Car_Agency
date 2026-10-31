@@ -16,7 +16,10 @@ class RoleService
 {
     public function getAllPaginatedRoles(?int $perPage = null)
     {
-        return Role::with('permissions')->paginate($perPage);
+        return Role::with('permissions')
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createRole(RoleData $data)

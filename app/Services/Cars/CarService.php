@@ -24,7 +24,10 @@ class CarService
 
     public function getAllPaginated(?int $perPage = null)
     {
-        return Car::with(self::RELATIONS)->paginate($perPage);
+        return Car::with(self::RELATIONS)
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getCar(Car $car): Car

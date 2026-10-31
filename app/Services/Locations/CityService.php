@@ -18,7 +18,9 @@ class CityService
     {
         return City::with(self::RELATIONS)
             ->select(['id', 'name', 'state_id', 'is_active'])
-            ->paginate($perPage);
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getCity(City $city): City

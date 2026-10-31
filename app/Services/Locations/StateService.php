@@ -15,7 +15,9 @@ class StateService
     {
         return State::with(self::COUNTRY_RELATION)
             ->select(['id', 'name', 'country_id', 'is_active'])
-            ->paginate($perPage);
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getState(State $state): State

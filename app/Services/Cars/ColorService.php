@@ -11,7 +11,10 @@ class ColorService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return Color::select(['id', 'name', 'is_active'])->paginate($perPage);
+        return Color::select(['id', 'name', 'is_active'])
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createColor(ColorData $data): Color

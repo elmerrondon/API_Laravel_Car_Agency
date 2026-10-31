@@ -11,7 +11,10 @@ class BrandService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return Brand::select(['id', 'name', 'description', 'country_id', 'is_active'])->paginate($perPage);
+        return Brand::select(['id', 'name', 'description', 'country_id', 'is_active'])
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createBrand(BrandData $data): Brand

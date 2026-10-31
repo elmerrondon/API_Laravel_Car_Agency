@@ -19,7 +19,9 @@ class BranchService
     {
         return Branch::with(self::RELATIONS)
             ->select(['id', 'name', 'code', 'address', 'description', 'zip_code', 'is_active', 'city_id'])
-            ->paginate($perPage);
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getBranch(Branch $branch): Branch

@@ -39,7 +39,10 @@ class SaleService
 
     public function getAllPaginatedSales(?int $perPage = null)
     {
-        return Sale::with(self::RELATIONS)->paginate($perPage);
+        return Sale::with(self::RELATIONS)
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getSale(Sale $sale): Sale

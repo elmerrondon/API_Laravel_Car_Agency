@@ -15,7 +15,9 @@ class CarModelService
     {
         return CarModel::with(self::BRAND_RELATION)
             ->select(['id', 'name', 'description', 'brand_id', 'is_active'])
-            ->paginate($perPage);
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function getCarModel(CarModel $carModel): CarModel

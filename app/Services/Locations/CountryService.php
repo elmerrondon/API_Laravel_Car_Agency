@@ -11,7 +11,10 @@ class CountryService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return Country::select(['id', 'name', 'is_active'])->paginate($perPage);
+        return Country::select(['id', 'name', 'is_active'])
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createCountry(CountryData $data): Country

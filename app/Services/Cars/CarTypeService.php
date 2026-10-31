@@ -11,7 +11,10 @@ class CarTypeService
 {
     public function getAllPaginated(?int $perPage = null)
     {
-        return CarType::select(['id', 'name', 'description', 'is_active'])->paginate($perPage);
+        return CarType::select(['id', 'name', 'description', 'is_active'])
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createCarType(CarTypeData $data): CarType
