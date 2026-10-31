@@ -77,6 +77,10 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 - [x] `13.3` Verificación final (2026-10-28): `composer audit` **sin avisos**; `composer analyse` **0 errores** (nivel 5, sin baseline); `pint --test` **PASS 269 archivos**; `pest` **169 tests / 1376 aserciones** en 39 s; `migrate:fresh --seed` OK con **8 sucursales, 52 coches, 3 usuarios, 13 permisos y 0 ventas**. La suite sigue usando SQLite `:memory:` y no toca MySQL.
 - [x] `13.4` Smoke test HTTP real contra Nginx (`http://localhost:8000`): login `admin@caragency.test` → `200` con token; `GET /api/cars` sin token → `401`; `GET /docs/api` → `200 text/html`; `GET /docs/api.json` → `200 application/json` (497 KB, OpenAPI 3.1.2, 41 paths, 7 grupos); `GET /api/reports/cars` → `200` con `total_cars=52`; los dos PDF → `200 application/pdf` (881 KB y 878 KB) con firma `%PDF-1.7`; 6 intentos de login fallidos → `429` en el sexto. Tokens de humo eliminados después.
 
+## Mantenimiento
+
+- [x] `M1` Paginación estable (2026-10-30): los 16 listados paginados encadenan `orderBy('id')` para que el orden no dependa del plan de ejecución y `withQueryString()` para que `links`/`meta.links` conserven `per_page`. `tests/Feature/Http/PaginationTest.php` recorre los 16 endpoints y exige ids ascendentes entre páginas y `per_page` en los enlaces; el helper `seedSales()` se movió a `tests/Pest.php`. Suite: **186 tests / 1625 aserciones**, PHPStan **0 errores**, Pint limpio.
+
 ## Historial completado (Iteración 1)
 
 ### Decisiones acordadas

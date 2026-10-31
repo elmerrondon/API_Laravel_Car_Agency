@@ -299,7 +299,7 @@ curl -s "http://localhost:8000/api/cars?page=2&per_page=25" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-La respuesta incluye `data`, `links` (`first`, `last`, `prev`, `next`) y `meta` con `current_page`, `last_page`, `per_page` y `total`. `GET /api/car-statuses` y `GET /api/permissions` devuelven la colección completa, sin paginar.
+La respuesta incluye `data`, `links` (`first`, `last`, `prev`, `next`) y `meta` con `current_page`, `last_page`, `per_page` y `total`. Los enlaces conservan los parámetros de la petición (por ejemplo `per_page`) y cada listado se ordena por `id`, así que las páginas son estables. `GET /api/car-statuses` y `GET /api/permissions` devuelven la colección completa, sin paginar.
 
 ---
 
