@@ -10,6 +10,7 @@ use App\Exceptions\Users\RoleInUseException;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use LogicException;
 
 class RoleService
@@ -26,6 +27,8 @@ class RoleService
     {
 
         return DB::transaction(function () use ($data) {
+            $this->ensurePermissionsAreNotEmpty($data->permissions);
+
             $systemRoles = array_column(RoleEnum::cases(), 'value');
 
             if (in_array($data->name, $systemRoles)) {
@@ -49,6 +52,10 @@ class RoleService
     {
 
         return DB::transaction(function () use ($role, $data) {
+            if ($data->permissions !== null) {
+                $this->ensurePermissionsAreNotEmpty($data->permissions);
+            }
+
             $systemRoles = array_column(RoleEnum::cases(), 'value');
 
             if (in_array($role->name, $systemRoles)) {
@@ -73,6 +80,23 @@ class RoleService
             return $role->load('permissions');
         });
 
+    }
+
+    /**
+     * Un rol sin permisos es inoperante y deja usuarios bloqueados sin que se
+     * note: el FormRequest ya lo valida, pero el servicio lo defiende también.
+     *
+     * @param  array<array-key, mixed>|null  $permissions
+     */
+    private function ensurePermissionsAreNotEmpty(?array $permissions): void
+    {
+        if (! empty($permissions)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'permissions' => ['A role must have at least one permission.'],
+        ]);
     }
 
     public function deleteRole(Role $role): bool

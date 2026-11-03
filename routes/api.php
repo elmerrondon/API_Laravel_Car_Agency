@@ -28,7 +28,9 @@ use Illuminate\Support\Facades\Route;
 // Autenticación: la única ruta pública es el login.
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () {
+    Route::get('auth/me', [AuthController::class, 'me']);
+    Route::put('auth/password', [AuthController::class, 'changePassword']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
 
@@ -103,6 +105,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Usuarios, roles y permisos
     Route::middleware('permission:manage_users')->group(function () {
+        Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword']);
         Route::apiResource('users', UserController::class);
         Route::apiResource('roles', RoleController::class);
         Route::get('permissions', [PermissionController::class, 'index']);

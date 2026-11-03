@@ -87,6 +87,7 @@ it('siembra los usuarios base con rol y sucursal', function () {
         expect($user)->not->toBeNull()
             ->and($user->roles()->pluck('name')->all())->toBe([$role->value])
             ->and($user->branches()->count())->toBe(1)
+            ->and($user->must_change_password)->toBeFalse()
             ->and(Hash::check($password, $user->password))->toBeTrue();
     }
 });
@@ -125,6 +126,7 @@ it('siembra el administrador de producción sin Faker ni datos demo', function (
     expect($user)->not->toBeNull()
         ->and($user->code)->toBe('USR-9001')
         ->and($user->is_active)->toBeTrue()
+        ->and($user->must_change_password)->toBeFalse()
         ->and($user->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value])
         ->and($user->roles()->first()->permissions()->count())->toBe(13)
         ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue()

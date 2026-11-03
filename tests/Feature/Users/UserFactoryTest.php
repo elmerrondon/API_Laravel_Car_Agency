@@ -12,6 +12,7 @@ it('crea usuarios con la factory', function () {
         ->and($user->code)->toStartWith('USR-')
         ->and($user->document_number)->toHaveLength(10)
         ->and($user->is_active)->toBeTrue()
+        ->and($user->must_change_password)->toBeFalse()
         ->and(Hash::check('password', $user->password))->toBeTrue();
 
     $this->assertDatabaseHas('users', ['email' => $user->email]);

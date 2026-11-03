@@ -57,6 +57,7 @@ class UserSeeder extends Seeder
                     'code' => $data['code'],
                     'password' => $password,
                     'is_active' => true,
+                    'must_change_password' => false,
                 ]
             );
 

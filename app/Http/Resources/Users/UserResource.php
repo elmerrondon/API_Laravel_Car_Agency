@@ -31,6 +31,7 @@ class UserResource extends JsonResource
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
             'is_active' => $this->is_active,
+            'must_change_password' => $this->must_change_password,
         ];
     }
 }

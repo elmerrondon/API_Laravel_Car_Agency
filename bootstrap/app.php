@@ -6,8 +6,10 @@ use App\Exceptions\Reports\ReportTooLargeException;
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
+use App\Exceptions\Users\LastAdminException;
 use App\Exceptions\Users\RoleInUseException;
 use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForceJsonResponse;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -28,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
+            'active' => EnsureUserIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -45,6 +48,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(
             fn (RoleInUseException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
+        );
+
+        $exceptions->render(
+            fn (LastAdminException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
         );
 
         $exceptions->render(

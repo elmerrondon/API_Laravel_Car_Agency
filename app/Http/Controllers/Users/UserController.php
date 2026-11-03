@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Users;
 use App\DTOs\Users\UserData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\User\IndexUserRequest;
+use App\Http\Requests\Users\User\ResetUserPasswordRequest;
 use App\Http\Requests\Users\User\StoreUserRequest;
 use App\Http\Requests\Users\User\UpdateUserRequest;
 use App\Http\Resources\Users\UserResource;
@@ -55,5 +56,12 @@ class UserController extends Controller
         $this->service->deleteUser($user);
 
         return response()->noContent();
+    }
+
+    public function resetPassword(User $user, ResetUserPasswordRequest $request)
+    {
+        $this->service->resetPassword($user, (string) $request->validated('password'));
+
+        return response()->json(['message' => 'Password Reset Successfully']);
     }
 }

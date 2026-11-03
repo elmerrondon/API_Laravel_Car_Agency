@@ -99,12 +99,15 @@ final class ApiDocumentation
      */
     private const SUMMARIES = [
         'auth/login' => 'Iniciar sesión',
+        'auth/me' => 'Consultar el perfil del usuario autenticado',
+        'auth/password' => 'Cambiar la contraseña propia',
         'auth/logout' => 'Cerrar sesión',
         'auth/refresh' => 'Renovar el token de acceso',
         'reports/cars' => 'Reporte de inventario de coches',
         'reports/cars/pdf' => 'Descargar el reporte de coches en PDF',
         'reports/sales/pdf' => 'Descargar el reporte de ventas en PDF',
         'sales/{sale}/cancel' => 'Cancelar una venta',
+        'users/{user}/reset-password' => 'Restablecer la contraseña de un usuario',
     ];
 
     /**

@@ -60,6 +60,7 @@ class ProductionAdminSeeder extends Seeder
                 'email' => $email,
                 'password' => Hash::make($password),
                 'is_active' => true,
+                'must_change_password' => false,
             ],
         );
 

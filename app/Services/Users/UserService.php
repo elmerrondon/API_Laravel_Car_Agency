@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Users;
 
 use App\DTOs\Users\UserData;
+use App\Enums\Users\RoleEnum;
+use App\Exceptions\Users\LastAdminException;
+use App\Models\Users\Role;
 use App\Models\Users\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class UserService
@@ -32,7 +36,18 @@ class UserService
     {
 
         return DB::transaction(function () use ($data) {
-            $arrayData = ['name' => $data->name, 'last_name' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
+            $arrayData = [
+                'name' => $data->name,
+                'last_name' => $data->lastName,
+                'document_number' => $data->documentNumber,
+                'code' => $data->code,
+                'email' => $data->email,
+                'password' => $data->password,
+                'is_active' => $data->isActive,
+                // Las cuentas creadas desde la administración nacen con una
+                // clave temporal que el empleado debe reemplazar al entrar.
+                'must_change_password' => true,
+            ];
 
             $cleanData = array_filter($arrayData, function ($value) {
                 return $value !== null;
@@ -59,7 +74,11 @@ class UserService
     {
 
         return DB::transaction(function () use ($user, $data) {
-            $arrayData = ['name' => $data->name, 'last_name' => $data->lastName, 'document_number' => $data->documentNumber, 'code' => $data->code, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
+            $this->guardLastActiveAdmin($user, $data);
+
+            // `code` no forma parte de la actualización: es inmutable y el
+            // FormRequest ya rechaza cualquier valor distinto del actual.
+            $arrayData = ['name' => $data->name, 'last_name' => $data->lastName, 'document_number' => $data->documentNumber, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
 
             $cleanData = array_filter($arrayData, function ($value) {
                 return $value !== null;
@@ -92,10 +111,86 @@ class UserService
     public function deleteUser(User $user): bool
     {
         return DB::transaction(function () use ($user) {
+            if ($user->is_active && $this->isAdmin($user)) {
+                $this->ensureAnotherActiveAdminExists();
+            }
+
             $user->tokens()->delete();
             $user->forgetPermissionCache();
 
             return $user->delete();
         });
+    }
+
+    /**
+     * Asigna una contraseña temporal y obliga al usuario a cambiarla.
+     */
+    public function resetPassword(User $user, string $password): void
+    {
+        DB::transaction(function () use ($user, $password): void {
+            $user->update([
+                'password' => $password,
+                'must_change_password' => true,
+            ]);
+
+            $user->tokens()->delete();
+            $user->forgetPermissionCache();
+        });
+    }
+
+    /**
+     * Impide desactivar o quitar el rol `admin` al último administrador activo.
+     */
+    private function guardLastActiveAdmin(User $user, UserData $data): void
+    {
+        if (! $user->is_active || ! $this->isAdmin($user)) {
+            return;
+        }
+
+        $deactivating = $data->isActive === false;
+        $removingAdminRole = $data->roles !== null && ! $this->containsAdminRole($data->roles);
+
+        if ($deactivating || $removingAdminRole) {
+            $this->ensureAnotherActiveAdminExists();
+        }
+    }
+
+    /**
+     * Bloquea las filas de los administradores activos y exige que quede más
+     * de uno, de modo que dos desactivaciones concurrentes no dejen el sistema
+     * sin administración.
+     */
+    private function ensureAnotherActiveAdminExists(): void
+    {
+        $activeAdmins = User::query()
+            ->where('is_active', true)
+            ->whereHas('roles', fn (Builder $query) => $query->where('name', RoleEnum::ADMIN->value))
+            ->lockForUpdate()
+            ->pluck('id');
+
+        if ($activeAdmins->count() <= 1) {
+            throw LastAdminException::cannotRemoveLastActiveAdmin();
+        }
+    }
+
+    private function isAdmin(User $user): bool
+    {
+        return $user->roles()->where('name', RoleEnum::ADMIN->value)->exists();
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $roleIds
+     */
+    private function containsAdminRole(array $roleIds): bool
+    {
+        $adminRoleId = (int) Role::where('name', RoleEnum::ADMIN->value)->value('id');
+
+        foreach ($roleIds as $roleId) {
+            if ((int) $roleId === $adminRoleId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

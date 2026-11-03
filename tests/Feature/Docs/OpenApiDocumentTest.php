@@ -24,6 +24,8 @@ it('expone todos los endpoints de la API', function () {
     $expected = [
         '/auth/login',
         '/auth/logout',
+        '/auth/me',
+        '/auth/password',
         '/auth/refresh',
         '/branches',
         '/branches/{branch}',
@@ -63,6 +65,7 @@ it('expone todos los endpoints de la API', function () {
         '/taxes/{tax}',
         '/users',
         '/users/{user}',
+        '/users/{user}/reset-password',
     ];
 
     $paths = array_keys(openApiDocument()['paths']);
@@ -122,6 +125,23 @@ it('declara la licencia del proyecto y la seguridad bearer', function () {
         ->toMatchArray(['type' => 'object', 'required' => ['message']]);
 
     expect($document['paths']['/cars/{car}']['get']['responses'])->toHaveKey('404');
+});
+
+it('documenta el autoservicio de identidad y el reset administrativo', function () {
+    $document = openApiDocument();
+
+    expect($document['paths']['/auth/me']['get']['summary'])
+        ->toBe('Consultar el perfil del usuario autenticado')
+        ->and($document['paths']['/auth/me']['get']['responses'])->toHaveKeys(['200', '401', '429']);
+
+    expect($document['paths']['/auth/password']['put']['summary'])
+        ->toBe('Cambiar la contraseña propia')
+        ->and($document['paths']['/auth/password']['put']['responses'])->toHaveKeys(['200', '401', '422', '429']);
+
+    $reset = $document['paths']['/users/{user}/reset-password']['post'];
+
+    expect($reset['summary'])->toBe('Restablecer la contraseña de un usuario')
+        ->and($reset['responses'])->toHaveKeys(['200', '401', '403', '422', '429']);
 });
 
 it('documenta el 409 de cancelar una venta y de los borrados con claves foráneas', function () {

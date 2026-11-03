@@ -39,6 +39,7 @@ it('crea un usuario con roles y sucursales', function () {
         ->assertJsonPath('data.email', 'carla@example.test')
         ->assertJsonPath('data.code', 'USR-900')
         ->assertJsonPath('data.is_active', true)
+        ->assertJsonPath('data.must_change_password', true)
         ->assertJsonPath('data.roles.0.id', $this->sellerRoleId)
         ->assertJsonPath('data.branches.0.id', $this->branchId)
         ->json('data');
@@ -49,6 +50,7 @@ it('crea un usuario con roles y sucursales', function () {
         ->and($user->branches->pluck('id')->all())->toBe([$this->branchId])
         ->and(Hash::check('secret123', $user->password))->toBeTrue()
         ->and($user->password)->not->toBe('secret123')
+        ->and($user->must_change_password)->toBeTrue()
         ->and($user->hasPermissionTo(PermissionEnum::VIEW_CARS))->toBeTrue()
         ->and($user->hasPermissionTo(PermissionEnum::MANAGE_USERS))->toBeFalse();
 });
