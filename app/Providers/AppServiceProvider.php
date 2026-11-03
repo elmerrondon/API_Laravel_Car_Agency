@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Cars\Car;
+use App\Models\Locations\Branch;
+use App\Models\Sales\Sale;
+use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\OpenApi\ApiDocumentation;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -30,6 +35,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Alias legibles para `audit_logs.auditable_type`: el log guarda
+        // `user`, `role`, `car`, `branch` o `sale`, no el FQCN del modelo.
+        Relation::morphMap([
+            'user' => User::class,
+            'role' => Role::class,
+            'car' => Car::class,
+            'branch' => Branch::class,
+            'sale' => Sale::class,
+        ]);
+
         // Un N+1 debe doler en desarrollo y en tests, no en producción:
         // allí se degrada a consulta perezosa en lugar de romper la petición.
         Model::preventLazyLoading(! app()->isProduction());
