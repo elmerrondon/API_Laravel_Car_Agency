@@ -1,174 +1,192 @@
 # ROADMAP
 
-Fuente de verdad del avance del proyecto. Cada micro-tarea equivale a un commit atómico; márcala con `[x]` al terminarla.
+> Fuente de verdad del avance del proyecto. Cada micro-tarea equivale a un commit atómico; márcala con `[x]` al terminarla.
+>
+> **Regla de arquitectura de esta etapa:** todo se implementa dentro de esta API Laravel 12 y su MySQL 8.0. Prohibido usar servicios externos (SMTP/correo, OAuth/Google, analítica externa) o librerías pesadas de terceros. La auditoría y las estadísticas se resuelven con tablas, servicios y consultas propias.
 
-El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento, por lo que ese archivo se eliminó.
+---
 
-La Iteración 1 (fases 0 a 6) está completa y se conserva al final como historial. La Iteración 2 arranca en la fase 7 con el plan de QA, seguridad, rendimiento y documentación OpenAPI; tras el cierre de la fase 13, la sección de Mantenimiento recoge la paginación estable (`M1`) y el stack de producción en Docker (`M2`).
+## ✅ Hitos Completados (Resumen)
 
-## Decisiones de la Iteración 2
+### Iteración 1 — Base funcional (fases 0-6)
 
-1. **PHPStan nivel 5 sin baseline.** Se corrigen los 184 errores reales hasta llegar a 0 (fase 8). El nivel 6 se evaluará más adelante solo si el nivel 5 queda estable.
-2. **Alcance multi-sucursal sin scoping (decisión de negocio intencional).** Un usuario con permiso consulta coches y ventas de todas las sucursales para ver stock y operaciones entre sedes. No se añade filtro por sucursal ni control de acceso por objeto; se documenta en `AGENTS.md`.
-3. **Documentación OpenAPI por entorno.** Habilitada por defecto en `local` y `testing`; en producción queda cerrada salvo que `DOCS_ENABLED=true`. La compuerta es el Gate `viewApiDocs` que ya consume `RestrictedDocsAccess`.
-4. **Sin `pest-plugin-mutate` ni drivers de cobertura.** No se toca el `Dockerfile` para instalar Xdebug/PCOV; la calidad se mide con PHPStan, Pint y la suite funcional.
-5. **Compatibilidad Postman (resuelto sin degradar el paquete).** Scramble 0.13.x solo emite 3.1/3.2 (no existe `V3_0` en su enum) y la rama 0.12 también emite `3.1.0`, así que degradar no da acceso a OpenAPI 3.0. Se fija `V3_1` (documento `3.1.2`), versión que Postman importa de forma oficial, con un servidor relativo `/api` resuelto por `APP_URL` y export local con `composer docs:export` a `storage/app/openapi.json`.
+- Stack Docker completo: PHP 8.3-FPM, Nginx, MySQL 8.0, tests con SQLite `:memory:` y `RefreshDatabase`.
+- Modelo de dominio por carpetas (`Cars`, `Locations`, `Sales`, `Users`, `Reports`), DTOs `readonly` y servicios con la lógica de negocio.
+- Ventas transaccionales con impuestos, descuentos, tipo de cambio y redondeo a 2 decimales; cancelación que libera el coche.
+- RBAC de 13 permisos con roles `admin`, `manager` y `vendedor`; Sanctum con tokens bearer.
+- Reportes de ventas e inventario en JSON y PDF con Dompdf; soft deletes en usuarios y coches.
 
-## Fase 7 — Dependencias, configuración y endurecimiento base
+### Iteración 2 — Calidad, seguridad y documentación (fases 7-13)
 
-- [x] `7.1` Consolidar `dedoc/scramble:^0.13.52` y `larastan/larastan:^3.13` en `composer.json`/`composer.lock` y verificar que el volumen `vendor/` los tiene instalados.
-- [x] `7.2` Actualizar las dependencias con avisos de `composer audit` (guzzle, laravel/framework, league/*, symfony/*) hasta dejar la auditoría en 0.
-- [x] `7.3` Crear `phpstan.neon` en nivel 5 (sin baseline) con memoria suficiente para el contenedor y el script `composer analyse`. Baseline al configurarlo (2026-10-28): **180 errores** que la fase 8 debe llevar a 0.
-- [x] `7.4` Crear `pint.json` (preset `laravel`) y comprobar que `pint --test` sigue limpio (241 archivos).
-- [x] `7.5` Publicar `config/scramble.php`: versión OpenAPI explícita (3.1.2, único soporte de Scramble 0.13.x), info del API, UI, `security_strategy` Bearer (`bearerAuth`) de Sanctum y dev tools por entorno.
-- [x] `7.6` Crear `config/docs.php` + Gate `viewApiDocs` (`local`/`testing` o `DOCS_ENABLED=true`) y test de acceso 200/403.
-- [x] `7.7` Mover la expiración de Sanctum a `SANCTUM_EXPIRATION` y completar `.env.example` (`API_VERSION`, `DOCS_ENABLED`, `SCRAMBLE_DEV_TOOLS`, `CORS_ALLOWED_ORIGINS`, `SANCTUM_EXPIRATION`).
-- [x] `7.8` Definir limitadores `api` (120/min) y `reports` (30/min) con límites configurables (`config/rate_limits.php`), aplicarlos en `routes/api.php` y testear el 429.
-- [x] `7.9` Publicar `config/cors.php` con orígenes desde `CORS_ALLOWED_ORIGINS` y test de cabeceras CORS.
-- [x] `7.10` Validación de cierre de la fase 7 en Docker: `pest` **74 tests / 296 aserciones**, `pint --test` limpio (**249 archivos**), `composer audit` sin avisos y `phpstan` nivel 5 con la línea base de **180 errores** que asume la fase 8.
+- PHPStan/Larastan nivel 5 sin baseline en **0 errores**, `strict_types=1` en todo el código y Pint limpio.
+- Tests de arquitectura, paginación estable, conteo de consultas, rate limits, CORS y errores transversales.
+- Caché de permisos con invalidación explícita y `preventLazyLoading` fuera de producción.
+- OpenAPI 3.1.2 con Scramble: `/docs/api`, `/docs/api.json`, 41 paths, grupos en español e importación verificada a Postman.
+- Límite de filas de reportes (`REPORTS_MAX_ROWS=500`) y `memory_limit=512M` justificados con benchmark de Dompdf.
 
-## Fase 8 — PHPStan nivel 5 hasta 0 errores
+### Mantenimiento y despliegue (M1-M3)
 
-- [x] `8.1` Modelos: `casts()` protegido, tipos de retorno en relaciones y `parseModelCastsMethod` en Larastan (180 → 107 errores; desaparecen los 60 `relationExistence`).
-- [x] `8.2` Resources: anotar `@mixin` con el modelo subyacente en los 17 Resources (107 → 12 errores).
-- [x] `8.3` Servicios: `str_pad()` casteado en `BranchService`, `CarReportService` tipado con `Collection<int, Car>` + `getAttribute()` en los agregados, y `SaleData::$discountPercentage` sin `??` (12 → 0 errores).
-- [x] `8.4` Ampliar `phpstan.neon` a `routes`, `database` y `config`: `config('seeders.user_password')` en lugar de `env()` en `UserSeeder` y `UserFactory::definition()` sin el docblock incompatible. `composer analyse` en verde (**0 errores**).
+- Paginación determinista con `orderBy('id')` y `withQueryString()` en los 16 listados.
+- Stack de producción VPS (`docker-compose.prod.yml`, Nginx, MySQL privado, volúmenes y healthchecks).
+- Vía PaaS con imagen monolítica FrankenPHP para Render/Railway y workflow de Docker Hub.
+- Seeders seguros para producción: `ProductionAdminSeeder` sin Faker, idempotente y con `ADMIN_*`.
 
-## Fase 9 — Tipado estricto y arquitectura
+**Estado de referencia (último cierre documentado):** suite en **189 tests / 1645 aserciones**, PHPStan **0 errores**, Pint limpio. **Datos locales verificados el 2026-11-03:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios, 13 permisos y 0 ventas.
 
-- [x] `9.1` `declare(strict_types=1)` en `app/Enums`, `app/DTOs` y `app/Models` (21 + 16 archivos). Los DTOs castean con el trait `NormalizesRequestValues` porque `validated()` devuelve `mixed` y la validación acepta `"5"`/`"1"`; `ColorData::fromData()` pasa a `fromRequest()`.
-- [x] `9.2` `declare(strict_types=1)` en `app/Services`, `app/Exceptions` y `app/Providers` (26 archivos, sin cambios de comportamiento: los DTOs ya entregan tipos exactos).
-- [x] `9.3` `declare(strict_types=1)` en `app/Http` (92 archivos) y `bootstrap/app.php`. Al romper la coerción aparece el punto real: `per_page` de una query string llegaba como `"5"` a los servicios (`?int`), resuelto con `Controller::perPage()`; también se castean `notes`, `email`/`password` y `branch_id` del reporte de ventas.
-- [x] `9.4` `tests/Feature/ArchitectureTest.php`: 11 reglas `arch()` (strict types, sin `dd`/`dump`/`env()`, enums string-backed, modelos Eloquent, DTOs `readonly` y sin dependencias de `App\Http`/`App\Services`, servicios sin `App\Http`, controllers/resources sin `DB`/`Builder`) + un test por reflexión que exige un servicio inyectado en cada controller. `toUse()` positivo es agregado por capa, por eso la delegación se comprueba clase a clase. Detectó dos controllers con inyección por método (`CarStatusController`, `PermissionController`), normalizados; `memory_limit=512M` en `phpunit.xml` porque el análisis agota los 128M.
-- [x] `9.5` Regla `declare_strict_types` activada en `pint.json`: Pint añadió la declaración a los 96 archivos restantes (`routes`, `config`, `database`, `tests`, `bootstrap/providers.php`, `public/index.php`). Verificado con `migrate:fresh --seed` (52 coches, 3 usuarios, 8 sucursales) y smoke HTTP.
+---
 
-## Fase 10 — Cobertura de tests faltante
+## 🧱 Línea Base Verificada del Dominio
 
-- [x] `10.1` `tests/Feature/Auth/LogoutTest.php`: 200 y mensaje, token borrado en `personal_access_tokens` (siguiente petición 401), logout sin token 401 y `logout` solo revoca el token usado (el de otro dispositivo sigue funcionando).
-- [x] `10.2` `tests/Feature/Auth/RefreshTokenTest.php`: 200 con token nuevo (distinto), el anterior queda revocado (401), solo queda un token y la expiración se renueva (tras 150 min el original caduca pero el renovado sigue válido); refresh sin token 401.
-- [x] `10.3` `tests/Feature/Auth/TokenExpirationTest.php` con `Carbon::setTestNow`: 119 min válido, 121 min 401, `sanctum.expiration` configurable (30 min) y re-resolución del guard al cambiar la config.
-- [x] `10.4` `tests/Feature/Reports/SaleReportFiltersTest.php`: `from`/`to` juntos o ninguno (422 en ambos sentidos), fechas inválidas o invertidas (422), `branch_id` inexistente (422), extremos del rango inclusivos, totales en moneda base (no en la de pago) y `branch_id` normalizado desde query string.
-- [x] `10.5` `tests/Feature/Sales/CreateSaleTest.php`: cálculo de impuestos (16 % + 3 %), descuento (7,5 %) y tipo de cambio (1,15) sobre un precio conocido, importes derivados redondeados a 2 decimales, coche reservado → 422, `sale_date` fuera de `Y-m-d H:i:s` → 422 e impuestos vacíos/inactivos/duplicados, descuento > 100 y tipo de cambio con 3 decimales → 422.
-- [x] `10.6` `tests/Feature/Catalogs/CatalogAndLocationCrudTest.php`: CRUD completo de marcas y de sucursales (código `SUC-0000` generado en servidor y `city.state` cargada), vendedor con `view_*` puede leer catálogos/ubicaciones pero recibe 403 en `store`/`update`/`destroy`, manager gestiona catálogos pero no ubicaciones (matriz de permisos) y `per_page` fuera de 1-100 o no numérico → 422.
-- [x] `10.7` `tests/Feature/Users/UserCrudTest.php`: alta con roles/sucursales (contraseña hasheada y permisos derivados del rol), duplicados de email/documento/código → 422, edición de nombre/email/roles, email de otro usuario → 422, desactivar revoca tokens, borrado lógico con revocación y 404 posterior, reutilización de email/documento tras el soft delete (el `code` sigue siendo global) e index/show con relaciones.
-- [x] `10.8` `tests/Feature/Http/TransversalErrorsTest.php`: 404 de ruta y de recurso con soft delete, 405 JSON (con y sin `Accept`), 429 de login con `Retry-After` y liberación tras 61 s, 401 JSON en los grupos protegidos, 403 con mensaje del middleware y 500 explícito si una ruta exige un `permission` que no existe en el enum.
+### Ventas (`sales`)
 
-## Fase 11 — Rendimiento y consultas
+- Tabla: `id`, `exchange_rate`, `base_price`, `taxes` (JSON), `total_taxes`, `discount_percentage`, `total_base_amount`, `total_amount_paid`, `total_discount`, `status`, `sale_date`, `car_id`, `user_id`, `branch_id`, `payment_currency_id`, `base_currency_id`, `payment_method_id`, `notes`, timestamps.
+- Sin `SoftDeletes`: se cancela con `SaleStatus::CANCELLED` (`completed`, `pending`, `cancelled`).
+- Relaciones: `car`, `user`, `branch`, `paymentMethod`, `paymentCurrency`, `baseCurrency`.
+- Índices útiles: `sale_date`, `(status, sale_date)` y `(branch_id, sale_date)`.
+- **Moneda:** `total_base_amount` está en moneda base y es la métrica comparable; `total_amount_paid` está en la moneda de pago y no se suma entre ventas.
 
-- [x] `11.1` `Model::preventLazyLoading(! app()->isProduction())` en `AppServiceProvider`: los N+1 rompen la petición en `local`/`testing` y se degradan a consulta perezosa en producción. La fase 2.5 ya había centralizado los eager loads, así que no quedó ningún N+1 por corregir; `tests/Feature/Performance/PreventLazyLoadingTest.php` fija el ajuste (colección perezosa lanza `LazyLoadingViolationException`, eager loading y modelos sueltos siguen funcionando).
-- [x] `11.2` `User::permissionNames()` cachea los nombres de permiso (`config/permissions.php`, `PERMISSIONS_CACHE_TTL=300`, 0 lo desactiva) y `hasPermissionTo()` compara contra esa lista. Invalidación explícita: `forgetPermissionCache()` al crear/editar/borrar usuario (roles, contraseña o baja) y `flushPermissionCacheForRole()` en `RoleService::updateRole`. `tests/Feature/Users/PermissionCacheTest.php` cubre caché caliente (0 consultas), acumulación sin duplicados, invalidación por cambio de rol, invalidación al cambiar los permisos del rol, expiración del TTL y TTL 0. Baja las consultas de `/api/sales` de 24 a 22.
-- [x] `11.3` `EXPLAIN` revisado en MySQL: el filtro de fechas usaba `whereDate()` (`date(sale_date)`, `type=ALL` + filesort) y ahora compara `sale_date` desnuda con límite superior exclusivo (`>= from 00:00`, `< to+1 día`), así que entra por `sales_sale_date_index` (`type=range`) sin cambiar la semántica inclusiva. Nueva migración `add_sales_branch_date_index` con `(branch_id, sale_date)`: con 3 000 ventas de prueba el reporte por sucursal pasa de `ref` + `Using filesort` a `ref` sin orden temporal. Listados de `cars`/`users` se quedan en `ALL` (52 y 3 filas, sin filtros que indexar) y `GROUP BY status` ya usa `cars_status_index`. Sin índices nuevos en `cars` (los duplicados de FK siguen descartados).
-- [x] `11.4` `QueryCountTest` ampliado (17 casos): helper `assertConstantQueriesFor()` compara `per_page` pequeño frente a grande en coches, ventas, los 8 catálogos y las 4 ubicaciones; usuarios 1 vs 3; el reporte de coches no suma consultas al pasar de 52 a 152 coches y el PDF reutiliza exactamente las del JSON; el PDF de ventas mantiene el número de consultas con 5 y con 20 ventas. El `beforeEach` calienta la caché de permisos para que la comparación no dependa del primer request.
-- [x] `11.5` Benchmark de Dompdf con ventas reales (PHP 8.3, contenedor `app`): 50 filas → 0,68 s / 54 MB / 3 páginas; 200 → 2,40 s / 98 MB / 9; 500 → 8,24 s / 216 MB / 21; 1 000 → 22,34 s / 508 MB / 41; 2 000 → 87,91 s / 1 442 MB / 81. Con el `memory_limit` de 128 MB el proceso moría ya con 500 filas, así que: (a) `docker/php/php.ini` sube `memory_limit` a 512 MB (y apaga `expose_php`), (b) nuevo `config/reports.php` con `REPORTS_MAX_ROWS=500`, y (c) `SaleReportService` cuenta filas antes de hidratar y devuelve 422 (`ReportTooLargeException`) pidiendo acotar fechas o sucursal. El reporte de coches no se limita porque agrega en SQL (3 consultas, salida del tamaño de los catálogos). Smoke real por Nginx+FPM: 500 ventas → `200` en 7,86 s (968 KB); 501 → `422` en 0,29 s.
+### Coches e inventario (`cars`)
 
-## Fase 12 — OpenAPI y Postman
+- Tabla: `id`, `price`, `mileage`, `year`, `vin` único, `status`, `color_id`, `car_model_id`, `car_type_id`, `category_id`, `branch_id`, soft deletes, timestamps.
+- Estados: `available`, `reserved`, `sold`. Marca accesible por `car_model.brand`; tipo, categoría y color por relaciones directas.
 
-- [x] `12.1` `app/OpenApi/ApiDocumentation` (transformador de operaciones registrado en `AppServiceProvider::booted()` para correr después de los de Scramble) documenta `429` en todas las rutas, `403` en las que llevan `permission:*` y `409` en cancelar venta y en los `DELETE` con claves foráneas `RESTRICT` (no en `cars`/`users`, que son borrado lógico). El `429` y el `409` se añaden solo si el código no venía ya inferido por Scramble. `401`, `404` y `422` siguen saliendo del análisis de middleware, route-model binding y FormRequest.
-- [x] `12.2` Los dos endpoints PDF (`GET /api/reports/cars/pdf` y `GET /api/reports/sales/pdf`) declaran `#[Response(200, mediaType: 'application/pdf', format: 'binary')]`; el transformador elimina el `application/json` que Scramble infería del tipo de retorno, así que el 200 solo ofrece `application/pdf` con `schema: {type: string, format: binary}`.
-- [x] `12.3` Paginación explícita: todo listado con `per_page` recibe además `page` (integer, mínimo 1) y ambos llevan descripción; `per_page` conserva el rango 1-100 del FormRequest. Los filtros de reportes (`from`, `to`, `branch_id`) se describen en la misma tabla `ApiDocumentation::PARAMETERS`, con el aviso de que `from`/`to` van juntos y la fecha final es inclusiva. Los dos endpoints no paginados (`/car-statuses`, `/permissions`) devuelven la colección completa, así que no declaran `page`.
-- [x] `12.4` Siete grupos en español con descripción y orden propio (`ApiDocumentation::TAGS`): Autenticación, Coches, Catálogos, Ubicaciones, Ventas, Reportes y Usuarios. Cada recurso declara su grupo y su nombre (`RESOURCES`) y el resumen se genera con la convención `Listar/Ver/Crear/Actualizar/Eliminar` (p. ej. «Listar coches», «Crear el coche»); los casos especiales viven en `SUMMARIES` (`Iniciar sesión`, `Cancelar una venta`, los tres reportes). Se registran con `Scramble::configure()->withTags()` dentro de `booted()`.
-- [x] `12.5` `composer docs:export` genera `storage/app/openapi.json` (OpenAPI 3.1.2, 41 paths, 87 operaciones, 7 grupos) dentro de `storage/app/`, que está ignorado por Git, y ahora **sin warnings**. Validado con `npx @redocly/cli lint`: el documento es válido; la primera pasada detectó un error real (`no-identical-paths` por `/taxes/{tax}` y `/taxes/{Tax}`, corregido en `fix(taxes): use lowercase route parameter names`). Después se eliminaron los avisos restantes: la licencia MIT se declara desde `ApiDocumentation::document()` y los `UpdateStateRequest`/`UpdateCityRequest` leen el modelo con `$this->route('state'|'city')` en lugar de propiedades dinámicas, que Scramble no podía evaluar. Queda 1 warning de Redocly (`no-server-example.com`) porque en desarrollo el servidor se deriva de `APP_URL=http://localhost:8000`; es intencional. Importación a Postman comprobada con `npx openapi-to-postmanv2` (la librería del importador de Postman): colección v2.1.0 con 87 peticiones, auth Bearer `{{bearerToken}}` y `baseUrl=http://localhost:8000/api`.
-- [x] `12.6` `tests/Feature/Docs/OpenApiDocumentTest.php` (8 pruebas, 9 casos con datasets) fija el contrato del documento: los 41 paths esperados, los 7 grupos en orden con resumen en cada operación, `bearerAuth` http/bearer, el mapa de errores (login sin 401/403 pero con 429; `logout`/`refresh` sin 403; rutas con `permission:` con 401+403; 404 en `show`; 409 solo en cancelar venta y borrados con FK), los PDF como `application/pdf` binario sin `application/json`, `page`/`per_page` en los 16 listados paginados, los filtros de reportes y la resolución de todas las `$ref` internas. El documento se genera una vez por archivo con un helper memoizado. `DocsAccessTest` conserva la cobertura de 200 en `testing` y del 403 en producción sin `DOCS_ENABLED`.
+### Sucursales y geografía
 
-## Fase 13 — Cierre y documentación
+- `branches`: `id`, `name`, `code` único, `address`, `description`, `zip_code`, `is_active`, `city_id`.
+- `cities` → `states` → `countries`; una sucursal pertenece a una ciudad, así que las ventas se pueden agrupar por ciudad/estado/país mediante `branch.city`.
 
-- [x] `13.1` README: sección «Documentación OpenAPI y Postman» (URLs `/docs/api` y `/docs/api.json`, Gate `viewApiDocs`, `composer docs:export`, importación en Postman con `baseUrl`/`bearerToken`, aviso de `scramble:cache`), tabla de rate limits (`login` 5, `api` 120, `reports` 30), `page`/`per_page` en paginación, `composer analyse` y `composer audit` en la sección de calidad, estado de la suite (169 tests / 1376 aserciones) y filas nuevas de troubleshooting (`403` en `/docs/api`, `422` por `REPORTS_MAX_ROWS`).
-- [x] `13.2` `AGENTS.md`: sección «Alcance multi-sucursal» (sin scoping por sucursal y por qué), «Documentación OpenAPI» (Gate `viewApiDocs`, orden de registro en `booted()`, PDF binario, mapa de errores, parámetros en minúscula, `scramble:cache`), «Límites y rendimiento» (`rate_limits`, `REPORTS_MAX_ROWS` + `memory_limit`, predicados sargables, caché de permisos) y la nota de PHPStan nivel 5 sin baseline + `strict_types`; se corrigieron las entradas obsoletas (N+1 de fase 2, «no hay PHPStan») y se añadieron tres entradas de memoria de la iteración 2.
-- [x] `13.3` Verificación final (2026-10-28): `composer audit` **sin avisos**; `composer analyse` **0 errores** (nivel 5, sin baseline); `pint --test` **PASS 269 archivos**; `pest` **169 tests / 1376 aserciones** en 39 s; `migrate:fresh --seed` OK con **8 sucursales, 52 coches, 3 usuarios, 13 permisos y 0 ventas**. La suite sigue usando SQLite `:memory:` y no toca MySQL.
-- [x] `13.4` Smoke test HTTP real contra Nginx (`http://localhost:8000`): login `admin@caragency.test` → `200` con token; `GET /api/cars` sin token → `401`; `GET /docs/api` → `200 text/html`; `GET /docs/api.json` → `200 application/json` (497 KB, OpenAPI 3.1.2, 41 paths, 7 grupos); `GET /api/reports/cars` → `200` con `total_cars=52`; los dos PDF → `200 application/pdf` (881 KB y 878 KB) con firma `%PDF-1.7`; 6 intentos de login fallidos → `429` en el sexto. Tokens de humo eliminados después.
+### Usuarios, roles y autenticación
 
-## Mantenimiento
+- `users`: `id`, `name`, `last_name`, `document_number`, `code` único global, `email`, `password`, `is_active`, soft deletes, timestamps. Sin `must_change_password`.
+- Pivotes `role_user` y `branch_user`; `roles` y `permissions` con `permission_role`.
+- Login público con Sanctum; `logout` y `refresh` protegidos. La expiración es de 120 minutos y `is_active` solo se comprueba en el login.
+- No existe `GET /api/auth/me`, ni cambio de contraseña de autoservicio, ni reset administrativo.
 
-- [x] `M1` Paginación estable (2026-10-30): los 16 listados paginados encadenan `orderBy('id')` para que el orden no dependa del plan de ejecución y `withQueryString()` para que `links`/`meta.links` conserven `per_page`. `tests/Feature/Http/PaginationTest.php` recorre los 16 endpoints y exige ids ascendentes entre páginas y `per_page` en los enlaces; el helper `seedSales()` se movió a `tests/Pest.php`. Suite: **186 tests / 1625 aserciones**, PHPStan **0 errores**, Pint limpio.
-- [x] `M2` Stack de producción en Docker (2026-11-02): nuevo `docker-compose.prod.yml` independiente del de desarrollo, con `app` (target `prod`, `image: car-agency-laravel-api:prod`, `env_file: .env.production`, volumen nombrado `app-storage` en `/var/www/html/storage` y healthcheck `fsockopen` al puerto 9000), `nginx` (build multi-stage, solo `80:80` y `depends_on: app` con `service_healthy`), `mysql` 8.0 sin puerto público (`mysqladmin ping` y volumen `mysql-data`) y red propia `car-agency-prod`. Se descartó Redis: la imagen PHP no incluye `ext-redis` y el proyecto no lo necesita, así que caché/colas usan MySQL y las sesiones archivos dentro del volumen.
-- [x] `M2.1` `docker/nginx/Dockerfile.prod`: multi-stage `FROM car-agency-laravel-api:prod AS app` → `nginx:1.27-alpine`, copia `/var/www/html/public` y el `docker/nginx/default.conf` compartido. Como parte de la imagen PHP, el primer despliegue construye `app` antes de `up -d --build`; no se tocó `docker/php/Dockerfile`.
-- [x] `M2.2` `.env.production.example`: plantilla versionable sin credenciales reales (`CHANGE_ME_*`) con `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `CACHE_STORE`/`CACHE_DRIVER=database`, `SESSION_DRIVER=file`, `QUEUE_CONNECTION=database` y `MYSQL_*` sincronizadas con `DB_*`. El `.env.production` real sigue ignorado por Git.
-- [x] `M2.3` Documentación: README con la sección «🚀 Despliegue en Producción» en cuatro pasos exactos —(1) `cp .env.production.example .env.production` y edición de credenciales, (2) `build app` obligatorio primero, (3) `up -d --build`, (4) `migrate --force` + `optimize`— con la explicación de por qué el orden importa y la nota de que `migrate` crea las tablas `cache`/`jobs`/`failed_jobs`; `AGENTS.md` con la arquitectura del stack productivo, la «Regla de construcción en Producción» y los comandos.
-- [x] `M2.4` `php artisan optimize` en producción: `config:cache` fallaba con `value at "scramble.security_strategy.1.scheme" is non-serializable` porque `config/scramble.php` instanciaba un `SecurityScheme`. El esquema `bearerAuth` se movió a `App\OpenApi\BearerAuthSecurityStrategy` y la configuración solo guarda el class-string y `['middleware' => [...]]`; ahora `optimize` cachea configuración, eventos, rutas y vistas.
-- [x] `M2.5` Verificación en Docker con proyecto aislado: `docker compose -f docker-compose.prod.yml config` válido, imágenes `car-agency-laravel-api:prod` y `car-agency-laravel-api-nginx:prod` construidas, `GET /up` → `200`, `migrate --force` y `optimize` completos contra MySQL, y login Sanctum + `GET /api/cars` → `200` (caché y permisos en MySQL, sesiones en `app-storage`).
-- [x] `M3` Vía PaaS / CI-CD (2026-11-02): imagen monolítica `docker/render/Dockerfile.render` sobre FrankenPHP 1 (`dunglas/frankenphp:1-php8.3-alpine`, Caddy + PHP embebido) con `composer install --no-dev`, `package:discover`, usuario `www-data`, `EXPOSE 8080` y healthcheck `fsockopen` a `$PORT`; `docker/render/Caddyfile` escucha en `:{$PORT:8080}` y `docker/render/entrypoint.sh` prepara `storage/`, exige `APP_KEY`, permite `RUN_MIGRATIONS=true`/`RUN_SEED=true` y ejecuta `optimize` al arrancar. No se modificó ningún archivo de la vía VPS.
-- [x] `M3.1` Workflow `.github/workflows/deploy-dockerhub.yml`: en `push` a `main` (y `workflow_dispatch`) hace `checkout`, `setup-buildx`, login con `secrets.DOCKER_USERNAME`/`secrets.DOCKER_TOKEN` y build/push de `docker/render/Dockerfile.render` para `linux/amd64`, con etiquetas `latest` y `sha-<corto>` y caché `type=gha`.
-- [x] `M3.2` Documentación: README con «☁️ Despliegue en PaaS (Render / Railway)» (arquitectura de la imagen, secretos de GitHub, publicación a Docker Hub, servicio en Render con health check `/up`, variables `DB_*` externas, pre-deploy `migrate --force --seed`, limitaciones de storage/colas y rollback por SHA); `AGENTS.md` registra las dos vías de despliegue, los archivos nuevos y la memoria técnica.
-- [x] `M3.3` Verificación sin compose: `docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .`, contenedor healthy, `GET /up` → `200`, `GET /api/cars` → `401`, `GET /docs/api` → `403` con `DOCS_ENABLED=false`, y login Sanctum + `GET /api/cars`/`GET /api/reports/cars` → `200` con token.
-- [x] `M3.4` Seeders seguros para producción (2026-11-02): `composer install --no-dev` elimina Faker y `migrate --seed` fallaba con `Call to undefined function fake()`. `DatabaseSeeder` corta con `app()->environment('production')` y delega solo en `ProductionAdminSeeder`, que siembra roles/permisos y crea el administrador con `User::updateOrCreate()` usando `config('seeders.admin_*')` (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, etc.), sin Faker y de forma idempotente. `UserSeeder` y `CarSeeder`/`CarFactory` quedan restringidos a local/testing. El entrypoint PaaS añade `RUN_SEED=true` y la documentación usa `migrate --force --seed`. Tests: `DatabaseSeedTest` cubre el administrador de producción, la idempotencia y el cortocircuito del `DatabaseSeeder`. Suite: **189 tests / 1645 aserciones**, PHPStan **0 errores**, Pint limpio.
+### Reportes y permisos
 
-## Historial completado (Iteración 1)
+- `GET /api/reports/sales/pdf`, `GET /api/reports/cars` y `GET /api/reports/cars/pdf` con permiso `view_reports`.
+- Filtros de ventas `from`/`to` (juntos o ninguno) y `branch_id`; la fecha final es inclusiva y las comparaciones son sargables.
+- 13 permisos: `admin` 13, `manager` 10, `vendedor` 5. No hay permisos de auditoría ni de estadísticas.
+- **No existe** tabla de auditoría, observadores/eventos de dominio ni endpoints de KPIs/rankings.
 
-### Decisiones acordadas
+### Brechas que ataca esta etapa
 
-- `Sale` deja de usar borrado lógico: se maneja con `SaleStatus` (`pending` → `completed` → `cancelled`). Cancelar devuelve el coche a `available`.
-- Solo `POST /api/auth/login` es público; el resto de rutas exige `auth:sanctum` + permiso.
-- RBAC granular con 13 permisos: `admin` completo, `manager` operativo, `vendedor` comercial.
-- Usuarios semilla: `admin@caragency.test`, `manager@caragency.test`, `vendedor@caragency.test`; contraseña desde `SEED_USER_PASSWORD` (fallback `password`, solo desarrollo).
-- `vin` y `users.code` conservan unicidad global (un valor reciclado rompe la trazabilidad). `email` y `document_number` se validan con `withoutTrashed()` en el FormRequest, porque el índice `(email, deleted_at)` no protege en MySQL (los `NULL` son distintos).
+1. El `code` de usuario todavía se puede modificar y un rol puede quedar sin permisos.
+2. No hay guarda para el último administrador activo ni rechazo inmediato de usuarios desactivados con token vigente.
+3. No hay perfil de autoservicio, cambio de contraseña propio ni flujo de clave temporal.
+4. No hay trazabilidad de accesos ni de operaciones de negocio.
+5. No hay endpoints agregados para el futuro panel de administración.
 
-### Fase 0 — Infraestructura y base de tests
+---
 
-- [x] `0.1` Crear `docker/php/Dockerfile` multi-stage (`base`, `dev`, `prod`) con PHP 8.3-FPM, Composer y extensiones para MySQL, SQLite en memoria, bcmath, PDFs, tests y opcache.
-- [x] `0.2` Crear `docker-compose.yml` con `app` (target `dev`), `nginx` en `8000` y `mysql` 8.0 con healthcheck.
-- [x] `0.3` Configurar Nginx para `/var/www/html/public` y `fastcgi_pass app:9000`.
-- [x] `0.4` Crear `.dockerignore` y `.env` local con `DB_HOST=mysql`, `DB_DATABASE=api_laravel_car_agency`, `DB_USERNAME=root`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`.
-- [x] `0.5` Levantar el stack y validar `php artisan about`, migraciones, seeders, `composer test` y `pint`.
-- [x] `0.6` Activar `RefreshDatabase` en `tests/Pest.php` y crear un test de humo que ejecute migraciones + `DatabaseSeeder`.
-- [x] `0.7` Añadir test base de respuesta JSON (`ForceJsonResponse`) para 404 y validación.
-- [x] `0.8` Aislar la suite del MySQL de Docker: PHPUnit solo escribía en `$_ENV`, pero Laravel prefiere `$_SERVER`, donde `env_file` inyecta el `.env` real; `RefreshDatabase` borraba la base de desarrollo.
+## 🚧 Nueva Etapa — Decisiones de Diseño
 
-### Fase 1 — Modelos, borrado lógico e índices
+1. **Permisos dedicados:** se añaden `view_audit_logs` (solo `admin`) y `view_statistics` (`admin` y `manager`). Los conteos pasan de 13/10/5 a 15/11/5 al cerrar la etapa.
+2. **Auditoría en la capa de servicio:** nada de triggers de MySQL ni observadores genéricos. El servicio recibe el actor de Sanctum y captura IP/User-Agent de la petición; si la escritura de auditoría falla, la operación de negocio no se rompe.
+3. **Auditoría después del commit:** las operaciones transaccionales (ventas, usuarios) registran el log cuando la transacción ya se confirmó, para no auditar cambios revertidos.
+4. **Contraseñas y secretos:** nunca se guardan contraseñas, tokens ni `remember_token` en `old_values`/`new_values`; se redactan antes de persistir.
+5. **Flag `must_change_password`:** es informativo para el frontend; el login y `/auth/me` lo exponen, pero la API no bloquea al usuario. El reset administrativo genera una clave temporal y revoca sus tokens.
+6. **Sin correo:** el olvido de contraseña se resuelve con un administrador que asigna una clave temporal; no hay recuperación por email.
+7. **Dinero y estado:** todos los KPIs monetarios usan `total_base_amount` y solo cuentan ventas `completed`; las canceladas y pendientes quedan fuera.
+8. **Fechas:** `start_date`/`end_date` van juntos o ninguno, en formato `Y-m-d`, con fin inclusivo y comparaciones sargables (`>= inicio`, `< fin + 1 día`).
+9. **Rankings:** `limit` por defecto 10, configurable por query string, máximo 100; si hay menos filas que el límite se devuelven las existentes sin rellenar.
+10. **Sin nuevas dependencias:** no se añaden paquetes Composer; todo se apoya en Laravel, Eloquent y MySQL/SQLite.
 
-- [x] `1.1` Quitar `SoftDeletes` de `App\Models\Sales\Sale` y crear migración que elimina `sales.deleted_at`; ajustar Resource y servicios que filtren por borrado.
-- [x] `1.2` Crear migración de índices: `cars(status)`, `cars(branch_id)`, `cars(car_model_id)`, `sales(sale_date)`, `sales(status, sale_date)`, `sales(user_id)`, `users(is_active)` (`cars.branch_id`, `cars.car_model_id` y `sales.user_id` ya quedan cubiertos por sus claves foráneas, y se elimina el índice único duplicado `deleted_at` sobre `cars.vin`).
-- [x] `1.3` Eliminar relaciones inversas no usadas en los modelos (empezando por `CarType::cars`), verificando que ningún `with()` ni Resource las consuma.
-- [x] `1.4` Corregir `UpdateUserRequest` (`Rule::unique('users','document')` → `document_number`) y `UpdateCurrencyRequest` (valida `code` contra la columna `name`).
-- [x] `1.5` Documentar en `AGENTS.md` la política de unicidad de `vin`/`users.code` y el comportamiento de los índices compuestos con `deleted_at` en MySQL.
+---
 
-### Fase 2 — N+1 y Resources
+## Fase 1 — Blindaje de Identidad, Autoservicio y Documentación de Acceso
 
-- [x] `2.1` `CarService`: eager loading con `with()` en `getAllPaginated`/`show` y `load()` en el detalle.
-- [x] `2.2` Catálogos de coches (`brands`, `car_models`, `car_types`, `categories`, `colors`): eager loading y `select` de columnas necesarias.
-- [x] `2.3` Ubicaciones (`countries`, `states`, `cities`, `branches`): eager loading y `select` de columnas necesarias.
-- [x] `2.4` Catálogos de ventas (`currencies`, `payment_methods`, `taxes`): eager loading y `select` de columnas necesarias.
-- [x] `2.5` Revisar Resources: cada `whenLoaded()` debe tener su eager load y los controladores deben devolver `new XxxResource` en lugar del modelo crudo.
-- [x] `2.6` Test de conteo de consultas (Query Log) para el listado de coches y el de ventas, asegurando que no crece con el número de filas.
+**Objetivo:** cerrar los huecos de identidad y dar al usuario autenticado un camino seguro para consultar su perfil y cambiar su clave, sin correo ni servicios externos.
 
-### Fase 3 — Transacciones y excepciones
+- [x] `1.1` Hacer inmutable `users.code`: `UpdateUserRequest` rechaza con `422` un `code` distinto del actual (usando `$this->route('user')`) y `UserService::updateUser()` deja de escribir la columna. Test: enviar otro código falla y el valor original permanece.
+- [x] `1.2` Impedir roles sin permisos: `StoreRoleRequest`/`UpdateRoleRequest` exigen `permissions` como array con `min:1` cuando se envía, y `RoleService` rechaza un `sync([])` como defensa adicional. Test: `PATCH /api/roles/{role}` con `permissions: []` devuelve `422`.
+- [x] `1.3` Guarda del último administrador: nueva excepción de dominio `LastAdminException` renderizada como `409`. En `UserService`, dentro de la transacción y con bloqueo de las filas de administradores activos, impedir (a) `DELETE /api/users/{user}`, (b) `is_active=false` y (c) un `sync` de roles que quite `admin` cuando el objetivo es el único administrador activo. Debe permitirse si existe otro administrador activo.
+- [x] `1.4` Middleware `EnsureUserIsActive` (alias `active`) después de `auth:sanctum` en todo el grupo protegido: si `is_active=false`, responde `401` JSON sin ejecutar el controlador, aunque el token siga vigente. Tests con token válido de usuario desactivado y con usuario activo.
+- [x] `1.5` Migración `add_must_change_password_to_users_table`: booleano `must_change_password` por defecto `false`, casteado en `User`, incluido en `UserData`/`UserResource` y en los seeders/factory. `UserService::createUser()` lo fuerza a `true` para los empleados creados desde el panel; `ProductionAdminSeeder`, `UserSeeder` y `UserFactory` lo dejan en `false`.
+- [x] `1.6` `GET /api/auth/me`: devolver perfil del usuario autenticado con `id`, `name`, `last_name`, `document_number`, `code`, `email`, `is_active`, `must_change_password`, roles, sucursales y `permissions` como lista plana ordenada de sus permisos efectivos. Nuevo Resource dedicado y eager loading de `roles.permissions` y `branches.city.state.country` (sin N+1).
+- [x] `1.7` `PUT /api/auth/password`: `ChangePasswordRequest` con `current_password`, `password` (`confirmed`) y `Password::default()`. Verificar la clave actual con `Hash::check` contra el usuario autenticado (evitando depender del guard por defecto), actualizar, poner `must_change_password=false` y revocar todos los tokens salvo el de la petición actual. Tests: clave actual incorrecta `422`, cambio correcto, token actual sigue válido y los demás quedan revocados.
+- [x] `1.8` `POST /api/users/{user}/reset-password` protegido por `manage_users`: el administrador asigna una clave temporal con `Password::default()`, se marca `must_change_password=true` y se revocan todos los tokens del usuario. Responder `200` con mensaje, nunca con la contraseña. Test de `403` sin permiso y de revocación efectiva.
+- [x] `1.9` Exponer `must_change_password` en la respuesta de `POST /api/auth/login` además del token, para que el futuro frontend sepa si debe forzar el cambio. No bloquear el login por este flag.
+- [x] `1.10` README y `.env.example`: nueva subsección **«Credenciales Iniciales por Defecto»** con el administrador de producción `admin@agency.com` / código `USR-0001` / contraseña `secret1234` cuando no se personalizan `ADMIN_*`; aclarar que los usuarios demo locales siguen siendo `admin@caragency.test` / `password`, documentar las variables `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_CODE`, `ADMIN_NAME`, `ADMIN_LAST_NAME` y `ADMIN_DOCUMENT_NUMBER`, y advertir que se cambie la clave tras el primer arranque.
+- [x] `1.11` Documentación OpenAPI: documentar `/auth/me`, `/auth/password`, `/users/{user}/reset-password`, el campo `must_change_password`, respuestas `401/403/422` y el ejemplo de credenciales iniciales. Actualizar `OpenApiDocumentTest` si cambia el número de paths.
+- [x] `1.12` Tests de la fase: inmutabilidad de `code`, roles sin permisos, guarda del último administrador (borrar, desactivar y quitar rol; permitir con otro admin), usuario inactivo con token, `/auth/me`, cambio de clave, reset administrativo, flag en login y seeders.
+- [x] `1.13` Cierre de fase: `composer test`, `composer analyse` (0 errores), `pint --test`, `migrate:fresh --seed` y smoke HTTP de login, `/auth/me` y cambio de clave.
 
-- [x] `3.1` `SaleService::cancelSale`: ejecutar en `DB::transaction` con `lockForUpdate`, rechazar ventas ya canceladas y no cancelables, y devolver el coche a `available`.
-- [x] `3.2` Crear excepciones de dominio de ventas (`CarNotAvailableException`, `SaleAlreadyCancelledException`, `SaleNotCancellableException`) y mapearlas a JSON 409/422 en `bootstrap/app.php`.
-- [x] `3.3` Adelgazar `SaleController`: quitar `try/catch` genéricos y dejar que las excepciones de dominio se rendericen.
-- [x] `3.4` Envolver en transacción los `create`/`update` de `CarService` y `UserService` cuando toquen pivotes o varias tablas.
-- [x] `3.5` Tests de cancelación: éxito, doble cancelación (409), coche ya vendido (422) y liberación del coche.
+**Criterio de cierre:** ningún administrador puede dejar el sistema sin administración activa; un usuario desactivado no puede operar con un token viejo; el usuario puede consultar su perfil y cambiar su clave sin correo.
 
-### Fase 4 — Roles, permisos y protección de rutas
+---
 
-- [x] `4.1` Ampliar `PermissionEnum` a los 13 permisos con `description()`: coches (4), catálogos (2, coches y ventas), ubicaciones (2), ventas (3), usuarios (1, `manage_users`), reportes (1).
-- [x] `4.2` Actualizar `PermissionSeeder` con `updateOrCreate` para que sea idempotente.
-- [x] `4.3` Crear `RolePermissionSeeder` con la matriz: `admin` (13), `manager` (10), `vendedor` (5).
-- [x] `4.4` Crear `UserSeeder` con los tres usuarios base, asignación de rol y sucursal, e incorporarlo a `DatabaseSeeder` tras roles y permisos.
-- [x] `4.5` Reparar `UserFactory` (namespace `App\Models\Users\User`, columnas reales de `users`) para que `User::factory()` funcione.
-- [x] `4.6` Implementar `User::hasPermissionTo(PermissionEnum)` y el middleware `permission` registrado en `bootstrap/app.php`.
-- [x] `4.7` Aplicar `auth:sanctum` + `permission:` a todas las rutas; dejar público solo `POST /api/auth/login`.
-- [x] `4.8` Tests de autorización: 401 sin token, 403 sin permiso, 200 con permiso, y login público.
+## Fase 2 — Módulo de Auditoría y Registro de Accesos (100% Nativo)
 
-### Fase 5 — Reportes PDF
+**Objetivo:** tener trazabilidad completa de accesos y operaciones críticas, consultable desde el futuro panel de administración, sin triggers de base de datos.
 
-- [x] `5.1` Instalar `barryvdh/laravel-dompdf:^3.1` con `composer require` dentro del contenedor y verificar que persiste en el volumen `vendor/`.
-- [x] `5.2` Crear `SaleReportService` + vista Blade `resources/views/reports/sales-pdf.blade.php` + `GET /api/reports/sales/pdf` con filtros de fecha y sucursal, protegido por `view_reports`.
-- [x] `5.3` Crear `GET /api/reports/cars` (agregado JSON por tipo, marca y estado) con variante PDF, protegido por `view_reports`.
-- [x] `5.4` Tests de reportes: autenticación, cabeceras `application/pdf` y contenido esperado.
+- [ ] `2.1` Migración `create_audit_logs_table`: `id`, `user_id` nullable con FK `nullOnDelete`, `action` (string indexado), `auditable_type` y `auditable_id` nullable (polimórfico), `old_values` y `new_values` JSON nullable, `ip_address` (45), `user_agent` (500), `created_at`. Índices `(user_id, created_at)`, `(action, created_at)`, `(auditable_type, auditable_id)` y `created_at`. Sin `updated_at`.
+- [ ] `2.2` Enum `App\Enums\Audit\AuditAction` (string-backed) y modelo `App\Models\Audit\AuditLog` con casts de arrays y `UPDATED_AT = null`. Registrar un morph map (`user`, `role`, `car`, `branch`, `sale`) para que `auditable_type` sea legible y filtrable.
+- [ ] `2.3` `AuditService::record()`: recibe acción, modelo auditable opcional, valores anteriores/nuevos y actor opcional; resuelve IP/User-Agent de la petición (null en CLI), trunca el User-Agent a la longitud de la columna y redacta `password`, `remember_token`, `token`, `access_token` y equivalentes. Si la escritura falla, registrar un warning y no romper la operación principal.
+- [ ] `2.4` Auditoría de autenticación: `auth.login` (éxito), `auth.login_failed` (con el email intentado en `new_values`, nunca la contraseña), `auth.logout` y `auth.token_refreshed`. Registrar también como `auth.login_failed` los intentos bloqueados por el rate limit (`429`), con un motivo `throttled`. El login fallido no debe revelar si el email existe.
+- [ ] `2.5` Auditoría de usuarios y seguridad: `user.created`, `user.updated`, `user.deleted`, `user.activated`, `user.deactivated`, `user.roles_changed`, `user.password_changed`, `user.password_reset`, `role.created`, `role.updated` y `role.deleted`. Guardar old/new sin secretos y con los IDs de roles/sucursales cuando aplique.
+- [ ] `2.6` Auditoría de negocio: `car.created`, `car.updated`, `car.deleted`, `branch.created`, `branch.updated`, `branch.deleted`, `sale.created` y `sale.cancelled`. En ventas incluir estado anterior/nuevo, importe base, coche, sucursal y vendedor; registrar después del commit de la transacción.
+- [ ] `2.7` Nuevo permiso `view_audit_logs` en `PermissionEnum`, `PermissionSeeder` y `RolePermissionSeeder`: solo `admin` (los conteos quedan en 14/10/5 al cerrar esta fase). Actualizar `DatabaseSeedTest`, README y cualquier test que fije el número de permisos.
+- [ ] `2.8` Endpoints `GET /api/audit-logs` y `GET /api/audit-logs/{auditLog}` protegidos por `view_audit_logs`. Index paginado con filtros `user_id`, `action` (validado con `Rule::enum`), `auditable_type` (alias del morph map), `auditable_id`, `from`/`to` (juntos o ninguno, fin inclusivo) y `per_page` (1-100). Orden determinista `id desc`, `withQueryString()`, eager loading del usuario y `AuditLogResource`.
+- [ ] `2.9` Auditoría inmutable: no exponer `store`, `update` ni `delete` para `audit_logs`; el modelo no acepta asignación masiva desde peticiones y solo `AuditService` escribe en la tabla.
+- [ ] `2.10` Tests de la fase: login éxito/fallido/logout/refresh, alta/edición/baja/activación/desactivación de usuarios, cambio de roles y contraseñas, CRUD de roles, altas/bajas de coches y sucursales, creación/cancelación de ventas, filtros del index, show, `401/403`, paginación y verificación de que no se guardan secretos.
+- [ ] `2.11` OpenAPI: nuevo grupo **Auditoría**, parámetros de filtro documentados, `403` por permiso y recursos de log. Actualizar `OpenApiDocumentTest`.
+- [ ] `2.12` Cierre de fase: suite, PHPStan, Pint, `migrate:fresh --seed`, smoke de un login fallido + login correcto + consulta de auditoría con un administrador.
 
-### Fase 6 — Cierre
+**Criterio de cierre:** cada acceso y cada operación crítica deja un registro consultable con actor, IP, User-Agent, valores anteriores/nuevos y fecha, sin afectar la operación de negocio si la auditoría falla.
 
-- [x] `6.1` Actualizar `AGENTS.md` (memoria y lecciones aprendidas) con las decisiones de esta iteración.
-- [x] `6.2` Ejecutar `docker compose exec -T app ./vendor/bin/pest` y `docker compose exec -T app ./vendor/bin/pint`, y marcar aquí el resultado. Resultado 2026-10-21: `migrate:fresh --seed` OK, **48 tests / 215 aserciones** y **Pint limpio (233 archivos)**; smoke test HTTP con login real y reportes PDF `%PDF-1.7`.
+---
+
+## Fase 3 — Módulo de Estadísticas y Rankings Dinámicos (Dashboard KPIs)
+
+**Objetivo:** entregar al futuro panel de administración métricas agregadas y rankings con filtros de fecha/sucursal y límite dinámico, usando consultas eficientes sobre el esquema actual.
+
+- [ ] `3.1` Nuevo permiso `view_statistics` en `PermissionEnum`, seeders y matriz: `admin` y `manager` (conteos finales **15/11/5**). Actualizar tests, README y la tabla de permisos.
+- [ ] `3.2` Requests compartidos: `StatsFilterRequest` (`start_date`/`end_date` juntos o ninguno, `Y-m-d`, fin inclusivo; `branch_id` existente), `RankingRequest` (hereda y añade `limit` con default 10, `min:1`, `max:100`) y requests específicos para tendencia e inventario. Helper `limit()` que normalice a `int` en el borde HTTP.
+- [ ] `3.3` `StatsService` base: query de ventas `completed`, filtros sargables por `sale_date` y `branch_id`, moneda base y helpers de redondeo a 2 decimales. Orden estable en rankings (`sales_count desc`, `total_base_amount desc`, nombre/ID asc) y exclusión de ventas canceladas/pendientes. Seleccionar todas las columnas agrupadas para cumplir `ONLY_FULL_GROUP_BY` de MySQL.
+- [ ] `3.4` `GET /api/stats/summary`: KPIs del periodo (ventas completadas, ingresos en moneda base, ticket promedio —`0` si no hay ventas—), inventario actual por estado, usuarios activos y sucursales activas. Sin fechas, usar el histórico completo; incluir `base_currency` y los filtros aplicados en `meta`.
+- [ ] `3.5` `GET /api/stats/top-users?limit=10`: vendedores ordenados por cantidad de ventas completadas y monto total facturado; incluir `id`, nombre, apellidos, código, `sales_count` y `total_base_amount`. Los usuarios históricos siguen apareciendo aunque estén desactivados o con soft delete.
+- [ ] `3.6` `GET /api/stats/top-branches?limit=10`: sucursales con más ventas e ingresos; incluir `id`, nombre, código, ciudad, `sales_count` y `total_base_amount`. Las sucursales sin ventas no se inventan.
+- [ ] `3.7` `GET /api/stats/top-cities?limit=10`: agrupación por ciudad (a través de `branch.city`) con ventas e ingresos; incluir ciudad y, si aporta contexto, estado/país.
+- [ ] `3.8` `GET /api/stats/top-brands?limit=10`: marcas más vendidas por número de operaciones y monto, uniendo ventas → coches → modelos → marcas. Contar el histórico aunque el coche esté soft-deleted.
+- [ ] `3.9` `GET /api/stats/top-models?limit=10`: modelos más vendidos con su marca, `sales_count` y `total_base_amount`, con el mismo criterio histórico.
+- [ ] `3.10` `GET /api/stats/inventory`: resumen del inventario actual (sin soft deletes): total de coches, valor total, desglose por estado (`available`/`reserved`/`sold` con etiquetas en español) y por sucursal. Acepta `branch_id`; no aplica filtros de fecha porque es stock actual. Reutilizar `CarStatus::label()` o extraer la etiqueta para no duplicar la de `CarReportService`.
+- [ ] `3.11` `GET /api/stats/sales/trend`: serie temporal por mes (`period` `Y-m`) con `sales_count` y `total_base_amount`, filtros `start_date`/`end_date`/`branch_id`. Sin fechas, usar los últimos 12 meses; rellenar los meses sin ventas con cero para que el frontend reciba una serie continua. Usar una expresión de agrupación compatible con MySQL y SQLite (tests).
+- [ ] `3.12` Revisar índices con `EXPLAIN` sobre un volumen de ~3 000 ventas: candidatos `sales(status, branch_id, sale_date)` y `cars(status, branch_id)` para inventario. Añadir solo los que mejoren el plan y no dupliquen índices de FK; documentar la decisión.
+- [ ] `3.13` Tests de la fase: `limit` por defecto 10, `?limit=5`, `?limit=20`, tope 100, `101` → `422`, y caso con solo 3 filas que devuelve 3; sumas/counts correctos; ventas canceladas excluidas; filtros por rango y sucursal; tendencia mensual con huecos; inventario por estado/sucursal; `401` sin token y `403` para `vendedor`. Añadir los endpoints a `QueryCountTest` con número constante de consultas.
+- [ ] `3.14` OpenAPI: nuevo grupo **Estadísticas** con parámetros `limit`, `start_date`, `end_date`, `branch_id`, descripciones y esquemas de respuesta; documentar el `403` y el `422` del límite. Actualizar `OpenApiDocumentTest` y la importación a Postman.
+- [ ] `3.15` Cierre de fase: suite, PHPStan, Pint, `migrate:fresh --seed`, smoke HTTP de `summary`, un top con `limit` y la tendencia.
+
+**Criterio de cierre:** el panel puede pedir cualquier ranking con `limit` dinámico, filtrar por fechas y sucursal, y recibir datos correctos aunque haya menos registros que el límite solicitado.
+
+---
+
+## Fase 4 — Testing, Calidad y Documentación
+
+**Objetivo:** cerrar la etapa con la suite, el análisis estático y la documentación al día, sin regresiones.
+
+- [ ] `4.1` Repasar la cobertura Feature de todas las novedades y completar huecos: guarda del último admin, inmutabilidad de `code`, roles sin permisos, usuario inactivo, autoservicio de contraseña, reset administrativo, auditoría de logins/logouts/acciones, rankings con límite dinámico y menos datos que el límite.
+- [ ] `4.2` `composer analyse` en **0 errores** (PHPStan/Larastan nivel 5, sin baseline) y `pint --test` limpio en todos los archivos nuevos y modificados.
+- [ ] `4.3` Actualizar `AGENTS.md`: nuevos permisos y matriz 15/11/5, middleware `active`, flujo `must_change_password`, guarda del último administrador, esquema y convenciones de `audit_logs` (acciones, redacción, escritura tras commit), convenciones de estadísticas (solo `completed`, moneda base, fechas inclusivas, `limit` 10/100) y la regla de no usar servicios externos.
+- [ ] `4.4` Actualizar `README.md`: credenciales iniciales, `/auth/me`, cambio y reset de contraseña, tabla de rutas y permisos, sección de auditoría con filtros, sección de estadísticas con ejemplos `curl`, estados de la suite y troubleshooting de los nuevos `401/403/409/422`.
+- [ ] `4.5` Verificación integral en Docker: `migrate:fresh --seed` (sin ventas), suite completa, `composer analyse`, `pint --test`, `composer audit` y exportación OpenAPI (`composer docs:export` + validación con Redocly).
+- [ ] `4.6` Smoke HTTP real: login del administrador, `/auth/me`, cambio de clave, reset administrativo, consulta de auditoría de login/logout, `stats/summary`, `top-users?limit=5`, `top-branches`, `top-cities`, `top-brands`, `inventory` y `sales/trend`; comprobar `403` de un vendedor en auditoría/estadísticas y `401` de un usuario desactivado.
+- [ ] `4.7` Marcar todas las casillas de esta etapa en `ROADMAP.md`, registrar la memoria técnica en `AGENTS.md` y dejar un commit atómico por micro-tarea completada.
+
+**Criterio de cierre:** suite verde, PHPStan 0, Pint limpio, documentación actualizada y smoke HTTP completo contra Nginx/MySQL.
+
+---
 
 ## Verificación
 
 ```bash
 docker compose ps
-docker compose exec -T app php artisan about
 docker compose exec -T app php artisan migrate:fresh --seed
-docker compose exec -T app ./vendor/bin/pest
-docker compose exec -T app ./vendor/bin/pint
-docker compose exec -T app ./vendor/bin/phpstan analyse --no-progress
+docker compose exec -T app composer test
+docker compose exec -T app composer analyse
+docker compose exec -T app ./vendor/bin/pint --test
 docker compose exec -T app composer audit
+docker compose exec -T app composer docs:export
 ```
+
+> La suite usa SQLite `:memory:`; MySQL solo se toca en `migrate:fresh --seed` y en los smoke tests HTTP.

@@ -164,9 +164,14 @@ Respuesta esperada:
 ```json
 {
   "message": "Success Login",
-  "token": "1|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  "token": "1|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "must_change_password": false
 }
 ```
+
+`must_change_password` es informativo: en `true` indica que la cuenta usa una
+clave temporal (alta administrativa o reset) y el frontend debería pedir el
+cambio antes de continuar. La API no bloquea el login por este flag.
 
 Guarda el token y úsalo en las siguientes peticiones:
 
@@ -199,6 +204,28 @@ Los usuarios se crean con `UserSeeder`. La contraseña es el valor de `SEED_USER
 
 > Estas credenciales son solo para desarrollo. Cámbialas antes de desplegar.
 
+### Credenciales Iniciales por Defecto
+
+Cuando `ADMIN_EMAIL`, `ADMIN_CODE` y `ADMIN_PASSWORD` no se personalizan, el
+seeder de producción crea este administrador:
+
+| Campo | Valor por defecto |
+| :--- | :--- |
+| Email | `admin@agency.com` |
+| Código | `USR-0001` |
+| Contraseña | `secret1234` |
+
+> **Cámbiala en el primer arranque.** `ProductionAdminSeeder` vuelve a aplicar
+> `ADMIN_PASSWORD` cada vez que se ejecuta `php artisan migrate --seed` o
+> `php artisan db:seed`, así que la variable de entorno es la fuente de verdad.
+> Define al menos `ADMIN_EMAIL` y `ADMIN_PASSWORD` antes de desplegar.
+
+Variables disponibles (todas opcionales salvo email y contraseña en producción):
+`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_CODE`, `ADMIN_NAME`,
+`ADMIN_LAST_NAME` y `ADMIN_DOCUMENT_NUMBER`. Viven en `config/seeders.php` para
+funcionar con `config:cache`. Los usuarios demo de la tabla anterior siguen
+existiendo solo en local/testing con `DatabaseSeeder` y `SEED_USER_PASSWORD`.
+
 ---
 
 ## 🔐 Autenticación y códigos de estado
@@ -210,6 +237,16 @@ Authorization: Bearer <token>
 ```
 
 Los tokens expiran a los **120 minutos**. `POST /api/auth/logout` invalida el token actual y `POST /api/auth/refresh` emite uno nuevo.
+
+### Autoservicio de identidad
+
+| Método y ruta | Qué hace |
+| :--- | :--- |
+| `GET /api/auth/me` | Devuelve el perfil, roles, sucursales y la lista plana de permisos efectivos. |
+| `PUT /api/auth/password` | Cambia la contraseña propia. Exige `current_password`, `password` y `password_confirmation`; revoca los demás tokens y conserva el de la petición. |
+| `POST /api/users/{user}/reset-password` | Un administrador (`manage_users`) asigna una clave temporal, marca `must_change_password=true` y revoca todos los tokens del usuario. |
+
+Un usuario desactivado recibe `401` en cualquier ruta autenticada, aunque su token aún no haya expirado. Para dejar el sistema sin administración, la API responde `409` al borrar, desactivar o quitar el rol `admin` al último administrador activo, y `422` si un rol queda sin permisos o se intenta modificar el `code` de un usuario.
 
 | Código | Cuándo |
 | :--- | :--- |
