@@ -1,0 +1,63 @@
+name: Publicar imagen PaaS en Docker Hub
+
+# Vía PaaS: construye la imagen monolítica (docker/render/Dockerfile.render) y
+# la publica en Docker Hub para que Render/Railway la descarguen.
+# La vía VPS (docker-compose.prod.yml) no pasa por este workflow.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: dockerhub-paas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    name: Imagen monolítica (Render / Railway)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/car-agency-api
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # Render solo soporta linux/amd64; se publica únicamente esa plataforma
+      # para no encarecer el build con emulación.
+      - name: Calcular etiquetas (latest + SHA)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
+
+      - name: Build y push a Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/render/Dockerfile.render
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Sin atestaciones: Render y docker pull interpretan mejor un
+          # manifiesto único en lugar de entradas unknown/unknown.
+          provenance: false
+          sbom: false
