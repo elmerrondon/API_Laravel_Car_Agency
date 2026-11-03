@@ -39,6 +39,7 @@ $expectedTables = [
     'payment_methods',
     'taxes',
     'sales',
+    'audit_logs',
     'personal_access_tokens',
 ];
 
