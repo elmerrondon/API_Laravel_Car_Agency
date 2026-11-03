@@ -101,11 +101,11 @@ it('asigna la matriz de permisos esperada a cada rol', function () {
         ->permissions()
         ->count();
 
-    expect($permissionCount(RoleEnum::ADMIN))->toBe(13)
+    expect($permissionCount(RoleEnum::ADMIN))->toBe(14)
         ->and($permissionCount(RoleEnum::MANAGER))->toBe(10)
         ->and($permissionCount(RoleEnum::SELLER))->toBe(5);
 
-    expect(RolePermissionSeeder::matrix()[RoleEnum::ADMIN->value])->toHaveCount(13)
+    expect(RolePermissionSeeder::matrix()[RoleEnum::ADMIN->value])->toHaveCount(14)
         ->and(RolePermissionSeeder::matrix()[RoleEnum::MANAGER->value])->toHaveCount(10)
         ->and(RolePermissionSeeder::matrix()[RoleEnum::SELLER->value])->toHaveCount(5);
 });
@@ -129,7 +129,7 @@ it('siembra el administrador de producción sin Faker ni datos demo', function (
         ->and($user->is_active)->toBeTrue()
         ->and($user->must_change_password)->toBeFalse()
         ->and($user->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value])
-        ->and($user->roles()->first()->permissions()->count())->toBe(13)
+        ->and($user->roles()->first()->permissions()->count())->toBe(14)
         ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue()
         ->and(User::count())->toBe(1)
         ->and(Car::count())->toBe(0)

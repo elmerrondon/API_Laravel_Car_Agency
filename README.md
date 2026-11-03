@@ -29,7 +29,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 ## ✨ Características principales
 
 - **Autenticación con Sanctum:** `POST /api/auth/login` es la única ruta pública. El resto exige `Authorization: Bearer <token>`.
-- **RBAC de 13 permisos:** la autorización se resuelve por permisos asociados a roles, no por el nombre del rol.
+- **RBAC de 14 permisos:** la autorización se resuelve por permisos asociados a roles, no por el nombre del rol.
 - **Rate limiting en login:** 5 intentos por minuto por email + IP. El sexto devuelve `429`.
 - **Revocación de tokens:** cambiar contraseña, desactivar o eliminar un usuario invalida sus sesiones abiertas.
 - **Arquitectura por dominio:** `Cars`, `Locations`, `Sales`, `Users` y `Reports`.
@@ -198,7 +198,7 @@ Los usuarios se crean con `UserSeeder`. La contraseña es el valor de `SEED_USER
 
 | Email | Rol | Permisos |
 | :--- | :--- | :---: |
-| `admin@caragency.test` | `admin` | 13 |
+| `admin@caragency.test` | `admin` | 14 |
 | `manager@caragency.test` | `manager` | 10 |
 | `vendedor@caragency.test` | `vendedor` | 5 |
 
@@ -313,6 +313,7 @@ Las rutas viven en `routes/api.php` y Laravel añade el prefijo `/api`.
 | Usuarios | `/api/users` | `manage_users` | `manage_users` |
 | Roles | `/api/roles` | `manage_users` | `manage_users` |
 | Permisos | `/api/permissions` | `manage_users` | Solo lectura |
+| Auditoría | `/api/audit-logs` | `view_audit_logs` | Solo lectura |
 
 Los recursos estándar (`cars`, catálogos, ubicaciones, usuarios y roles) siguen las convenciones REST:
 

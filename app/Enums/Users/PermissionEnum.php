@@ -31,6 +31,9 @@ enum PermissionEnum: string
     // Reportes
     case VIEW_REPORTS = 'view_reports';
 
+    // Auditoría
+    case VIEW_AUDIT_LOGS = 'view_audit_logs';
+
     public function description(): string
     {
         return match ($this) {
@@ -47,6 +50,7 @@ enum PermissionEnum: string
             self::CANCEL_SALES => 'Cancelar ventas y liberar el vehículo',
             self::MANAGE_USERS => 'Gestionar usuarios, roles y permisos',
             self::VIEW_REPORTS => 'Descargar reportes del sistema',
+            self::VIEW_AUDIT_LOGS => 'Consultar la auditoría de accesos y operaciones',
         };
     }
 }
