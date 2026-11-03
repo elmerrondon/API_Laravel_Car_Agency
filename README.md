@@ -577,6 +577,110 @@ docker compose -f docker-compose.prod.yml --env-file .env.production down
 
 ---
 
+## ☁️ Despliegue en PaaS (Render / Railway)
+
+Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la sección anterior sigue funcionando igual: ninguno de sus archivos se toca. Aquí se publica una **imagen monolítica** en Docker Hub y la plataforma la ejecuta como un único contenedor, sin `docker-compose`, sin Nginx/PHP-FPM separados y sin MySQL propio.
+
+| Archivo | Propósito |
+| :--- | :--- |
+| `docker/render/Dockerfile.render` | Imagen única con FrankenPHP (Caddy + PHP 8.3 embebido), código, dependencias de producción y `EXPOSE 8080`. |
+| `docker/render/Caddyfile` | Configuración de Caddy: escucha en `$PORT`, sirve `public/` y ejecuta PHP con `php_server`. |
+| `docker/render/entrypoint.sh` | Prepara `storage/`, valida `APP_KEY`, ejecuta migraciones opcionales y cachea Laravel al arrancar. |
+| `.github/workflows/deploy-dockerhub.yml` | CI/CD: al hacer push a `main` construye esta imagen y la sube a Docker Hub. |
+
+### Cómo funciona la imagen
+
+- **Un solo proceso**: FrankenPHP arranca Caddy con PHP embebido; no hay `php-fpm` ni un Nginx aparte que coordinar.
+- **Puerto dinámico**: el `Caddyfile` escucha en `:{$PORT:8080}`. Render y Railway inyectan `PORT`; en local el valor por defecto es `8080`.
+- **Usuario sin privilegios**: el contenedor corre como `www-data`, así que `PORT` debe ser `>= 1024`. Si una plataforma obliga a usar el puerto `80`, arráncalo con `--user 0`.
+- **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
+- **Migraciones**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force`) o define `RUN_MIGRATIONS=true` para que las corra el entrypoint.
+- **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a una base gestionada externa (Aiven, el plugin MySQL de Railway, etc.).
+
+Construir y probar en local sin compose:
+
+```bash
+docker build -f docker/render/Dockerfile.render -t car-agency-api:paas .
+
+docker run --rm -p 8080:8080 \
+  -e APP_KEY="base64:$(openssl rand -base64 32)" \
+  -e DB_CONNECTION=sqlite \
+  -e DB_DATABASE=/var/www/html/storage/local.sqlite \
+  -e RUN_MIGRATIONS=true \
+  car-agency-api:paas
+
+curl -i http://localhost:8080/up   # 200
+```
+
+### 1. Configurar los secretos en GitHub
+
+El workflow necesita dos secretos en **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secreto | Valor |
+| :--- | :--- |
+| `DOCKER_USERNAME` | Tu usuario de Docker Hub. |
+| `DOCKER_TOKEN` | Access token de Docker Hub con permiso **Read & Write** (no uses tu contraseña). |
+
+El workflow usa esos secretos para publicar `docker.io/<DOCKER_USERNAME>/car-agency-api`.
+
+### 2. Push a `main`: imagen automática en Docker Hub
+
+Cada push a `main` (o una ejecución manual con `workflow_dispatch`) construye `docker/render/Dockerfile.render` para `linux/amd64` y publica dos etiquetas:
+
+- `latest`: siempre apunta al último commit de `main`.
+- `sha-<corto>`: versión inmutable del commit, útil para fijar despliegues y hacer rollback.
+
+El workflow solo compila y publica; los tests siguen ejecutándose en local (`composer test`, `composer analyse`, `pint --test`).
+
+### 3. Crear el servicio en Render
+
+1. **New → Web Service → Deploy an existing image from a registry**.
+2. Imagen: `docker.io/<DOCKER_USERNAME>/car-agency-api:latest` (o una etiqueta `sha-*` para fijar versión).
+3. **Health Check Path**: `/up`.
+4. Añade las variables de entorno (no definas `PORT`: lo inyecta Render):
+
+```dotenv
+APP_ENV=production
+APP_KEY=base64:...            # php artisan key:generate --show
+APP_DEBUG=false
+APP_URL=https://tu-servicio.onrender.com
+LOG_CHANNEL=stderr
+
+DB_CONNECTION=mysql
+DB_HOST=...                   # host de Aiven u otro MySQL gestionado
+DB_PORT=3306
+DB_DATABASE=...
+DB_USERNAME=...
+DB_PASSWORD=...
+# Si el proveedor exige TLS (Aiven), apunta a su CA:
+# MYSQL_ATTR_SSL_CA=/ruta/al/ca.pem
+
+CACHE_STORE=database
+SESSION_DRIVER=file
+QUEUE_CONNECTION=database
+```
+
+5. **Pre-Deploy Command**: `php artisan migrate --force` (equivale a `RUN_MIGRATIONS=true`).
+6. Despliega. Al terminar, `https://tu-servicio.onrender.com/up` responde `200` y `/api/cars` responde `401` sin token.
+
+En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, añade un MySQL gestionado, define las mismas variables y el comando de release `php artisan migrate --force`.
+
+> La base de datos debe ser externa y accesible desde internet. Aiven (MySQL) y el plugin de MySQL de Railway son opciones habituales: copia host, puerto, base, usuario y contraseña a las variables `DB_*`.
+
+### 4. Actualizar la versión desplegada
+
+1. Haz push a `main`; GitHub Actions publica `latest` y `sha-<corto>`.
+2. En Render, pulsa **Manual Deploy → Deploy latest reference** (o usa un **Deploy Hook** en un paso extra del workflow). Fijar la etiqueta `sha-*` en el servicio permite rollback inmediato a una imagen anterior.
+
+### Limitaciones del contenedor único
+
+- **Almacenamiento efímero**: `storage/` vive dentro del contenedor, así que logs, sesiones de archivo y archivos locales se pierden en cada redespliegue. Para persistencia real usa un disco de la plataforma o un bucket S3.
+- **Sesiones**: `SESSION_DRIVER=file` funciona con una sola instancia. Con varias réplicas necesitas un almacén compartido (Redis o la tabla `sessions`, que hoy no existe como migración).
+- **Colas**: la imagen no arranca un worker. Si usas `QUEUE_CONNECTION=database`, crea un worker en la plataforma con la misma imagen y comando `php artisan queue:work --tries=1`.
+- **Sin estado en la imagen**: la configuración llega por variables de entorno; nunca hornees `.env` ni credenciales en la imagen.
+
+---
+
 ## 🧯 Solución de problemas
 
 | Síntoma | Causa probable | Solución |
@@ -589,6 +693,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.production down
 | Error de tabla `sessions` | `SESSION_DRIVER=database` sin migración de sesiones. | Usa `SESSION_DRIVER=file` en `.env`. |
 | `port is already allocated` | Otro proceso usa `8000` o `3306`. | Cambia los puertos en `docker-compose.yml`. |
 | `pull access denied for car-agency-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
+| `[entrypoint] ERROR: APP_KEY no está definida` | La imagen PaaS exige la clave por entorno. | Define `APP_KEY` (`php artisan key:generate --show`) en la plataforma. |
+| `permission denied` al abrir el puerto en PaaS | `PORT < 1024` y el contenedor corre como `www-data`. | Usa un puerto `>= 1024` (Render inyecta `10000`) o arranca con `--user 0`. |
+| `pull access denied` al desplegar en Render | Imagen privada o nombre mal escrito. | Haz público el repositorio de Docker Hub o configura credenciales de registro en la plataforma. |
 | `config:cache` falla por valor no serializable | Un objeto vive en `config/*.php`. | Mueve la lógica a una clase y deja solo escalares o arrays en la configuración. |
 | Cambios en `.env` no se aplican | Configuración cacheada. | `php artisan config:clear` (en producción, `optimize:clear`) y reinicia `app`. |
 | `npm: not found` | La imagen PHP no incluye Node. | No uses `npm`; este stack no requiere Vite. |
