@@ -505,6 +505,66 @@ Luego actualiza `APP_URL` en `.env` si cambias el puerto de Nginx.
 
 ---
 
+## 🚀 Despliegue en Producción
+
+El repositorio incluye un stack de producción separado que **no modifica** el entorno de desarrollo (`docker-compose.yml` y `docker/php/Dockerfile` siguen igual):
+
+| Archivo | Propósito |
+| :--- | :--- |
+| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en el puerto 80 y MySQL 8.0 sin puerto público. Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
+| `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
+| `.env.production.example` | Plantilla versionable, sin credenciales reales (marcadores `CHANGE_ME_*`). |
+
+### 1. Crear el `.env.production`
+
+```bash
+cp .env.production.example .env.production
+```
+
+Sustituye los `CHANGE_ME_*`, `APP_URL` y `CORS_ALLOWED_ORIGINS`. El archivo `.env.production` está ignorado por Git. Genera la clave y pégala en `APP_KEY=` (incluye el prefijo `base64:`):
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  run --rm app php artisan key:generate --show
+```
+
+Sesiones, caché y colas usan el stack existente (`SESSION_DRIVER=file` dentro de `app-storage`, `CACHE_STORE=database` y `QUEUE_CONNECTION=database`), sin dependencias extra. Los logs salen por `stderr` (`LOG_CHANNEL=stderr`) para que Docker los recoga con `docker compose logs`.
+
+### 2. Levantar el entorno
+
+El `Dockerfile.prod` de Nginx parte de la imagen `car-agency-api:prod`, así que esa imagen debe existir antes de construir Nginx:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production build app
+
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+`up -d --build` arranca `mysql`, espera su healthcheck, levanta `app` y solo entonces inicia `nginx` (que publica `80:80`).
+
+### 3. Preparar la base de datos
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T app \
+  php artisan migrate --force
+```
+
+`migrate` crea también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que ejecuta este paso antes de recibir tráfico.
+
+### 4. Verificar y detener
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production ps
+curl -i http://localhost/up
+
+# Detener conservando los volúmenes
+docker compose -f docker-compose.prod.yml --env-file .env.production down
+```
+
+> Solo Nginx publica un puerto (`80:80`); MySQL queda aislado en la red interna. El volumen `app-storage` conserva `storage/` (sesiones, logs y cachés de framework) entre despliegues. `docker compose ... down -v` borra la base de datos y el volumen de storage.
+
+---
+
 ## 🧯 Solución de problemas
 
 | Síntoma | Causa probable | Solución |
@@ -545,7 +605,7 @@ docker compose exec -T app php artisan migrate --seed
 - PHPStan/Larastan corre en **nivel 5 sin baseline**: si añades código, `composer analyse` debe seguir en 0 errores.
 - La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
 - Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local.
-- El stack Docker es de desarrollo; el `Dockerfile` incluye un target `prod`, pero no hay un `docker-compose.prod.yml` en el repositorio.
+- El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, MySQL sin puerto público, sesiones en `app-storage` y caché/colas en MySQL). Usa `.env.production.example` como plantilla del entorno productivo.
 
 ---
 

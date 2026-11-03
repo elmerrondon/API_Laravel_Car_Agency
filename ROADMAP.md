@@ -4,7 +4,7 @@ Fuente de verdad del avance del proyecto. Cada micro-tarea equivale a un commit 
 
 El contenido de `Pendientes.txt` quedó absorbido y verificado en este documento, por lo que ese archivo se eliminó.
 
-La Iteración 1 (fases 0 a 6) está completa y se conserva al final como historial. La Iteración 2 arranca en la fase 7 con el plan de QA, seguridad, rendimiento y documentación OpenAPI.
+La Iteración 1 (fases 0 a 6) está completa y se conserva al final como historial. La Iteración 2 arranca en la fase 7 con el plan de QA, seguridad, rendimiento y documentación OpenAPI; tras el cierre de la fase 13, la sección de Mantenimiento recoge la paginación estable (`M1`) y el stack de producción en Docker (`M2`).
 
 ## Decisiones de la Iteración 2
 
@@ -80,6 +80,11 @@ La Iteración 1 (fases 0 a 6) está completa y se conserva al final como histori
 ## Mantenimiento
 
 - [x] `M1` Paginación estable (2026-10-30): los 16 listados paginados encadenan `orderBy('id')` para que el orden no dependa del plan de ejecución y `withQueryString()` para que `links`/`meta.links` conserven `per_page`. `tests/Feature/Http/PaginationTest.php` recorre los 16 endpoints y exige ids ascendentes entre páginas y `per_page` en los enlaces; el helper `seedSales()` se movió a `tests/Pest.php`. Suite: **186 tests / 1625 aserciones**, PHPStan **0 errores**, Pint limpio.
+- [x] `M2` Stack de producción en Docker (2026-11-02): nuevo `docker-compose.prod.yml` independiente del de desarrollo, con `app` (target `prod`, `image: car-agency-api:prod`, `env_file: .env.production`, volumen nombrado `app-storage` en `/var/www/html/storage` y healthcheck `fsockopen` al puerto 9000), `nginx` (build multi-stage, solo `80:80` y `depends_on: app` con `service_healthy`), `mysql` 8.0 sin puerto público (`mysqladmin ping` y volumen `mysql-data`) y red propia `car-agency-prod`. Se descartó Redis: la imagen PHP no incluye `ext-redis` y el proyecto no lo necesita, así que caché/colas usan MySQL y las sesiones archivos dentro del volumen.
+- [x] `M2.1` `docker/nginx/Dockerfile.prod`: multi-stage `FROM car-agency-api:prod AS app` → `nginx:1.27-alpine`, copia `/var/www/html/public` y el `docker/nginx/default.conf` compartido. Como parte de la imagen PHP, el primer despliegue construye `app` antes de `up -d --build`; no se tocó `docker/php/Dockerfile`.
+- [x] `M2.2` `.env.production.example`: plantilla versionable sin credenciales reales (`CHANGE_ME_*`) con `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `CACHE_STORE`/`CACHE_DRIVER=database`, `SESSION_DRIVER=file`, `QUEUE_CONNECTION=database` y `MYSQL_*` sincronizadas con `DB_*`. El `.env.production` real sigue ignorado por Git.
+- [x] `M2.3` Documentación: README con la sección «🚀 Despliegue en Producción» (plantilla de entorno, `APP_KEY`, comandos de build/arranque, migración, verificación y parada) y nota de que `migrate` crea las tablas `cache`/`jobs`/`failed_jobs`; `AGENTS.md` con la arquitectura del stack productivo, los comandos y la entrada de memoria.
+- [x] `M2.4` Verificación en Docker con proyecto aislado: `docker compose -f docker-compose.prod.yml config` válido, imágenes `car-agency-api:prod` y `car-agency-api-nginx:prod` construidas, `GET /up` → `200`, `migrate --force` completo contra MySQL y login Sanctum + `GET /api/cars` → `200` (caché y permisos en MySQL, sesiones en `app-storage`).
 
 ## Historial completado (Iteración 1)
 
