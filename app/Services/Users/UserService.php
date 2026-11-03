@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Users;
 
 use App\DTOs\Users\UserData;
+use App\Enums\Audit\AuditAction;
 use App\Enums\Users\RoleEnum;
 use App\Exceptions\Users\LastAdminException;
 use App\Models\Users\Role;
 use App\Models\Users\User;
+use App\Services\Audit\AuditService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +20,8 @@ class UserService
         'roles.permissions',
         'branches.city.state.country',
     ];
+
+    public function __construct(private readonly AuditService $audit) {}
 
     public function getAllPaginated(?int $perPage = null)
     {
@@ -35,7 +39,7 @@ class UserService
     public function createUser(UserData $data): User
     {
 
-        return DB::transaction(function () use ($data) {
+        $user = DB::transaction(function () use ($data) {
             $arrayData = [
                 'name' => $data->name,
                 'last_name' => $data->lastName,
@@ -68,12 +72,24 @@ class UserService
 
             return $user->load(self::RELATIONS);
         });
+
+        $this->audit->record(
+            AuditAction::USER_CREATED,
+            $user,
+            [],
+            $this->userAuditValues($user),
+        );
+
+        return $user;
     }
 
     public function updateUser(User $user, UserData $data): User
     {
+        $oldAttributes = $this->userAttributes($user);
+        $oldRoles = $this->roleIds($user);
+        $oldBranches = $this->branchIds($user);
 
-        return DB::transaction(function () use ($user, $data) {
+        $user = DB::transaction(function () use ($user, $data) {
             $this->guardLastActiveAdmin($user, $data);
 
             // `code` no forma parte de la actualización: es inmutable y el
@@ -106,11 +122,65 @@ class UserService
 
             return $user->load(self::RELATIONS);
         });
+
+        $newAttributes = $this->userAttributes($user);
+        $newRoles = $this->roleIds($user);
+        $newBranches = $this->branchIds($user);
+
+        $oldChanged = [];
+        $newChanged = [];
+
+        foreach ($newAttributes as $attribute => $value) {
+            if ($oldAttributes[$attribute] !== $value) {
+                $oldChanged[$attribute] = $oldAttributes[$attribute];
+                $newChanged[$attribute] = $value;
+            }
+        }
+
+        if ($oldBranches !== $newBranches) {
+            $oldChanged['branches'] = $oldBranches;
+            $newChanged['branches'] = $newBranches;
+        }
+
+        if ($oldChanged !== []) {
+            $this->audit->record(AuditAction::USER_UPDATED, $user, $oldChanged, $newChanged);
+        }
+
+        if ($oldRoles !== $newRoles) {
+            $this->audit->record(
+                AuditAction::USER_ROLES_CHANGED,
+                $user,
+                ['roles' => $oldRoles],
+                ['roles' => $newRoles],
+            );
+        }
+
+        if ($oldAttributes['is_active'] !== $newAttributes['is_active']) {
+            $this->audit->record(
+                $newAttributes['is_active'] ? AuditAction::USER_ACTIVATED : AuditAction::USER_DEACTIVATED,
+                $user,
+                ['is_active' => $oldAttributes['is_active']],
+                ['is_active' => $newAttributes['is_active']],
+            );
+        }
+
+        if ($data->password !== null) {
+            $this->audit->record(
+                AuditAction::USER_PASSWORD_CHANGED,
+                $user,
+                ['must_change_password' => $oldAttributes['must_change_password']],
+                ['must_change_password' => $newAttributes['must_change_password']],
+            );
+        }
+
+        return $user;
     }
 
     public function deleteUser(User $user): bool
     {
-        return DB::transaction(function () use ($user) {
+        $oldValues = $this->userAuditValues($user);
+
+        $deleted = DB::transaction(function () use ($user) {
             if ($user->is_active && $this->isAdmin($user)) {
                 $this->ensureAnotherActiveAdminExists();
             }
@@ -120,6 +190,10 @@ class UserService
 
             return $user->delete();
         });
+
+        $this->audit->record(AuditAction::USER_DELETED, $user, $oldValues, []);
+
+        return (bool) $deleted;
     }
 
     /**
@@ -127,6 +201,8 @@ class UserService
      */
     public function resetPassword(User $user, string $password): void
     {
+        $oldMustChangePassword = $user->must_change_password;
+
         DB::transaction(function () use ($user, $password): void {
             $user->update([
                 'password' => $password,
@@ -136,6 +212,62 @@ class UserService
             $user->tokens()->delete();
             $user->forgetPermissionCache();
         });
+
+        $this->audit->record(
+            AuditAction::USER_PASSWORD_RESET,
+            $user,
+            ['must_change_password' => $oldMustChangePassword],
+            ['must_change_password' => true],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function userAuditValues(User $user): array
+    {
+        return $this->userAttributes($user) + [
+            'roles' => $this->roleIds($user),
+            'branches' => $this->branchIds($user),
+        ];
+    }
+
+    /**
+     * @return array{name: string, last_name: string, document_number: string, code: string, email: string, is_active: bool, must_change_password: bool}
+     */
+    private function userAttributes(User $user): array
+    {
+        return [
+            'name' => (string) $user->name,
+            'last_name' => (string) $user->last_name,
+            'document_number' => (string) $user->document_number,
+            'code' => (string) $user->code,
+            'email' => (string) $user->email,
+            'is_active' => (bool) $user->is_active,
+            'must_change_password' => (bool) $user->must_change_password,
+        ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function roleIds(User $user): array
+    {
+        return array_map(
+            static fn (mixed $id): int => (int) $id,
+            $user->roles()->pluck('roles.id')->all(),
+        );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function branchIds(User $user): array
+    {
+        return array_map(
+            static fn (mixed $id): int => (int) $id,
+            $user->branches()->pluck('branches.id')->all(),
+        );
     }
 
     /**

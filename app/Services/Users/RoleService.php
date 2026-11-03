@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Users;
 
 use App\DTOs\Users\RoleData;
+use App\Enums\Audit\AuditAction;
 use App\Enums\Users\RoleEnum;
 use App\Exceptions\Users\RoleInUseException;
 use App\Models\Users\Role;
 use App\Models\Users\User;
+use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 
 class RoleService
 {
+    public function __construct(private readonly AuditService $audit) {}
+
     public function getAllPaginatedRoles(?int $perPage = null)
     {
         return Role::with('permissions')
@@ -26,7 +30,7 @@ class RoleService
     public function createRole(RoleData $data)
     {
 
-        return DB::transaction(function () use ($data) {
+        $role = DB::transaction(function () use ($data) {
             $this->ensurePermissionsAreNotEmpty($data->permissions);
 
             $systemRoles = array_column(RoleEnum::cases(), 'value');
@@ -46,12 +50,16 @@ class RoleService
             return $role->load('permissions');
         });
 
+        $this->audit->record(AuditAction::ROLE_CREATED, $role, [], $this->roleAuditValues($role));
+
+        return $role;
     }
 
     public function updateRole(Role $role, RoleData $data)
     {
+        $oldValues = $this->roleAuditValues($role);
 
-        return DB::transaction(function () use ($role, $data) {
+        $role = DB::transaction(function () use ($role, $data) {
             if ($data->permissions !== null) {
                 $this->ensurePermissionsAreNotEmpty($data->permissions);
             }
@@ -80,6 +88,9 @@ class RoleService
             return $role->load('permissions');
         });
 
+        $this->audit->record(AuditAction::ROLE_UPDATED, $role, $oldValues, $this->roleAuditValues($role));
+
+        return $role;
     }
 
     /**
@@ -111,6 +122,27 @@ class RoleService
             throw RoleInUseException::assignedToUsers();
         }
 
-        return $role->delete();
+        $oldValues = $this->roleAuditValues($role);
+
+        $deleted = $role->delete();
+
+        $this->audit->record(AuditAction::ROLE_DELETED, $role, $oldValues, []);
+
+        return (bool) $deleted;
+    }
+
+    /**
+     * @return array{name: string, description: string, permissions: list<int>}
+     */
+    private function roleAuditValues(Role $role): array
+    {
+        return [
+            'name' => (string) $role->name,
+            'description' => (string) $role->description,
+            'permissions' => array_map(
+                static fn (mixed $id): int => (int) $id,
+                $role->permissions()->pluck('permissions.id')->all(),
+            ),
+        ];
     }
 }
