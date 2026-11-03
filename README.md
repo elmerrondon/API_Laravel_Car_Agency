@@ -512,10 +512,10 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 | Archivo | Propósito |
 | :--- | :--- |
 | `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en el puerto 80 y MySQL 8.0 sin puerto público. Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
-| `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
+| `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-laravel-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
 | `.env.production.example` | Plantilla versionable, sin credenciales reales (marcadores `CHANGE_ME_*`). |
 
-> ⚠️ **El orden importa.** La imagen de Nginx se construye con `COPY --from=car-agency-api:prod`, así que la imagen de `app` debe existir **antes** de levantar el stack completo. Por eso el paso 2 se ejecuta por separado.
+> ⚠️ **El orden importa.** La imagen de Nginx se construye con `COPY --from=car-agency-laravel-api:prod`, así que la imagen de `app` debe existir **antes** de levantar el stack completo. Por eso el paso 2 se ejecuta por separado.
 
 ### Paso 1: Preparar credenciales
 
@@ -533,7 +533,7 @@ El archivo `.env.production` está ignorado por Git y `.dockerignore` evita que 
 docker compose -f docker-compose.prod.yml --env-file .env.production build app
 ```
 
-**Obligatorio hacerlo primero.** Este comando construye el target `prod` de `docker/php/Dockerfile` y la etiqueta `car-agency-api:prod`. Si se salta, al levantar el stack el build de Nginx falla con `pull access denied`: `docker/nginx/Dockerfile.prod` arranca con `FROM car-agency-api:prod` y solo copia `/var/www/html/public` de esa imagen, así que necesita que ya exista en el daemon local.
+**Obligatorio hacerlo primero.** Este comando construye el target `prod` de `docker/php/Dockerfile` y la etiqueta `car-agency-laravel-api:prod`. Si se salta, al levantar el stack el build de Nginx falla con `pull access denied`: `docker/nginx/Dockerfile.prod` arranca con `FROM car-agency-laravel-api:prod` y solo copia `/var/www/html/public` de esa imagen, así que necesita que ya exista en el daemon local.
 
 Con la imagen ya construida, genera la clave y pégala en `APP_KEY=` de `.env.production` (incluye el prefijo `base64:`):
 
@@ -600,7 +600,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 Construir y probar en local sin compose:
 
 ```bash
-docker build -f docker/render/Dockerfile.render -t car-agency-api:paas .
+docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
 
 docker run --rm -p 8080:8080 \
   -e APP_KEY="base64:$(openssl rand -base64 32)" \
@@ -610,7 +610,7 @@ docker run --rm -p 8080:8080 \
   -e ADMIN_PASSWORD='S3gura-2026' \
   -e RUN_MIGRATIONS=true \
   -e RUN_SEED=true \
-  car-agency-api:paas
+  car-agency-laravel-api:paas
 
 curl -i http://localhost:8080/up   # 200
 ```
@@ -707,7 +707,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `Access denied for user 'root'` | Credenciales distintas a las del compose. | Revisa `DB_PASSWORD=secret` y `docker-compose.yml`. |
 | Error de tabla `sessions` | `SESSION_DRIVER=database` sin migración de sesiones. | Usa `SESSION_DRIVER=file` en `.env`. |
 | `port is already allocated` | Otro proceso usa `8000` o `3306`. | Cambia los puertos en `docker-compose.yml`. |
-| `pull access denied for car-agency-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
+| `pull access denied for car-agency-laravel-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
 | `[entrypoint] ERROR: APP_KEY no está definida` | La imagen PaaS exige la clave por entorno. | Define `APP_KEY` (`php artisan key:generate --show`) en la plataforma. |
 | `permission denied` al abrir el puerto en PaaS | `PORT < 1024` y el contenedor corre como `www-data`. | Usa un puerto `>= 1024` (Render inyecta `10000`) o arranca con `--user 0`. |
 | `pull access denied` al desplegar en Render | Imagen privada o nombre mal escrito. | Haz público el repositorio de Docker Hub o configura credenciales de registro en la plataforma. |

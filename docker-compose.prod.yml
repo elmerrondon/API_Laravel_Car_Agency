@@ -1,5 +1,5 @@
 # Stack de producción: Nginx (estáticos + FastCGI), PHP-FPM y MySQL.
-# Uso (la imagen de Nginx parte de car-agency-api:prod, por eso se construye
+# Uso (la imagen de Nginx parte de car-agency-laravel-api:prod, por eso se construye
 # primero la app):
 #   cp .env.production.example .env.production   # completar CHANGE_ME_*
 #   docker compose -f docker-compose.prod.yml --env-file .env.production build app
@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: prod
-    image: car-agency-api:prod
+    image: car-agency-laravel-api:prod
     restart: unless-stopped
     working_dir: /var/www/html
     env_file:
@@ -40,7 +40,7 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile.prod
-    image: car-agency-api-nginx:prod
+    image: car-agency-laravel-api-nginx:prod
     restart: unless-stopped
     ports:
       - "80:80"

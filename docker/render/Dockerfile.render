@@ -8,12 +8,12 @@
 # HTTP con Caddy y ejecuta PHP embebido (sin php-fpm ni Nginx aparte), escucha
 # en $PORT (8080 por defecto) y no necesita docker-compose.
 #
-#   docker build -f docker/render/Dockerfile.render -t car-agency-api:paas .
+#   docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
 #   docker run -p 8080:8080 \
 #     -e APP_KEY=base64:... \
 #     -e DB_CONNECTION=mysql -e DB_HOST=... -e DB_DATABASE=... \
 #     -e DB_USERNAME=... -e DB_PASSWORD=... \
-#     car-agency-api:paas
+#     car-agency-laravel-api:paas
 #
 # Esta imagen NO modifica ni sustituye docker/php/Dockerfile,
 # docker/nginx/Dockerfile.prod, docker-compose.prod.yml ni

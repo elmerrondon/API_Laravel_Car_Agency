@@ -4,7 +4,7 @@
 # Se usa solo como fuente de los estáticos de Laravel (public/).
 # Requiere construir primero la app:
 #   docker compose -f docker-compose.prod.yml --env-file .env.production build app
-FROM car-agency-api:prod AS app
+FROM car-agency-laravel-api:prod AS app
 
 # Etapa 2: Nginx sirve los estáticos y delega PHP a app:9000.
 FROM nginx:1.27-alpine
