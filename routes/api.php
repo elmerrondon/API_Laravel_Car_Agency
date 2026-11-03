@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Audit\AuditLogController;
 use App\Http\Controllers\Cars\BrandController;
 use App\Http\Controllers\Cars\CarController;
 use App\Http\Controllers\Cars\CarModelController;
@@ -109,5 +110,10 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::apiResource('users', UserController::class);
         Route::apiResource('roles', RoleController::class);
         Route::get('permissions', [PermissionController::class, 'index']);
+    });
+
+    // Auditoría (solo lectura)
+    Route::middleware('permission:view_audit_logs')->group(function () {
+        Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     });
 });

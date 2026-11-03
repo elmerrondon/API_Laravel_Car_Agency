@@ -8,7 +8,9 @@ use App\Enums\Audit\AuditAction;
 use App\Models\Audit\AuditLog;
 use App\Models\Users\User;
 use DateTimeInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -86,6 +88,55 @@ class AuditService
 
             return null;
         }
+    }
+
+    /**
+     * @param  array{user_id?: int|null, action?: AuditAction|null, auditable_type?: string|null, auditable_id?: int|null, from?: string|null, to?: string|null}  $filters
+     * @return LengthAwarePaginator<int, AuditLog>
+     */
+    public function getAllPaginated(array $filters, ?int $perPage = null): LengthAwarePaginator
+    {
+        $query = AuditLog::query()
+            ->with('user')
+            ->orderByDesc('id');
+
+        $userId = $filters['user_id'] ?? null;
+        $action = $filters['action'] ?? null;
+        $auditableType = $filters['auditable_type'] ?? null;
+        $auditableId = $filters['auditable_id'] ?? null;
+        $from = $filters['from'] ?? null;
+        $to = $filters['to'] ?? null;
+
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+
+        if ($action !== null) {
+            $query->where('action', $action->value);
+        }
+
+        if ($auditableType !== null) {
+            $query->where('auditable_type', $auditableType);
+        }
+
+        if ($auditableId !== null) {
+            $query->where('auditable_id', $auditableId);
+        }
+
+        if ($from !== null) {
+            $query->where('created_at', '>=', Carbon::parse($from)->startOfDay());
+        }
+
+        if ($to !== null) {
+            $query->where('created_at', '<', Carbon::parse($to)->startOfDay()->addDay());
+        }
+
+        return $query->paginate($perPage)->withQueryString();
+    }
+
+    public function getAuditLog(AuditLog $auditLog): AuditLog
+    {
+        return $auditLog->load('user');
     }
 
     /**
