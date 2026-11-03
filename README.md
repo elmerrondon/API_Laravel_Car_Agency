@@ -523,7 +523,7 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 cp .env.production.example .env.production
 ```
 
-Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción). Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
+Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
 
 El archivo `.env.production` está ignorado por Git y `.dockerignore` evita que se copie dentro de la imagen. Sesiones, caché y colas usan el stack existente (`SESSION_DRIVER=file` dentro de `app-storage`, `CACHE_STORE=database` y `QUEUE_CONNECTION=database`), sin dependencias extra. Los logs salen por `stderr` (`LOG_CHANNEL=stderr`) para que Docker los recoja con `docker compose logs`.
 
@@ -553,11 +553,11 @@ Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` 
 ### Paso 4: Migrar y optimizar
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force --seed
 docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
 ```
 
-- `migrate --force` crea el esquema y también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que este paso va antes de recibir tráfico.
+- `migrate --force --seed` crea el esquema y también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que este paso va antes de recibir tráfico. El `--seed` en producción solo siembra roles/permisos y el administrador definido por `ADMIN_EMAIL`/`ADMIN_PASSWORD` (añade esas variables a `.env.production`); no inserta datos demo.
 - `optimize` cachea configuración, eventos, rutas y vistas compiladas (`config:cache`, `event:cache`, `route:cache`, `view:cache`) para que cada petición no reconstruya el bootstrap.
 
 > Las cachés de `optimize` se escriben en `bootstrap/cache` dentro del contenedor, no en el volumen `app-storage`: se pierden al recrear `app`, así que vuelve a ejecutar `optimize` después de cada despliegue. Si cambias `.env.production`, ejecuta `php artisan optimize:clear` y reinicia `app`; con la configuración cacheada, los cambios de entorno no se leen.
@@ -585,7 +585,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 | :--- | :--- |
 | `docker/render/Dockerfile.render` | Imagen única con FrankenPHP (Caddy + PHP 8.3 embebido), código, dependencias de producción y `EXPOSE 8080`. |
 | `docker/render/Caddyfile` | Configuración de Caddy: escucha en `$PORT`, sirve `public/` y ejecuta PHP con `php_server`. |
-| `docker/render/entrypoint.sh` | Prepara `storage/`, valida `APP_KEY`, ejecuta migraciones opcionales y cachea Laravel al arrancar. |
+| `docker/render/entrypoint.sh` | Prepara `storage/`, valida `APP_KEY`, ejecuta migraciones/seed opcionales y cachea Laravel al arrancar. |
 | `.github/workflows/deploy-dockerhub.yml` | CI/CD: al hacer push a `main` construye esta imagen y la sube a Docker Hub. |
 
 ### Cómo funciona la imagen
@@ -594,7 +594,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 - **Puerto dinámico**: el `Caddyfile` escucha en `:{$PORT:8080}`. Render y Railway inyectan `PORT`; en local el valor por defecto es `8080`.
 - **Usuario sin privilegios**: el contenedor corre como `www-data`, así que `PORT` debe ser `>= 1024`. Si una plataforma obliga a usar el puerto `80`, arráncalo con `--user 0`.
 - **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
-- **Migraciones**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force`) o define `RUN_MIGRATIONS=true` para que las corra el entrypoint.
+- **Migraciones y seed**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force --seed`) o define `RUN_MIGRATIONS=true` y `RUN_SEED=true` para que los ejecute el entrypoint. El `--seed` solo crea roles/permisos y el administrador; no inserta datos demo.
 - **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a una base gestionada externa (Aiven, el plugin MySQL de Railway, etc.).
 
 Construir y probar en local sin compose:
@@ -606,7 +606,10 @@ docker run --rm -p 8080:8080 \
   -e APP_KEY="base64:$(openssl rand -base64 32)" \
   -e DB_CONNECTION=sqlite \
   -e DB_DATABASE=/var/www/html/storage/local.sqlite \
+  -e ADMIN_EMAIL=admin@agency.test \
+  -e ADMIN_PASSWORD='S3gura-2026' \
   -e RUN_MIGRATIONS=true \
+  -e RUN_SEED=true \
   car-agency-api:paas
 
 curl -i http://localhost:8080/up   # 200
@@ -646,6 +649,16 @@ APP_DEBUG=false
 APP_URL=https://tu-servicio.onrender.com
 LOG_CHANNEL=stderr
 
+# Administrador inicial (lo usa ProductionAdminSeeder con `--seed`).
+# Cambia la contraseña antes del primer despliegue: es la fuente de verdad.
+ADMIN_EMAIL=admin@tudominio.com
+ADMIN_PASSWORD=...            # mínimo 8 caracteres
+# Opcionales:
+# ADMIN_NAME=Administrador
+# ADMIN_LAST_NAME=General
+# ADMIN_CODE=USR-0001
+# ADMIN_DOCUMENT_NUMBER=V-00000001
+
 DB_CONNECTION=mysql
 DB_HOST=...                   # host de Aiven u otro MySQL gestionado
 DB_PORT=3306
@@ -660,10 +673,12 @@ SESSION_DRIVER=file
 QUEUE_CONNECTION=database
 ```
 
-5. **Pre-Deploy Command**: `php artisan migrate --force` (equivale a `RUN_MIGRATIONS=true`).
+5. **Pre-Deploy Command**: `php artisan migrate --force --seed` (equivale a `RUN_MIGRATIONS=true` + `RUN_SEED=true`).
 6. Despliega. Al terminar, `https://tu-servicio.onrender.com/up` responde `200` y `/api/cars` responde `401` sin token.
 
-En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, añade un MySQL gestionado, define las mismas variables y el comando de release `php artisan migrate --force`.
+> **Administrador inicial.** En producción `DatabaseSeeder` no ejecuta los seeders demo (usan Faker, que no se instala con `composer install --no-dev`): solo siembra roles/permisos y crea el administrador con `ADMIN_EMAIL` y `ADMIN_PASSWORD`. Es idempotente (no duplica usuarios ni roles), pero `ADMIN_PASSWORD` es la fuente de verdad: cada ejecución de `--seed` vuelve a fijar esa contraseña. Si no defines `ADMIN_PASSWORD`, se usa `secret1234` y el seeder emite un aviso en los logs; cámbiala de inmediato.
+
+En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, añade un MySQL gestionado, define las mismas variables y el comando de release `php artisan migrate --force --seed`.
 
 > La base de datos debe ser externa y accesible desde internet. Aiven (MySQL) y el plugin de MySQL de Railway son opciones habituales: copia host, puerto, base, usuario y contraseña a las variables `DB_*`.
 
