@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1
+
+# =============================================================================
+# Imagen monolítica para PaaS (Render, Railway, Fly.io…)
+#
+# Vía de despliegue PARALELA a la de VPS (docker-compose.prod.yml + Nginx +
+# PHP-FPM + MySQL). Aquí todo vive en un único contenedor: FrankenPHP sirve
+# HTTP con Caddy y ejecuta PHP embebido (sin php-fpm ni Nginx aparte), escucha
+# en $PORT (8080 por defecto) y no necesita docker-compose.
+#
+#   docker build -f docker/render/Dockerfile.render -t car-agency-api:paas .
+#   docker run -p 8080:8080 \
+#     -e APP_KEY=base64:... \
+#     -e DB_CONNECTION=mysql -e DB_HOST=... -e DB_DATABASE=... \
+#     -e DB_USERNAME=... -e DB_PASSWORD=... \
+#     car-agency-api:paas
+#
+# Esta imagen NO modifica ni sustituye docker/php/Dockerfile,
+# docker/nginx/Dockerfile.prod, docker-compose.prod.yml ni
+# .env.production.example: comparte con ellos solo docker/php/php.ini.
+# =============================================================================
+
+FROM dunglas/frankenphp:1-php8.3-alpine AS runtime
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_HOME=/tmp/composer \
+    APP_ENV=production \
+    APP_DEBUG=false
+
+# Extensiones requeridas por el proyecto (las mismas que la imagen FPM).
+# install-php-extensions omite las que FrankenPHP ya trae compiladas.
+RUN install-php-extensions \
+        bcmath \
+        exif \
+        gd \
+        opcache \
+        pcntl \
+        pdo_mysql \
+        pdo_sqlite \
+        zip
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# memory_limit=512M para los PDF de Dompdf, post_max_size, etc.
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+
+WORKDIR /var/www/html
+
+# Dependencias en una capa propia para que el código no invalide la caché.
+COPY composer.json composer.lock ./
+
+RUN composer install \
+        --no-dev \
+        --no-interaction \
+        --no-progress \
+        --prefer-dist \
+        --no-scripts
+
+COPY . .
+
+# Autoload optimizado y descubrimiento de paquetes (los scripts de Composer se
+# omiten arriba; aquí se ejecuta explícitamente lo único que hace falta).
+RUN composer dump-autoload --no-dev --optimize --no-scripts \
+    && php artisan package:discover --ansi \
+    && mkdir -p \
+        storage/app/public \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && mkdir -p /data/caddy /config/caddy \
+    && chown -R www-data:www-data /data /config
+
+COPY docker/render/Caddyfile /etc/frankenphp/Caddyfile
+COPY --chmod=755 docker/render/entrypoint.sh /usr/local/bin/entrypoint
+
+# Caddy no puede abrir puertos privilegiados sin root: por eso el puerto por
+# defecto es 8080. Si la plataforma exige 80, arranca el contenedor como root
+# (docker run --user 0) o cambia PORT a un valor >= 1024.
+USER www-data
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=30s \
+    CMD ["php", "-r", "exit(@fsockopen(\"127.0.0.1\", (int) (getenv(\"PORT\") ?: 8080)) ? 0 : 1);"]
+
+ENTRYPOINT ["entrypoint"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]

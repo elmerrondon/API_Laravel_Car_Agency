@@ -1,0 +1,26 @@
+{
+	frankenphp
+	order php_server before file_server
+}
+
+# Caddyfile de la imagen monolítica (Render / Railway / Fly.io).
+#
+# FrankenPHP = Caddy + PHP embebido. El puerto se toma de $PORT, que Render y
+# Railway inyectan automáticamente; en local cae a 8080.
+#
+# :{$PORT:8080} es una dirección sin hostname, así que Caddy NO activa HTTPS
+# automático: la terminación TLS la hace la plataforma (Render/Railway).
+:{$PORT:8080} {
+	root * /var/www/html/public
+
+	encode zstd br gzip
+
+	# Logs de acceso a stdout para que la plataforma los recolecte.
+	log {
+		output stdout
+	}
+
+	# Sirve /index.php para todo lo que no sea un archivo estático y ejecuta
+	# PHP con el worker de FrankenPHP.
+	php_server
+}
