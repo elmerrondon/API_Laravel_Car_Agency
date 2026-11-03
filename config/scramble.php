@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
+use App\OpenApi\BearerAuthSecurityStrategy;
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 use Dedoc\Scramble\OpenApiVersion;
-use Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy;
-use Dedoc\Scramble\Support\Generator\SecurityScheme;
 
 return [
     /*
@@ -199,14 +198,15 @@ return [
      *         'scheme' => \Dedoc\Scramble\Support\Generator\SecurityScheme::http('bearer'),
      *     ],
      * ],
+     *
+     * El esquema `bearerAuth` (nombre y descripción incluidos) se construye en
+     * `App\OpenApi\BearerAuthSecurityStrategy`, no aquí: los objetos no son
+     * serializables y `php artisan config:cache` (`optimize`) fallaría.
      */
     'security_strategy' => [
-        MiddlewareAuthSecurityStrategy::class,
+        BearerAuthSecurityStrategy::class,
         [
             'middleware' => ['auth', 'auth:*'],
-            'scheme' => SecurityScheme::http('bearer')
-                ->as('bearerAuth')
-                ->setDescription('Token Bearer emitido por POST /api/auth/login (Sanctum).'),
         ],
     ],
 ];
