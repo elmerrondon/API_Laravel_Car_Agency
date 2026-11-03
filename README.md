@@ -624,7 +624,7 @@ El workflow necesita dos secretos en **Settings → Secrets and variables → Ac
 | `DOCKER_USERNAME` | Tu usuario de Docker Hub. |
 | `DOCKER_TOKEN` | Access token de Docker Hub con permiso **Read & Write** (no uses tu contraseña). |
 
-El workflow usa esos secretos para publicar `docker.io/<DOCKER_USERNAME>/car-agency-api`.
+El workflow usa esos secretos para publicar `docker.io/<DOCKER_USERNAME>/car-agency-laravel-api`.
 
 ### 2. Push a `main`: imagen automática en Docker Hub
 
@@ -638,7 +638,7 @@ El workflow solo compila y publica; los tests siguen ejecutándose en local (`co
 ### 3. Crear el servicio en Render
 
 1. **New → Web Service → Deploy an existing image from a registry**.
-2. Imagen: `docker.io/<DOCKER_USERNAME>/car-agency-api:latest` (o una etiqueta `sha-*` para fijar versión).
+2. Imagen: `docker.io/<DOCKER_USERNAME>/car-agency-laravel-api:latest` (o una etiqueta `sha-*` para fijar versión).
 3. **Health Check Path**: `/up`.
 4. Añade las variables de entorno (no definas `PORT`: lo inyecta Render):
 
