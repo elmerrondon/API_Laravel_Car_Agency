@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Auth;
 
+use App\Enums\Audit\AuditAction;
 use App\Models\Users\User;
+use App\Services\Audit\AuditService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,17 +21,30 @@ class AuthService
         'branches.city.state.country',
     ];
 
+    public function __construct(private readonly AuditService $audit) {}
+
     /**
      * @return array{token: string, must_change_password: bool}
      */
     public function login(string $email, string $password): array
     {
         if (! Auth::attempt(['email' => $email, 'password' => $password, 'is_active' => true])) {
+            // El mensaje no revela si el email existe; la auditoría sí guarda
+            // el intento para que un administrador pueda investigarlo.
+            $this->audit->record(
+                AuditAction::AUTH_LOGIN_FAILED,
+                null,
+                [],
+                ['email' => $email, 'reason' => 'invalid_credentials'],
+            );
+
             throw new AuthenticationException('Incorrect Credentials');
         }
 
         /** @var User $user */
         $user = Auth::user();
+
+        $this->audit->record(AuditAction::AUTH_LOGIN, $user, [], ['email' => $email]);
 
         return [
             'token' => $user->createToken('api-token')->plainTextToken,
@@ -56,6 +71,8 @@ class AuthService
             ]);
         }
 
+        $mustChangePassword = $user->must_change_password;
+
         DB::transaction(function () use ($user, $newPassword): void {
             $user->update([
                 'password' => $newPassword,
@@ -74,6 +91,13 @@ class AuthService
                 $user->tokens()->delete();
             }
         });
+
+        $this->audit->record(
+            AuditAction::USER_PASSWORD_CHANGED,
+            $user,
+            ['must_change_password' => $mustChangePassword],
+            ['must_change_password' => false],
+        );
     }
 
     public function logout(User $user): void
@@ -81,6 +105,8 @@ class AuthService
         /** @var PersonalAccessToken|null $token */
         $token = $user->currentAccessToken();
         $token?->delete();
+
+        $this->audit->record(AuditAction::AUTH_LOGOUT, $user);
     }
 
     public function refresh(User $user): string
@@ -89,6 +115,10 @@ class AuthService
         $token = $user->currentAccessToken();
         $token?->delete();
 
-        return $user->createToken('api_token')->plainTextToken;
+        $newToken = $user->createToken('api_token')->plainTextToken;
+
+        $this->audit->record(AuditAction::AUTH_TOKEN_REFRESHED, $user);
+
+        return $newToken;
     }
 }

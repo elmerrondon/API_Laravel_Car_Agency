@@ -8,13 +8,16 @@ use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
 use App\Exceptions\Users\LastAdminException;
 use App\Exceptions\Users\RoleInUseException;
+use App\Enums\Audit\AuditAction;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Services\Audit\AuditService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -70,5 +73,20 @@ return Application::configure(basePath: dirname(__DIR__))
             return $isForeignKeyViolation
                 ? response()->json(['message' => 'The record cannot be deleted because it is referenced by other records.'], 409)
                 : null;
+        });
+
+        // El limitador de login responde 429 antes de llegar al controlador:
+        // el intento bloqueado también queda auditado, sin guardar la clave.
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/auth/login')) {
+                app(AuditService::class)->record(
+                    AuditAction::AUTH_LOGIN_FAILED,
+                    null,
+                    [],
+                    ['email' => (string) $request->input('email'), 'reason' => 'throttled'],
+                );
+            }
+
+            return null;
         });
     })->create();
