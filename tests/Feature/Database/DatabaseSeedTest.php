@@ -12,6 +12,7 @@ use App\Models\Users\Permission;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\ProductionAdminSeeder;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
@@ -105,4 +106,70 @@ it('asigna la matriz de permisos esperada a cada rol', function () {
     expect(RolePermissionSeeder::matrix()[RoleEnum::ADMIN->value])->toHaveCount(13)
         ->and(RolePermissionSeeder::matrix()[RoleEnum::MANAGER->value])->toHaveCount(10)
         ->and(RolePermissionSeeder::matrix()[RoleEnum::SELLER->value])->toHaveCount(5);
+});
+
+it('siembra el administrador de producción sin Faker ni datos demo', function () {
+    config([
+        'seeders.admin_name' => 'Root',
+        'seeders.admin_last_name' => 'Producción',
+        'seeders.admin_document_number' => 'V-90000001',
+        'seeders.admin_code' => 'USR-9001',
+        'seeders.admin_email' => 'root@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $user = User::where('email', 'root@agency.test')->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user->code)->toBe('USR-9001')
+        ->and($user->is_active)->toBeTrue()
+        ->and($user->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value])
+        ->and($user->roles()->first()->permissions()->count())->toBe(13)
+        ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue()
+        ->and(User::count())->toBe(1)
+        ->and(Car::count())->toBe(0)
+        ->and(Branch::count())->toBe(0);
+});
+
+it('es idempotente al sembrar dos veces el administrador de producción', function () {
+    config([
+        'seeders.admin_code' => 'USR-9002',
+        'seeders.admin_email' => 'idempotente@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+    $this->seed(ProductionAdminSeeder::class);
+
+    $user = User::where('code', 'USR-9002')->firstOrFail();
+
+    expect(User::count())->toBe(1)
+        ->and($user->roles()->count())->toBe(1)
+        ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue();
+});
+
+it('en producción DatabaseSeeder solo ejecuta el seeder fundacional', function () {
+    app()['env'] = 'production';
+
+    config([
+        'seeders.admin_code' => 'USR-9003',
+        'seeders.admin_email' => 'prod@agency.test',
+        'seeders.admin_document_number' => 'V-90000003',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->artisan('db:seed', [
+        '--class' => DatabaseSeeder::class,
+        '--force' => true,
+    ])->assertSuccessful();
+
+    expect(User::count())->toBe(1)
+        ->and(User::where('email', 'prod@agency.test')->exists())->toBeTrue()
+        ->and(Role::count())->toBe(count(RoleEnum::cases()))
+        ->and(Permission::count())->toBe(count(PermissionEnum::cases()))
+        ->and(Car::count())->toBe(0)
+        ->and(Branch::count())->toBe(0)
+        ->and(Currency::count())->toBe(0);
 });

@@ -30,9 +30,21 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * La imagen de producción se construye con `composer install --no-dev`, así
+     * que Faker no existe. Por eso los seeders demo (usuarios de prueba y
+     * coches de factory) solo se ejecutan fuera de producción; en producción
+     * únicamente se siembran los datos fundacionales.
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->call(ProductionAdminSeeder::class);
+
+            return;
+        }
+
+        // Entorno local/testing: datos demo (incluye Faker vía CarFactory).
         // Users (roles y permisos ya sembrados)
         $this->call([
             RoleSeeder::class,
