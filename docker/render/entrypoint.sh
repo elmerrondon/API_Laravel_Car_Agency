@@ -34,11 +34,17 @@ if [ -z "${APP_KEY}" ]; then
 fi
 
 # Migraciones opcionales. En Render lo recomendable es usar el Pre-Deploy
-# Command (php artisan migrate --force); en Railway, preDeployCommand.
-# RUN_MIGRATIONS=true las ejecuta al arrancar (útil para demos y pruebas).
+# Command (php artisan migrate --force --seed); en Railway, preDeployCommand.
+# RUN_MIGRATIONS=true las ejecuta al arrancar (útil para demos y pruebas) y
+# RUN_SEED=true añade --seed para crear el administrador de producción.
 if [ "${RUN_MIGRATIONS}" = "true" ]; then
     echo "[entrypoint] Ejecutando migraciones..."
-    php artisan migrate --force
+
+    if [ "${RUN_SEED}" = "true" ]; then
+        php artisan migrate --force --seed
+    else
+        php artisan migrate --force
+    fi
 fi
 
 # Las cachés se generan al arrancar (no en el build) porque dependen de las
