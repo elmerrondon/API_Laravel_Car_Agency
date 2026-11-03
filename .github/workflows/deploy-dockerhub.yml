@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: read
     env:
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/car-agency-api
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/car-agency-laravel-api
 
     steps:
       - name: Checkout del código
