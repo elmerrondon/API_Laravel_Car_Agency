@@ -515,47 +515,59 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 | `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
 | `.env.production.example` | Plantilla versionable, sin credenciales reales (marcadores `CHANGE_ME_*`). |
 
-### 1. Crear el `.env.production`
+> ⚠️ **El orden importa.** La imagen de Nginx se construye con `COPY --from=car-agency-api:prod`, así que la imagen de `app` debe existir **antes** de levantar el stack completo. Por eso el paso 2 se ejecuta por separado.
+
+### Paso 1: Preparar credenciales
 
 ```bash
 cp .env.production.example .env.production
 ```
 
-Sustituye los `CHANGE_ME_*`, `APP_URL` y `CORS_ALLOWED_ORIGINS`. El archivo `.env.production` está ignorado por Git. Genera la clave y pégala en `APP_KEY=` (incluye el prefijo `base64:`):
+Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción). Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
+
+El archivo `.env.production` está ignorado por Git y `.dockerignore` evita que se copie dentro de la imagen. Sesiones, caché y colas usan el stack existente (`SESSION_DRIVER=file` dentro de `app-storage`, `CACHE_STORE=database` y `QUEUE_CONNECTION=database`), sin dependencias extra. Los logs salen por `stderr` (`LOG_CHANNEL=stderr`) para que Docker los recoja con `docker compose logs`.
+
+### Paso 2: Construir la imagen base (App)
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production build app
+```
+
+**Obligatorio hacerlo primero.** Este comando construye el target `prod` de `docker/php/Dockerfile` y la etiqueta `car-agency-api:prod`. Si se salta, al levantar el stack el build de Nginx falla con `pull access denied`: `docker/nginx/Dockerfile.prod` arranca con `FROM car-agency-api:prod` y solo copia `/var/www/html/public` de esa imagen, así que necesita que ya exista en el daemon local.
+
+Con la imagen ya construida, genera la clave y pégala en `APP_KEY=` de `.env.production` (incluye el prefijo `base64:`):
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production \
   run --rm app php artisan key:generate --show
 ```
 
-Sesiones, caché y colas usan el stack existente (`SESSION_DRIVER=file` dentro de `app-storage`, `CACHE_STORE=database` y `QUEUE_CONNECTION=database`), sin dependencias extra. Los logs salen por `stderr` (`LOG_CHANNEL=stderr`) para que Docker los recoga con `docker compose logs`.
-
-### 2. Levantar el entorno
-
-El `Dockerfile.prod` de Nginx parte de la imagen `car-agency-api:prod`, así que esa imagen debe existir antes de construir Nginx:
+### Paso 3: Levantar el orquestador
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production build app
-
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-`up -d --build` arranca `mysql`, espera su healthcheck, levanta `app` y solo entonces inicia `nginx` (que publica `80:80`).
+Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera su healthcheck (`fsockopen` al puerto 9000) y solo entonces inicia `nginx`, que publica `80:80`. MySQL queda aislado en la red interna `car-agency-prod`.
 
-### 3. Preparar la base de datos
+### Paso 4: Migrar y optimizar
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec -T app \
-  php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
 ```
 
-`migrate` crea también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que ejecuta este paso antes de recibir tráfico.
+- `migrate --force` crea el esquema y también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que este paso va antes de recibir tráfico.
+- `optimize` cachea configuración, eventos, rutas y vistas compiladas (`config:cache`, `event:cache`, `route:cache`, `view:cache`) para que cada petición no reconstruya el bootstrap.
 
-### 4. Verificar y detener
+> Las cachés de `optimize` se escriben en `bootstrap/cache` dentro del contenedor, no en el volumen `app-storage`: se pierden al recrear `app`, así que vuelve a ejecutar `optimize` después de cada despliegue. Si cambias `.env.production`, ejecuta `php artisan optimize:clear` y reinicia `app`; con la configuración cacheada, los cambios de entorno no se leen.
+
+### Verificar y detener
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production ps
 curl -i http://localhost/up
+curl -i http://localhost/api/cars   # 401: la API exige token Bearer
 
 # Detener conservando los volúmenes
 docker compose -f docker-compose.prod.yml --env-file .env.production down
@@ -576,7 +588,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.production down
 | `Access denied for user 'root'` | Credenciales distintas a las del compose. | Revisa `DB_PASSWORD=secret` y `docker-compose.yml`. |
 | Error de tabla `sessions` | `SESSION_DRIVER=database` sin migración de sesiones. | Usa `SESSION_DRIVER=file` en `.env`. |
 | `port is already allocated` | Otro proceso usa `8000` o `3306`. | Cambia los puertos en `docker-compose.yml`. |
-| Cambios en `.env` no se aplican | Configuración cacheada. | `php artisan config:clear` y reinicia `app`. |
+| `pull access denied for car-agency-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
+| `config:cache` falla por valor no serializable | Un objeto vive en `config/*.php`. | Mueve la lógica a una clase y deja solo escalares o arrays en la configuración. |
+| Cambios en `.env` no se aplican | Configuración cacheada. | `php artisan config:clear` (en producción, `optimize:clear`) y reinicia `app`. |
 | `npm: not found` | La imagen PHP no incluye Node. | No uses `npm`; este stack no requiere Vite. |
 | `429` al hacer login | Se superaron 5 intentos por minuto. | Espera un minuto o revisa el limiter `login`. |
 | `403` en `/docs/api` | El entorno no es `local`/`testing` y `DOCS_ENABLED=false`. | Activa `DOCS_ENABLED=true` o consulta el documento en desarrollo. |

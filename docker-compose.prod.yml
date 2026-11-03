@@ -4,6 +4,8 @@
 #   cp .env.production.example .env.production   # completar CHANGE_ME_*
 #   docker compose -f docker-compose.prod.yml --env-file .env.production build app
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env.production exec -T app php artisan migrate --force
+#   docker compose -f docker-compose.prod.yml --env-file .env.production exec -T app php artisan optimize
 #
 # El compose de desarrollo (docker-compose.yml) no se toca. Este archivo publica
 # solo el puerto 80; MySQL queda aislado en la red interna.
