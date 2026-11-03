@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Sales;
 
 use App\DTOs\Sales\SaleData;
+use App\Enums\Audit\AuditAction;
 use App\Enums\Cars\CarStatus;
 use App\Enums\Sales\SaleStatus;
 use App\Exceptions\Sales\CarNotAvailableException;
@@ -14,6 +15,7 @@ use App\Models\Cars\Car;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
+use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
 
 class SaleService
@@ -37,6 +39,8 @@ class SaleService
         'paymentMethod',
     ];
 
+    public function __construct(private readonly AuditService $audit) {}
+
     public function getAllPaginatedSales(?int $perPage = null)
     {
         return Sale::with(self::RELATIONS)
@@ -53,7 +57,7 @@ class SaleService
     public function createSale(SaleData $data)
     {
 
-        return DB::transaction(function () use ($data) {
+        $sale = DB::transaction(function () use ($data) {
             $car = Car::whereKey($data->carId)->lockForUpdate()->firstOrFail();
 
             if ($car->status === CarStatus::SOLD) {
@@ -117,11 +121,16 @@ class SaleService
 
         });
 
+        $this->audit->record(AuditAction::SALE_CREATED, $sale, [], $this->saleAuditValues($sale));
+
+        return $sale;
     }
 
     public function cancelSale(Sale $sale, string $notes): Sale
     {
-        return DB::transaction(function () use ($sale, $notes) {
+        $oldValues = [];
+
+        $cancelledSale = DB::transaction(function () use ($sale, $notes, &$oldValues) {
             $lockedSale = Sale::whereKey($sale->getKey())->lockForUpdate()->firstOrFail();
 
             if ($lockedSale->status === SaleStatus::CANCELLED) {
@@ -134,6 +143,12 @@ class SaleService
 
             $car = Car::whereKey($lockedSale->car_id)->lockForUpdate()->firstOrFail();
 
+            $oldValues = [
+                'status' => $lockedSale->status->value,
+                'notes' => $lockedSale->notes,
+                'car_id' => (int) $lockedSale->car_id,
+            ];
+
             $lockedSale->status = SaleStatus::CANCELLED;
             $lockedSale->notes = $notes;
             $lockedSale->save();
@@ -145,5 +160,29 @@ class SaleService
 
             return $lockedSale->load(self::RELATIONS);
         });
+
+        $this->audit->record(
+            AuditAction::SALE_CANCELLED,
+            $cancelledSale,
+            $oldValues,
+            $this->saleAuditValues($cancelledSale),
+        );
+
+        return $cancelledSale;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function saleAuditValues(Sale $sale): array
+    {
+        return [
+            'status' => $sale->status instanceof SaleStatus ? $sale->status->value : null,
+            'total_base_amount' => (float) $sale->total_base_amount,
+            'car_id' => (int) $sale->car_id,
+            'branch_id' => (int) $sale->branch_id,
+            'user_id' => (int) $sale->user_id,
+            'sale_date' => $sale->sale_date,
+        ];
     }
 }

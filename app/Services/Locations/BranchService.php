@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Locations;
 
 use App\DTOs\Locations\BranchData;
+use App\Enums\Audit\AuditAction;
 use App\Models\Locations\Branch;
+use App\Services\Audit\AuditService;
 
 class BranchService
 {
@@ -14,6 +16,8 @@ class BranchService
         'city.state:id,name,country_id,is_active',
         'city.state.country:id,name,is_active',
     ];
+
+    public function __construct(private readonly AuditService $audit) {}
 
     public function getAllPaginated(?int $perPage = null)
     {
@@ -54,11 +58,17 @@ class BranchService
 
         $branch->refresh();
 
-        return $this->getBranch($branch);
+        $branch = $this->getBranch($branch);
+
+        $this->audit->record(AuditAction::BRANCH_CREATED, $branch, [], $this->branchAuditValues($branch));
+
+        return $branch;
     }
 
     public function updateBranch(Branch $branch, BranchData $data): Branch
     {
+        $oldValues = $this->branchAuditValues($branch);
+
         $dataArray = [
             'name' => $data->name,
             'address' => $data->address,
@@ -74,11 +84,37 @@ class BranchService
 
         $branch->update($cleanData);
 
-        return $this->getBranch($branch);
+        $branch = $this->getBranch($branch);
+
+        $this->audit->record(AuditAction::BRANCH_UPDATED, $branch, $oldValues, $this->branchAuditValues($branch));
+
+        return $branch;
     }
 
     public function deleteBranch(Branch $branch): bool
     {
-        return $branch->delete();
+        $oldValues = $this->branchAuditValues($branch);
+
+        $deleted = $branch->delete();
+
+        $this->audit->record(AuditAction::BRANCH_DELETED, $branch, $oldValues, []);
+
+        return (bool) $deleted;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function branchAuditValues(Branch $branch): array
+    {
+        return [
+            'name' => (string) $branch->name,
+            'code' => (string) $branch->code,
+            'address' => (string) $branch->address,
+            'description' => $branch->description === null ? null : (string) $branch->description,
+            'zip_code' => (string) $branch->zip_code,
+            'is_active' => (bool) $branch->is_active,
+            'city_id' => (int) $branch->city_id,
+        ];
     }
 }
