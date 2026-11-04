@@ -358,6 +358,86 @@ class StatsService
     }
 
     /**
+     * Serie mensual de ventas completadas, con los meses sin datos en cero.
+     *
+     * @return array{
+     *     base_currency: string,
+     *     meta: array{start_date: string, end_date: string, branch_id: int|null},
+     *     data: list<array{period: string, sales_count: int, total_base_amount: float}>
+     * }
+     */
+    public function salesTrend(?string $startDate, ?string $endDate, ?int $branchId): array
+    {
+        [$start, $end] = $this->trendRange($startDate, $endDate);
+
+        $expression = $this->periodExpression();
+
+        $rows = $this->salesQuery(
+            $start->toDateString(),
+            $end->copy()->endOfMonth()->toDateString(),
+            $branchId,
+        )
+            ->selectRaw("{$expression} as period")
+            ->selectRaw('COUNT(*) as sales_count')
+            ->selectRaw('COALESCE(SUM(total_base_amount), 0) as total_base_amount')
+            ->groupByRaw($expression)
+            ->orderBy('period')
+            ->get()
+            ->keyBy('period');
+
+        $data = [];
+        $cursor = $start->copy();
+
+        while ($cursor->lessThanOrEqualTo($end)) {
+            $period = $cursor->format('Y-m');
+            $row = $rows->get($period);
+
+            $data[] = [
+                'period' => $period,
+                'sales_count' => $row === null ? 0 : (int) $row->sales_count,
+                'total_base_amount' => $row === null ? 0.0 : $this->money($row->total_base_amount),
+            ];
+
+            $cursor->addMonthNoOverflow();
+        }
+
+        return [
+            'base_currency' => $this->baseCurrency(),
+            'meta' => [
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
+                'branch_id' => $branchId,
+            ],
+            'data' => $data,
+        ];
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function trendRange(?string $startDate, ?string $endDate): array
+    {
+        if ($startDate !== null && $endDate !== null) {
+            return [
+                Carbon::parse($startDate)->startOfMonth(),
+                Carbon::parse($endDate)->startOfMonth(),
+            ];
+        }
+
+        $end = Carbon::now()->startOfMonth();
+
+        return [$end->copy()->subMonthsNoOverflow(11), $end];
+    }
+
+    private function periodExpression(): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', sale_date)",
+            default => "DATE_FORMAT(sale_date, '%Y-%m')",
+        };
+    }
+
+    /**
      * @return array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null}
      */
     private function rankingMeta(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
