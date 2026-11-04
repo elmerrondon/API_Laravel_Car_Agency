@@ -21,6 +21,7 @@ use App\Http\Controllers\Sales\CurrencyController;
 use App\Http\Controllers\Sales\PaymentMethodController;
 use App\Http\Controllers\Sales\SaleController;
 use App\Http\Controllers\Sales\TaxController;
+use App\Http\Controllers\Stats\StatsController;
 use App\Http\Controllers\Users\PermissionController;
 use App\Http\Controllers\Users\RoleController;
 use App\Http\Controllers\Users\UserController;
@@ -102,6 +103,11 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf']);
         Route::get('reports/cars', [CarReportController::class, 'index']);
         Route::get('reports/cars/pdf', [CarReportController::class, 'pdf']);
+    });
+
+    // Estadísticas (solo lectura)
+    Route::middleware('permission:view_statistics')->group(function () {
+        Route::get('stats/summary', [StatsController::class, 'summary']);
     });
 
     // Usuarios, roles y permisos

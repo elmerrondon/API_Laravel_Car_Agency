@@ -110,6 +110,41 @@ function seedSales(int $count): void
 }
 
 /**
+ * Crea una venta con totales conocidos para las pruebas de estadísticas.
+ */
+function createSaleRecord(
+    Car $car,
+    User $user,
+    Branch $branch,
+    string $saleDate,
+    float $totalBaseAmount,
+    SaleStatus $status = SaleStatus::COMPLETED,
+): Sale {
+    $baseCurrency = Currency::where('is_base', true)->firstOrFail();
+    $paymentCurrency = Currency::where('code', 'EUR')->firstOrFail();
+    $paymentMethod = PaymentMethod::firstOrFail();
+
+    return Sale::create([
+        'exchange_rate' => 1,
+        'base_price' => $totalBaseAmount,
+        'taxes' => [],
+        'total_taxes' => 0,
+        'discount_percentage' => 0,
+        'total_base_amount' => $totalBaseAmount,
+        'total_amount_paid' => $totalBaseAmount,
+        'total_discount' => 0,
+        'status' => $status,
+        'sale_date' => $saleDate,
+        'car_id' => $car->id,
+        'user_id' => $user->id,
+        'branch_id' => $branch->id,
+        'payment_currency_id' => $paymentCurrency->id,
+        'base_currency_id' => $baseCurrency->id,
+        'payment_method_id' => $paymentMethod->id,
+    ]);
+}
+
+/**
  * Siembra roles y permisos y autentica un usuario nuevo con el rol indicado.
  */
 function actingAsRole(RoleEnum $role): User
