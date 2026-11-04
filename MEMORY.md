@@ -1,14 +1,14 @@
-# Memory
+# MEMORY
 
 Registro de decisiones técnicas, bugs resueltos y hallazgos no obvios del proyecto.
 
 ## Reglas
 
-- Este archivo es el único lugar donde se guardan las lecciones aprendidas del proyecto; `AGENTS.md` solo lo referencia.
+- **Consulta este archivo antes de empezar cualquier tarea.** Es el único lugar donde se guardan las lecciones aprendidas del proyecto; `AGENTS.md` solo lo referencia.
 - Debe actualizarse al terminar cada tarea relevante con una entrada fechada (`YYYY-MM-DD`).
 - Sé conciso: una entrada por hito, indicando el problema, la decisión y la verificación.
 - No borres entradas anteriores salvo que estén obsoletas; en ese caso corrígelas y deja constancia.
-- **Límite estricto: 100 líneas.** Antes de añadir una entrada ejecuta `wc -l Memory.md`; si al añadirla se supera el límite, condensa entradas o archiva las más antiguas en `Memory-archive.md`. Nunca dejes `Memory.md` por encima de 100 líneas.
+- **Límite estricto: 100 líneas.** Antes de añadir una entrada ejecuta `wc -l MEMORY.md`; si al añadirla se supera el límite, condensa entradas o archiva las más antiguas en `MEMORY-ARCHIVE.md`. Nunca dejes `MEMORY.md` por encima de 100 líneas.
 
 ## Entradas
 

@@ -173,4 +173,4 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 
 ## Memoria y Lecciones Aprendidas
 
-Las decisiones técnicas, bugs resueltos y hallazgos no obvios viven en [`Memory.md`](Memory.md), que es la fuente única de memoria del proyecto. Debe actualizarse al terminar cada tarea relevante con una entrada fechada y **no puede superar las 100 líneas**: verifica con `wc -l Memory.md` antes de añadir contenido y, si se acerca al límite, condensa o archiva las entradas antiguas en `Memory-archive.md`. No dupliques lecciones en este archivo; aquí solo va la referencia y la regla.
+**Consulta [`MEMORY.md`](MEMORY.md) antes de empezar cualquier tarea** y actualízalo al terminarla: es la fuente única de decisiones técnicas, bugs resueltos y hallazgos no obvios del proyecto. Cada entrada va fechada (`YYYY-MM-DD`) y el archivo **no puede superar las 100 líneas**; verifica con `wc -l MEMORY.md` antes de añadir contenido y, si se acerca al límite, condensa entradas o archiva las antiguas en `MEMORY-ARCHIVE.md`. No dupliques lecciones en este archivo; aquí solo va la referencia y la regla.
