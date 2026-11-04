@@ -34,6 +34,9 @@ enum PermissionEnum: string
     // Auditoría
     case VIEW_AUDIT_LOGS = 'view_audit_logs';
 
+    // Estadísticas
+    case VIEW_STATISTICS = 'view_statistics';
+
     public function description(): string
     {
         return match ($this) {
@@ -51,6 +54,7 @@ enum PermissionEnum: string
             self::MANAGE_USERS => 'Gestionar usuarios, roles y permisos',
             self::VIEW_REPORTS => 'Descargar reportes del sistema',
             self::VIEW_AUDIT_LOGS => 'Consultar la auditoría de accesos y operaciones',
+            self::VIEW_STATISTICS => 'Consultar las estadísticas y rankings del negocio',
         };
     }
 }

@@ -76,7 +76,7 @@
 
 **Objetivo:** entregar al futuro panel de administración métricas agregadas y rankings con filtros de fecha/sucursal y límite dinámico, usando consultas eficientes sobre el esquema actual.
 
-- [ ] `3.1` Nuevo permiso `view_statistics` en `PermissionEnum`, seeders y matriz: `admin` y `manager` (conteos finales **15/11/5**). Actualizar tests, README y la tabla de permisos.
+- [x] `3.1` Nuevo permiso `view_statistics` en `PermissionEnum`, seeders y matriz: `admin` y `manager` (conteos finales **15/11/5**). Actualizar tests, README y la tabla de permisos.
 - [ ] `3.2` Requests compartidos: `StatsFilterRequest` (`start_date`/`end_date` juntos o ninguno, `Y-m-d`, fin inclusivo; `branch_id` existente), `RankingRequest` (hereda y añade `limit` con default 10, `min:1`, `max:100`) y requests específicos para tendencia e inventario. Helper `limit()` que normalice a `int` en el borde HTTP.
 - [ ] `3.3` `StatsService` base: query de ventas `completed`, filtros sargables por `sale_date` y `branch_id`, moneda base y helpers de redondeo a 2 decimales. Orden estable en rankings (`sales_count desc`, `total_base_amount desc`, nombre/ID asc) y exclusión de ventas canceladas/pendientes. Seleccionar todas las columnas agrupadas para cumplir `ONLY_FULL_GROUP_BY` de MySQL.
 - [ ] `3.4` `GET /api/stats/summary`: KPIs del periodo (ventas completadas, ingresos en moneda base, ticket promedio —`0` si no hay ventas—), inventario actual por estado, usuarios activos y sucursales activas. Sin fechas, usar el histórico completo; incluir `base_currency` y los filtros aplicados en `meta`.

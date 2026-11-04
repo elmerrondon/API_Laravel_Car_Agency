@@ -32,6 +32,7 @@ class RolePermissionSeeder extends Seeder
                 PermissionEnum::CREATE_SALES,
                 PermissionEnum::CANCEL_SALES,
                 PermissionEnum::VIEW_REPORTS,
+                PermissionEnum::VIEW_STATISTICS,
             ],
             RoleEnum::SELLER->value => [
                 PermissionEnum::VIEW_CARS,
