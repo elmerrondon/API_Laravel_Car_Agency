@@ -2,6 +2,15 @@
 
 API Laravel 12 para una agencia de vehículos. La imagen de desarrollo usa PHP 8.3 (el proyecto declara `^8.2`). Casi todo es JSON bajo `/api`; la única vista web es la página de bienvenida y `/up` es el healthcheck.
 
+## Propósito y jerarquía de documentos
+
+- **`AGENTS.md` (este archivo):** guía operativa para agentes. Entorno, comandos, reglas de Git, arquitectura y convenciones. No es un plan ni un historial.
+- **`ROADMAP.md`:** único plan de trabajo y estado de las tareas. Aquí viven los objetivos, checklists y criterios de cierre.
+- **`MEMORY.md`:** lecciones aprendidas, decisiones históricas y bugs resueltos. Consúltalo antes de empezar y actualízalo al terminar.
+- **`README.md`:** documentación de uso y onboarding para humanos (instalación, rutas, ejemplos).
+
+**Regla:** cada dato vive en un solo archivo. Si es plan, va a `ROADMAP.md`; si es historia, a `MEMORY.md`; si es uso, a `README.md`; si es una norma de trabajo, a este archivo. No dupliques contenido entre ellos.
+
 ## Entorno obligatorio: Docker (WSL sin PHP/MySQL local)
 
 Este entorno WSL **no tiene PHP, Composer ni MySQL instalados en el host**. No ejecutes `php`, `composer`, `artisan`, `pest`, `pint` ni `mysql` directamente.
@@ -24,7 +33,7 @@ Los comandos de orquestación (`docker compose up`, `down`, `ps`, `logs`) se eje
 - `docker-compose.prod.yml`: stack de producción independiente del de desarrollo. `app` construye el target `prod` con `image: car-agency-laravel-api:prod`, `env_file: .env.production`, volumen nombrado `app-storage` en `/var/www/html/storage` y healthcheck por `fsockopen` al puerto 9000; `nginx` se construye desde `docker/nginx/Dockerfile.prod`, publica solo `80:80` y espera a `app` con `service_healthy`; `mysql` 8.0 no expone puertos y persiste en `mysql-data`. No hay Redis: caché y colas usan tablas de MySQL y las sesiones se escriben en `storage/framework/sessions` dentro de `app-storage`. Red propia `car-agency-prod`.
 - `docker/nginx/Dockerfile.prod`: build multi-stage. La etapa `app` es `FROM car-agency-laravel-api:prod` y solo aporta `/var/www/html/public`; la imagen final es `nginx:1.27-alpine` con el `default.conf` compartido.
 - **Regla de construcción en Producción:** Debido a que `docker/nginx/Dockerfile.prod` utiliza un multi-stage build que hace `COPY --from=car-agency-laravel-api:prod`, es obligatorio construir el servicio `app` individualmente antes de levantar el stack completo (`docker compose -f docker-compose.prod.yml --env-file .env.production build app`). De lo contrario, Docker fallará al no encontrar la imagen origen (`pull access denied`).
-- **Dos vías de despliegue que conviven:** la «Vía VPS» (`docker-compose.prod.yml` + `docker/php/Dockerfile` + `docker/nginx/Dockerfile.prod` + `.env.production.example`, multicontenedor con MySQL propio) y la «Vía PaaS» (imagen monolítica para Render/Railway publicada en Docker Hub). Los archivos de la vía PaaS son aditivos: `docker/render/*` y `.github/workflows/deploy-dockerhub.yml`. Al tocar la PaaS no modifiques, renombres ni elimines los de la VPS; la única excepción son los renombrados globales de imágenes acordados con el usuario (2026-11-02: todo pasó a `car-agency-laravel-api`).
+- **Dos vías de despliegue que conviven:** la «Vía VPS» (`docker-compose.prod.yml` + `docker/php/Dockerfile` + `docker/nginx/Dockerfile.prod` + `.env.production.example`, multicontenedor con MySQL propio) y la «Vía PaaS» (imagen monolítica para Render/Railway publicada en Docker Hub). Los archivos de la vía PaaS son aditivos: `docker/render/*` y `.github/workflows/deploy-dockerhub.yml`. Al tocar la PaaS no modifiques, renombres ni elimines los de la VPS; la única excepción son los renombrados globales de imágenes acordados con el usuario.
 - `docker/render/Dockerfile.render`: imagen única sobre `dunglas/frankenphp:1-php8.3-alpine` (Caddy + PHP embebido, sin `php-fpm` ni Nginx aparte). Instala las mismas extensiones con `install-php-extensions`, ejecuta `composer install --no-dev` en una capa propia, `php artisan package:discover` tras copiar el código, corre como `www-data`, hace `EXPOSE 8080` y declara un healthcheck por `fsockopen` al `$PORT`. Reutiliza `docker/php/php.ini` (solo lectura) y no depende de `docker-compose`.
 - `docker/render/Caddyfile`: escucha en `:{$PORT:8080}` (Render/Railway inyectan `PORT`), sirve `/var/www/html/public` con `php_server` y manda el access log a `stdout`. Al ser una dirección sin hostname, Caddy **no** activa HTTPS automático: el TLS lo termina la plataforma.
 - `docker/render/entrypoint.sh`: crea los directorios de `storage/` y `bootstrap/cache`, aborta si falta `APP_KEY`, ejecuta `php artisan migrate --force` solo con `RUN_MIGRATIONS=true` (añade `--seed` si además defines `RUN_SEED=true`) y `php artisan optimize` salvo `APP_OPTIMIZE=false`; termina con `exec "$@"` para que FrankenPHP reciba las señales del orquestador.
@@ -100,12 +109,12 @@ El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya est�
 - **Operaciones Prohibidas:** El agente tiene estrictamente prohibido ejecutar `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` o `git reset`. La gestión de ramas y subidas al remoto la hace únicamente el usuario.
 - Usa `git status` y `git diff` para preparar cada commit; revisa que no entren `.env`, `vendor/`, `node_modules/` ni artefactos de build.
 
-## Flujo de trabajo y roadmap
+## Flujo de trabajo
 
-- El plan detallado vive en `ROADMAP.md`, que absorbió por completo el antiguo `Pendientes.txt` (ya eliminado), y es la fuente de verdad del avance.
-- Marca cada tarea terminada con `[x]` en `ROADMAP.md`; no crees listas TODO paralelas.
-- Antes de empezar una tarea grande, revisa `ROADMAP.md` y actualízalo al terminarla.
-- Cada micro-tarea del roadmap equivale a un commit atómico.
+- `ROADMAP.md` es el único plan de trabajo y la fuente de verdad del avance: revísalo antes de empezar y marca cada tarea con `[x]` al terminarla. No crees listas TODO paralelas.
+- `MEMORY.md` es el historial técnico: consúltalo antes de empezar y añade una entrada fechada al cerrar cada tarea relevante.
+- Cada micro-tarea del roadmap equivale a un commit atómico. Antes de commitear, verifica en Docker con `composer test`, `composer analyse` y `pint --test`.
+- Si una tarea cambia el plan, actualiza `ROADMAP.md`; si cambia una decisión o resuelve un bug no obvio, actualiza `MEMORY.md`. No dupliques en este archivo el plan ni el historial.
 
 ## Estructura del código
 
@@ -144,7 +153,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - `cars.vin` y `users.code` son únicos a nivel global: no incluyen `deleted_at` y no se pueden reutilizar tras un soft delete. Es una decisión de trazabilidad y auditoría, no un descuido; no los conviertas en índices compuestos.
 - `users.email` y `users.document_number` tienen índices únicos compuestos `(columna, deleted_at)` para permitir reutilizar el valor cuando el usuario está borrado lógicamente. En MySQL ese índice **no protege la unicidad entre filas activas**, porque los `NULL` de `deleted_at` son distintos entre sí: dos usuarios activos podrían compartir email o documento a nivel de BD. La unicidad real la impone el FormRequest con `Rule::unique(...)->withoutTrashed()`; si añades una ruta que escriba usuarios sin pasar por ese FormRequest, replica la validación.
 - Antes de crear un índice, revisa `SHOW INDEX FROM tabla`: `foreignId()->constrained()` ya crea el índice de la clave foránea (`cars.branch_id`, `cars.car_model_id`, `sales.user_id`), así que añadirlo otra vez solo duplica estructura.
-- `cars` ya no tiene índices compuestos con `deleted_at`: el antiguo índice llamado `deleted_at` era un duplicado de `cars_vin_unique` sobre `vin` y se eliminó en la fase 1.
+- `cars` ya no tiene índices compuestos con `deleted_at`: el antiguo índice llamado `deleted_at` era un duplicado de `cars_vin_unique` sobre `vin` y se eliminó.
 
 ### Alcance multi-sucursal
 
@@ -171,6 +180,6 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - `SaleReportService` usa comparaciones sargables (`>= from 00:00`, `< to + 1 día`) para aprovechar el índice `(branch_id, sale_date)`; `whereDate()` compila a `date(col)` y lo anula.
 - Los permisos del usuario se cachean `PERMISSIONS_CACHE_TTL` segundos (300 por defecto) para no repetir el join en cada petición.
 
-## Memoria y Lecciones Aprendidas
+## Memoria del proyecto
 
-**Consulta [`MEMORY.md`](MEMORY.md) antes de empezar cualquier tarea** y actualízalo al terminarla: es la fuente única de decisiones técnicas, bugs resueltos y hallazgos no obvios del proyecto. Cada entrada va fechada (`YYYY-MM-DD`) y el archivo **no puede superar las 100 líneas**; verifica con `wc -l MEMORY.md` antes de añadir contenido y, si se acerca al límite, condensa entradas o archiva las antiguas en `MEMORY-ARCHIVE.md`. No dupliques lecciones en este archivo; aquí solo va la referencia y la regla.
+**Consulta [`MEMORY.md`](MEMORY.md) antes de empezar cualquier tarea** y actualízalo al terminarla: es la fuente única de decisiones técnicas, bugs resueltos y hallazgos no obvios. Cada entrada va fechada (`YYYY-MM-DD`) y el archivo **no puede superar las 100 líneas**; verifica con `wc -l MEMORY.md` antes de añadir contenido y, si se acerca al límite, condensa entradas o archiva las antiguas en `MEMORY-ARCHIVE.md`. Aquí no se copian las lecciones; solo se referencia el archivo y su regla.
