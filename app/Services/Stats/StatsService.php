@@ -195,6 +195,47 @@ class StatsService
     }
 
     /**
+     * Ciudades con más ventas completadas y mayor facturación.
+     *
+     * @return array{
+     *     base_currency: string,
+     *     meta: array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null},
+     *     data: list<array{id: int, name: string, state: string, country: string, sales_count: int, total_base_amount: float}>
+     * }
+     */
+    public function topCities(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
+    {
+        $rows = $this->salesQuery($startDate, $endDate, $branchId)
+            ->join('branches', 'branches.id', '=', 'sales.branch_id')
+            ->join('cities', 'cities.id', '=', 'branches.city_id')
+            ->join('states', 'states.id', '=', 'cities.state_id')
+            ->join('countries', 'countries.id', '=', 'states.country_id')
+            ->select('cities.id', 'cities.name', 'states.name as state', 'countries.name as country')
+            ->selectRaw('COUNT(sales.id) as sales_count')
+            ->selectRaw('COALESCE(SUM(sales.total_base_amount), 0) as total_base_amount')
+            ->groupBy('cities.id', 'cities.name', 'states.name', 'countries.name')
+            ->orderByDesc('sales_count')
+            ->orderByDesc('total_base_amount')
+            ->orderBy('cities.name')
+            ->orderBy('cities.id')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'base_currency' => $this->baseCurrency(),
+            'meta' => $this->rankingMeta($startDate, $endDate, $branchId, $limit),
+            'data' => array_values($rows->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'state' => (string) $row->state,
+                'country' => (string) $row->country,
+                'sales_count' => (int) $row->sales_count,
+                'total_base_amount' => $this->money($row->total_base_amount),
+            ])->all()),
+        ];
+    }
+
+    /**
      * @return array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null}
      */
     private function rankingMeta(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
