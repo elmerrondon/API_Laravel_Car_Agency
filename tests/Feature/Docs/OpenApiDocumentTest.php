@@ -27,6 +27,8 @@ it('expone todos los endpoints de la API', function () {
         '/auth/me',
         '/auth/password',
         '/auth/refresh',
+        '/audit-logs',
+        '/audit-logs/{audit_log}',
         '/branches',
         '/branches/{branch}',
         '/brands',
@@ -76,7 +78,7 @@ it('expone todos los endpoints de la API', function () {
     expect($paths)->toBe($expected);
 });
 
-it('usa los siete grupos de negocio en español con resumen en cada operación', function () {
+it('usa los grupos de negocio en español con resumen en cada operación', function () {
     $document = openApiDocument();
 
     expect(array_column($document['tags'], 'name'))->toBe([
@@ -87,6 +89,7 @@ it('usa los siete grupos de negocio en español con resumen en cada operación',
         'Ventas',
         'Reportes',
         'Usuarios',
+        'Auditoría',
     ]);
 
     foreach ($document['paths'] as $path => $operations) {
@@ -201,6 +204,36 @@ it('documenta los filtros de los reportes', function () {
     foreach (['from', 'to', 'branch_id'] as $name) {
         expect($parameters[$name]['description'])->not->toBeEmpty();
     }
+});
+
+it('documenta el listado de auditoría, sus filtros y el permiso', function () {
+    $index = openApiDocument()['paths']['/audit-logs']['get'];
+
+    $parameters = collect($index['parameters'] ?? [])
+        ->where('in', 'query')
+        ->keyBy('name');
+
+    expect($index['summary'])->toBe('Listar registros de auditoría')
+        ->and($index['responses'])->toHaveKeys(['200', '401', '403', '422', '429'])
+        ->and($parameters->keys()->all())->toContain(
+            'user_id',
+            'action',
+            'auditable_type',
+            'auditable_id',
+            'from',
+            'to',
+            'per_page',
+            'page',
+        );
+
+    foreach (['user_id', 'action', 'auditable_type', 'auditable_id', 'from', 'to', 'per_page'] as $name) {
+        expect($parameters[$name]['description'])->not->toBeEmpty();
+    }
+
+    $show = openApiDocument()['paths']['/audit-logs/{audit_log}']['get'];
+
+    expect($show['summary'])->toBe('Ver el registro de auditoría')
+        ->and($show['responses'])->toHaveKeys(['200', '401', '403', '404', '429']);
 });
 
 it('no deja referencias internas rotas', function () {

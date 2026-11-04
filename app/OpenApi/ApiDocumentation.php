@@ -47,6 +47,10 @@ final class ApiDocumentation
         'from' => 'Fecha inicial en formato `Y-m-d`. Se envía junto con `to`.',
         'to' => 'Fecha final en formato `Y-m-d` (incluida). Se envía junto con `from`.',
         'branch_id' => 'Filtra por sucursal. Sin valor se incluyen todas.',
+        'user_id' => 'Filtra por el usuario que realizó la acción.',
+        'action' => 'Filtra por acción auditada, por ejemplo `auth.login` o `sale.created`.',
+        'auditable_type' => 'Tipo de recurso auditado: `user`, `role`, `car`, `branch` o `sale`.',
+        'auditable_id' => 'Identificador del recurso auditado.',
     ];
 
     /**
@@ -62,6 +66,7 @@ final class ApiDocumentation
         'Ventas' => [4, 'Registro y cancelación de ventas, con sus totales en moneda base.'],
         'Reportes' => [5, 'Reportes de inventario y de ventas en JSON o PDF (requieren `view_reports`).'],
         'Usuarios' => [6, 'Usuarios, roles y permisos (requieren `manage_users`).'],
+        'Auditoría' => [7, 'Registro de accesos y operaciones críticas (requiere `view_audit_logs`).'],
     ];
 
     /**
@@ -90,6 +95,7 @@ final class ApiDocumentation
         'users' => ['Usuarios', 'usuarios', 'el usuario'],
         'roles' => ['Usuarios', 'roles', 'el rol'],
         'permissions' => ['Usuarios', 'permisos', 'el permiso'],
+        'audit-logs' => ['Auditoría', 'registros de auditoría', 'el registro de auditoría'],
     ];
 
     /**
