@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Reports;
 
-use App\Enums\Cars\CarStatus;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Sales\Currency;
@@ -44,7 +43,7 @@ class CarReportService
             ->map(function (Car $row): array {
                 return [
                     'status' => $row->status->value,
-                    'label' => $this->statusLabel($row->status),
+                    'label' => $row->status->label(),
                     'count' => (int) $row->getAttribute('count'),
                     'total_price' => round((float) $row->getAttribute('total_price'), 2),
                 ];
@@ -121,14 +120,5 @@ class CarReportService
                 ];
             })
             ->all());
-    }
-
-    private function statusLabel(CarStatus $status): string
-    {
-        return match ($status) {
-            CarStatus::AVAILABLE => 'Disponible',
-            CarStatus::RESERVED => 'Reservado',
-            CarStatus::SOLD => 'Vendido',
-        };
     }
 }

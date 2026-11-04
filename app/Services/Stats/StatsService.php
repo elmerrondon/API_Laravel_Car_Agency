@@ -83,6 +83,50 @@ class StatsService
     }
 
     /**
+     * Inventario actual (sin soft deletes) con desglose por estado y sucursal.
+     *
+     * @return array{
+     *     base_currency: string,
+     *     meta: array{branch_id: int|null},
+     *     total_cars: int,
+     *     total_value: float,
+     *     by_status: list<array{status: string, label: string, count: int, total_value: float}>,
+     *     by_branch: list<array{id: int, name: string, code: string, count: int, total_value: float}>
+     * }
+     */
+    public function inventory(?int $branchId): array
+    {
+        $snapshot = $this->inventorySnapshot($branchId);
+
+        $rows = Car::query()
+            ->join('branches', 'branches.id', '=', 'cars.branch_id')
+            ->when($branchId !== null, fn ($query) => $query->where('cars.branch_id', $branchId))
+            ->select('branches.id', 'branches.name', 'branches.code')
+            ->selectRaw('COUNT(cars.id) as count')
+            ->selectRaw('COALESCE(SUM(cars.price), 0) as total_value')
+            ->groupBy('branches.id', 'branches.name', 'branches.code')
+            ->orderByDesc('count')
+            ->orderBy('branches.name')
+            ->orderBy('branches.id')
+            ->get();
+
+        return [
+            'base_currency' => $this->baseCurrency(),
+            'meta' => ['branch_id' => $branchId],
+            'total_cars' => $snapshot['total_cars'],
+            'total_value' => $snapshot['total_value'],
+            'by_status' => $snapshot['by_status'],
+            'by_branch' => array_values($rows->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'code' => (string) $row->code,
+                'count' => (int) $row->count,
+                'total_value' => $this->money($row->total_value),
+            ])->all()),
+        ];
+    }
+
+    /**
      * Inventario actual (sin soft deletes) agrupado por estado.
      *
      * @return array{total_cars: int, total_value: float, by_status: list<array{status: string, label: string, count: int, total_value: float}>}

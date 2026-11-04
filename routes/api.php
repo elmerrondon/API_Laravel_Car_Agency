@@ -113,6 +113,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('stats/top-models', [StatsController::class, 'topModels']);
         Route::get('stats/top-cities', [StatsController::class, 'topCities']);
         Route::get('stats/top-users', [StatsController::class, 'topUsers']);
+        Route::get('stats/inventory', [StatsController::class, 'inventory']);
     });
 
     // Usuarios, roles y permisos
