@@ -63,6 +63,14 @@ it('expone todos los endpoints de la API', function () {
         '/sales/{sale}/cancel',
         '/states',
         '/states/{state}',
+        '/stats/inventory',
+        '/stats/sales/trend',
+        '/stats/summary',
+        '/stats/top-brands',
+        '/stats/top-branches',
+        '/stats/top-cities',
+        '/stats/top-models',
+        '/stats/top-users',
         '/taxes',
         '/taxes/{tax}',
         '/users',
@@ -90,6 +98,7 @@ it('usa los grupos de negocio en español con resumen en cada operación', funct
         'Reportes',
         'Usuarios',
         'Auditoría',
+        'Estadísticas',
     ]);
 
     foreach ($document['paths'] as $path => $operations) {
@@ -234,6 +243,58 @@ it('documenta el listado de auditoría, sus filtros y el permiso', function () {
 
     expect($show['summary'])->toBe('Ver el registro de auditoría')
         ->and($show['responses'])->toHaveKeys(['200', '401', '403', '404', '429']);
+});
+
+it('documenta las estadísticas, sus filtros y el límite', function () {
+    $document = openApiDocument();
+
+    $rankings = [
+        '/stats/top-users',
+        '/stats/top-branches',
+        '/stats/top-cities',
+        '/stats/top-brands',
+        '/stats/top-models',
+    ];
+
+    foreach ($rankings as $path) {
+        $operation = $document['paths'][$path]['get'];
+
+        $parameters = collect($operation['parameters'] ?? [])
+            ->where('in', 'query')
+            ->keyBy('name');
+
+        expect($operation['summary'])->not->toBeEmpty("{$path} sin resumen")
+            ->and($operation['responses'])->toHaveKeys(['200', '401', '403', '422', '429'])
+            ->and($parameters->keys()->all())->toContain('limit', 'start_date', 'end_date', 'branch_id')
+            ->and($parameters['limit']['schema']['minimum'])->toBe(1)
+            ->and($parameters['limit']['schema']['maximum'])->toBe(100)
+            ->and($parameters['limit']['description'])->not->toBeEmpty()
+            ->and($parameters['start_date']['description'])->not->toBeEmpty()
+            ->and($parameters['end_date']['description'])->not->toBeEmpty();
+    }
+
+    $summary = collect($document['paths']['/stats/summary']['get']['parameters'] ?? [])
+        ->where('in', 'query')
+        ->keyBy('name');
+
+    expect($document['paths']['/stats/summary']['get']['summary'])->toBe('Resumen de KPIs del negocio')
+        ->and($summary->keys()->all())->toContain('start_date', 'end_date', 'branch_id')
+        ->and($summary->has('limit'))->toBeFalse();
+
+    $trend = collect($document['paths']['/stats/sales/trend']['get']['parameters'] ?? [])
+        ->where('in', 'query')
+        ->keyBy('name');
+
+    expect($document['paths']['/stats/sales/trend']['get']['summary'])->toBe('Tendencia mensual de ventas')
+        ->and($trend->keys()->all())->toContain('start_date', 'end_date', 'branch_id')
+        ->and($trend->has('limit'))->toBeFalse();
+
+    $inventory = collect($document['paths']['/stats/inventory']['get']['parameters'] ?? [])
+        ->where('in', 'query')
+        ->keyBy('name');
+
+    expect($inventory->keys()->all())->toBe(['branch_id'])
+        ->and($inventory['branch_id']['description'])->not->toBeEmpty();
 });
 
 it('no deja referencias internas rotas', function () {

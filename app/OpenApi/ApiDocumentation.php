@@ -46,6 +46,9 @@ final class ApiDocumentation
         'per_page' => 'Elementos por página (1-100). Por defecto 15.',
         'from' => 'Fecha inicial en formato `Y-m-d`. Se envía junto con `to`.',
         'to' => 'Fecha final en formato `Y-m-d` (incluida). Se envía junto con `from`.',
+        'start_date' => 'Fecha inicial en formato `Y-m-d`. Se envía junto con `end_date`.',
+        'end_date' => 'Fecha final en formato `Y-m-d` (incluida). Se envía junto con `start_date`.',
+        'limit' => 'Número máximo de filas del ranking (1-100). Por defecto 10.',
         'branch_id' => 'Filtra por sucursal. Sin valor se incluyen todas.',
         'user_id' => 'Filtra por el usuario que realizó la acción.',
         'action' => 'Filtra por acción auditada, por ejemplo `auth.login` o `sale.created`.',
@@ -67,6 +70,7 @@ final class ApiDocumentation
         'Reportes' => [5, 'Reportes de inventario y de ventas en JSON o PDF (requieren `view_reports`).'],
         'Usuarios' => [6, 'Usuarios, roles y permisos (requieren `manage_users`).'],
         'Auditoría' => [7, 'Registro de accesos y operaciones críticas (requiere `view_audit_logs`).'],
+        'Estadísticas' => [8, 'KPIs, rankings e inventario para el panel de administración (requieren `view_statistics`).'],
     ];
 
     /**
@@ -96,6 +100,7 @@ final class ApiDocumentation
         'roles' => ['Usuarios', 'roles', 'el rol'],
         'permissions' => ['Usuarios', 'permisos', 'el permiso'],
         'audit-logs' => ['Auditoría', 'registros de auditoría', 'el registro de auditoría'],
+        'stats' => ['Estadísticas', 'estadísticas', 'la estadística'],
     ];
 
     /**
@@ -114,6 +119,14 @@ final class ApiDocumentation
         'reports/sales/pdf' => 'Descargar el reporte de ventas en PDF',
         'sales/{sale}/cancel' => 'Cancelar una venta',
         'users/{user}/reset-password' => 'Restablecer la contraseña de un usuario',
+        'stats/summary' => 'Resumen de KPIs del negocio',
+        'stats/top-users' => 'Ranking de vendedores',
+        'stats/top-branches' => 'Ranking de sucursales',
+        'stats/top-cities' => 'Ranking de ciudades',
+        'stats/top-brands' => 'Ranking de marcas',
+        'stats/top-models' => 'Ranking de modelos',
+        'stats/inventory' => 'Resumen del inventario actual',
+        'stats/sales/trend' => 'Tendencia mensual de ventas',
     ];
 
     /**
