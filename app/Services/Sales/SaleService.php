@@ -177,7 +177,7 @@ class SaleService
     private function saleAuditValues(Sale $sale): array
     {
         return [
-            'status' => $sale->status instanceof SaleStatus ? $sale->status->value : null,
+            'status' => $sale->status->value,
             'total_base_amount' => (float) $sale->total_base_amount,
             'car_id' => (int) $sale->car_id,
             'branch_id' => (int) $sale->branch_id,

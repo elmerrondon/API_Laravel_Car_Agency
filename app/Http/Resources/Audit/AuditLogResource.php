@@ -30,7 +30,7 @@ class AuditLogResource extends JsonResource
             'new_values' => $this->new_values,
             'ip_address' => $this->ip_address,
             'user_agent' => $this->user_agent,
-            'created_at' => $this->created_at?->toIso8601String(),
+            'created_at' => $this->created_at->toIso8601String(),
             'user' => new UserResource($this->whenLoaded('user')),
         ];
     }

@@ -6,7 +6,6 @@ namespace App\Services\Cars;
 
 use App\DTOs\Cars\CarData;
 use App\Enums\Audit\AuditAction;
-use App\Enums\Cars\CarStatus;
 use App\Models\Cars\Car;
 use App\Services\Audit\AuditService;
 
@@ -97,7 +96,7 @@ class CarService
             'mileage' => (int) $car->mileage,
             'year' => (int) $car->year,
             'vin' => (string) $car->vin,
-            'status' => $car->status instanceof CarStatus ? $car->status->value : null,
+            'status' => $car->status->value,
             'color_id' => (int) $car->color_id,
             'car_model_id' => (int) $car->car_model_id,
             'car_type_id' => (int) $car->car_type_id,

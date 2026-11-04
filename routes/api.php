@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Audit\AuditLogController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Cars\BrandController;
 use App\Http\Controllers\Cars\CarController;
 use App\Http\Controllers\Cars\CarModelController;
