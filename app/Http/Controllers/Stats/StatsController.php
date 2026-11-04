@@ -24,6 +24,18 @@ class StatsController extends Controller
         );
     }
 
+    public function topBrands(RankingRequest $request)
+    {
+        return response()->json(
+            $this->service->topBrands(
+                $request->startDate(),
+                $request->endDate(),
+                $request->branchId(),
+                $request->limit(),
+            ),
+        );
+    }
+
     public function topCities(RankingRequest $request)
     {
         return response()->json(
