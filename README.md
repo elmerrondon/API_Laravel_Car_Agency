@@ -32,7 +32,10 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **RBAC de 15 permisos:** la autorización se resuelve por permisos asociados a roles, no por el nombre del rol.
 - **Rate limiting en login:** 5 intentos por minuto por email + IP. El sexto devuelve `429`.
 - **Revocación de tokens:** cambiar contraseña, desactivar o eliminar un usuario invalida sus sesiones abiertas.
-- **Arquitectura por dominio:** `Cars`, `Locations`, `Sales`, `Users` y `Reports`.
+- **Autoservicio de identidad:** `/auth/me`, cambio de contraseña y reset administrativo con clave temporal.
+- **Auditoría nativa:** login, usuarios, roles, coches, sucursales y ventas con actor, IP, User-Agent y redacción de secretos.
+- **Estadísticas y rankings:** KPIs, inventario, tendencia mensual y rankings de vendedores, sucursales, ciudades, marcas y modelos.
+- **Arquitectura por dominio:** `Cars`, `Locations`, `Sales`, `Users`, `Audit`, `Stats` y `Reports`.
 - **Servicios y DTOs:** controladores delgados, reglas de negocio en `app/Services` y datos inmutables en `app/DTOs`.
 - **Ventas transaccionales:** cálculo de impuestos, descuentos y tipos de cambio con redondeo a 2 decimales.
 - **Soft deletes:** en `User` y `Car`. Las ventas no se borran: se cancelan con `SaleStatus::CANCELLED`.
@@ -295,6 +298,8 @@ Las rutas viven en `routes/api.php` y Laravel añade el prefijo `/api`.
 | Método | Endpoint | Acceso |
 | :--- | :--- | :--- |
 | `POST` | `/api/auth/login` | Público, con rate limit `login`. |
+| `GET` | `/api/auth/me` | Requiere token. |
+| `PUT` | `/api/auth/password` | Requiere token. |
 | `POST` | `/api/auth/logout` | Requiere token. |
 | `POST` | `/api/auth/refresh` | Requiere token. |
 
@@ -344,7 +349,7 @@ La respuesta incluye `data`, `links` (`first`, `last`, `prev`, `next`) y `meta` 
 
 ## 📘 Documentación OpenAPI y Postman
 
-El contrato se genera con **Scramble** en **OpenAPI 3.1.2** a partir de las rutas, los `FormRequest` y los `Resource`. `app/OpenApi/ApiDocumentation.php` añade encima los grupos en español, los resúmenes de cada operación, la paginación, los filtros de reportes y los errores `403`, `409` y `429`.
+El contrato se genera con **Scramble** en **OpenAPI 3.1.2** a partir de las rutas, los `FormRequest` y los `Resource`. `app/OpenApi/ApiDocumentation.php` añade encima los grupos en español, los resúmenes de cada operación, la paginación, los filtros de reportes y estadísticas, y los errores `403`, `409` y `429`.
 
 | Recurso | URL |
 | :--- | :--- |
@@ -367,7 +372,7 @@ docker compose exec -T app composer docs:export
 3. Rellena las variables de la colección: `baseUrl` llega con `http://localhost:8000/api` y `bearerToken` queda vacía.
 4. Ejecuta `POST /auth/login` y copia el `token` de la respuesta en `bearerToken`.
 
-La colección importada contiene las 87 peticiones de la API, con `Authorization: Bearer {{bearerToken}}` ya configurado a nivel de colección.
+La colección importada contiene todas las peticiones de la API, con `Authorization: Bearer {{bearerToken}}` ya configurado a nivel de colección.
 
 > Si en algún momento ejecutas `php artisan scramble:cache`, el documento queda congelado en caché; usa `php artisan scramble:clear` después de cambiar rutas o validaciones.
 
@@ -392,6 +397,99 @@ curl -s -o ventas.pdf \
 ```
 
 > El reporte de ventas no filtra por estado: las ventas canceladas también aparecen en el PDF. Es el comportamiento actual del proyecto.
+
+---
+
+## 🕵️ Auditoría
+
+Requiere el permiso `view_audit_logs`, asignado solo al rol `admin`. La tabla
+`audit_logs` es append-only: la API expone únicamente lectura y responde `405` a
+cualquier intento de crear, actualizar o borrar registros.
+
+| Método | Endpoint | Descripción |
+| :--- | :--- | :--- |
+| `GET` | `/api/audit-logs` | Listado paginado, del más reciente al más antiguo. |
+| `GET` | `/api/audit-logs/{id}` | Detalle con actor, IP, User-Agent y valores antiguos/nuevos. |
+
+Filtros opcionales del listado:
+
+| Parámetro | Formato | Notas |
+| :--- | :--- | :--- |
+| `user_id` | entero | Actor que realizó la acción. |
+| `action` | `auth.login`, `user.updated`, `sale.cancelled`, etc. | Validado contra el enum `AuditAction`. |
+| `auditable_type` | `user`, `role`, `car`, `branch`, `sale` | Recurso afectado. |
+| `auditable_id` | entero | Se combina con `auditable_type`. |
+| `from` / `to` | `Y-m-d` | Rango inclusivo; van juntos o ninguno. |
+| `per_page` | 1-100 | 15 por defecto. |
+
+Acciones registradas:
+
+- Autenticación: `auth.login`, `auth.login_failed` (incluye intentos bloqueados con
+  `reason=throttled`), `auth.logout` y `auth.token_refreshed`.
+- Usuarios y roles: `user.created`, `user.updated`, `user.deleted`,
+  `user.activated`, `user.deactivated`, `user.roles_changed`,
+  `user.password_changed`, `user.password_reset`, `role.created`, `role.updated`
+  y `role.deleted`.
+- Negocio: `car.created`, `car.updated`, `car.deleted`, `branch.created`,
+  `branch.updated`, `branch.deleted`, `sale.created` y `sale.cancelled`.
+
+Las contraseñas y los tokens nunca se guardan: las claves sensibles se sustituyen
+por `[REDACTED]`. La auditoría se escribe después del commit de la transacción y,
+si falla, la operación de negocio continúa y el error queda en el log.
+
+```bash
+# Últimos logins fallidos de octubre
+curl -s "http://localhost:8000/api/audit-logs?action=auth.login_failed&from=2026-10-01&to=2026-10-31&per_page=50" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Historial de un usuario concreto
+curl -s "http://localhost:8000/api/audit-logs?auditable_type=user&auditable_id=3" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## 📈 Estadísticas
+
+Requieren el permiso `view_statistics` (`admin` y `manager`). Todas las métricas de
+ventas usan solo ventas `completed` y el importe `total_base_amount` en la moneda
+base. `start_date` y `end_date` son `Y-m-d`, inclusivos y van juntos o ninguno;
+`branch_id` es un filtro opcional.
+
+| Método | Endpoint | Devuelve | Parámetros |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/stats/summary` | KPIs del periodo, inventario y estructura activa. | `start_date`, `end_date`, `branch_id` |
+| `GET` | `/api/stats/top-users` | Ranking de vendedores. | fechas, `branch_id`, `limit` |
+| `GET` | `/api/stats/top-branches` | Ranking de sucursales. | fechas, `branch_id`, `limit` |
+| `GET` | `/api/stats/top-cities` | Ranking de ciudades. | fechas, `branch_id`, `limit` |
+| `GET` | `/api/stats/top-brands` | Ranking de marcas. | fechas, `branch_id`, `limit` |
+| `GET` | `/api/stats/top-models` | Ranking de modelos. | fechas, `branch_id`, `limit` |
+| `GET` | `/api/stats/inventory` | Inventario actual por estado y sucursal. | `branch_id` |
+| `GET` | `/api/stats/sales/trend` | Serie mensual de ventas (12 meses por defecto). | fechas, `branch_id` |
+
+Los rankings aceptan `limit` entre **1 y 100** (10 por defecto) y devuelven menos
+filas si no hay suficientes datos. El orden es estable por número de ventas,
+importe, nombre e id. Los rankings conservan usuarios y coches históricos con soft
+delete; el inventario solo cuenta coches actuales.
+
+```bash
+# Resumen del mes en curso para una sucursal
+curl -s "http://localhost:8000/api/stats/summary?start_date=2026-11-01&end_date=2026-11-30&branch_id=1" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Top 5 vendedores y tendencia de los últimos 12 meses
+curl -s "http://localhost:8000/api/stats/top-users?limit=5" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -s "http://localhost:8000/api/stats/sales/trend" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+`summary` responde con `base_currency`, `meta`, `sales` (`completed_count`,
+`total_base_amount`, `average_ticket`), `inventory`, `active_users` y
+`active_branches`. Los rankings usan `{base_currency, meta, data}` y la tendencia
+`{base_currency, meta, data}` con un punto por mes; los meses sin ventas se
+rellenan con cero.
 
 ---
 
@@ -468,7 +566,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-10-28): **169 tests / 1376 aserciones**, **PHPStan 0 errores** y **Pint limpio (269 archivos)**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-04): **299 tests / 2385 aserciones**, **PHPStan 0 errores** y **Pint limpio (314 archivos)**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
 
 ### Reglas que fijan los tests
 
@@ -756,8 +854,13 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `429` al hacer login | Se superaron 5 intentos por minuto. | Espera un minuto o revisa el limiter `login`. |
 | `403` en `/docs/api` | El entorno no es `local`/`testing` y `DOCS_ENABLED=false`. | Activa `DOCS_ENABLED=true` o consulta el documento en desarrollo. |
 | `422` en `/api/reports/sales/pdf` | El rango supera `REPORTS_MAX_ROWS` (500 ventas). | Acota `from`/`to` o sube el límite junto con la memoria PHP. |
-| `401` con un usuario válido | La cuenta está inactiva. | Actívala con `is_active=true` o desde `/api/users`. |
+| `401` con un usuario válido | La cuenta está inactiva o el token expiró/fue revocado. | Actívala con `is_active=true`, vuelve a iniciar sesión o usa `/auth/refresh`. |
+| `403` en `/api/audit-logs` o `/api/stats/*` | El rol no tiene `view_audit_logs` o `view_statistics`. | Usa un `admin` (auditoría) o un `admin`/`manager` (estadísticas). |
 | `409` al borrar un catálogo | Está referenciado por otros registros. | Elimina o reasigna las referencias primero. |
+| `409` al desactivar o borrar un usuario | Es el último administrador activo. | Crea o activa otro `admin` antes de la operación. |
+| `422` en rankings | `limit` fuera de 1-100 o fechas enviadas por separado. | Usa `limit` válido y envía `start_date`/`end_date` juntos. |
+| `422` al resetear una contraseña | `password` y `password_confirmation` no coinciden o no cumplen la fuerza mínima. | Corrige el payload; el reset marca `must_change_password`. |
+| `405` en `/api/audit-logs` | La auditoría es append-only. | Solo se consulta con `GET`; no hay escritura pública. |
 
 Para reiniciar desde cero:
 
