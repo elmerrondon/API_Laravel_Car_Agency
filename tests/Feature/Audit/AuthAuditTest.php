@@ -46,6 +46,25 @@ it('audita un login fallido sin revelar si el email existe ni guardar la clave',
         ->and($log->new_values)->not->toHaveKey('password');
 });
 
+it('audita el intento de login de una cuenta inactiva como credenciales inválidas', function () {
+    $user = User::factory()->create([
+        'email' => 'audit-inactive@example.test',
+        'is_active' => false,
+    ]);
+
+    $this->postJson('/api/auth/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertUnauthorized();
+
+    $log = AuditLog::query()->where('action', AuditAction::AUTH_LOGIN_FAILED->value)->firstOrFail();
+
+    expect($log->user_id)->toBeNull()
+        ->and($log->new_values['email'])->toBe($user->email)
+        ->and($log->new_values['reason'])->toBe('invalid_credentials')
+        ->and($log->new_values)->not->toHaveKey('password');
+});
+
 it('audita como throttled el intento bloqueado por el rate limit', function () {
     Cache::flush();
     config(['rate_limits.login' => 1]);

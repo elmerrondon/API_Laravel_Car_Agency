@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\Audit\AuditAction;
 use App\Enums\Cars\CarStatus;
 use App\Enums\Sales\SaleStatus;
+use App\Models\Audit\AuditLog;
 use App\Models\Cars\Car;
 use App\Models\Locations\Branch;
 use App\Models\Sales\Currency;
@@ -124,6 +126,25 @@ it('guarda los importes derivados redondeados a dos decimales', function () {
     ] as $amount) {
         expect((float) $amount)->toEqual(round((float) $amount, 2));
     }
+});
+
+it('audita el importe base redondeado igual que la venta persistida', function () {
+    $car = sellingCar(12345.67);
+
+    $tax = Tax::where('code', 'I0001')->firstOrFail();
+    $tax->update(['percentage' => 16]);
+
+    $sale = $this->postJson('/api/sales', salePayload($car))->assertCreated()->json('data');
+
+    $log = AuditLog::query()
+        ->where('action', AuditAction::SALE_CREATED->value)
+        ->where('auditable_id', $sale['id'])
+        ->firstOrFail();
+
+    expect($log->new_values['total_base_amount'])->toEqual(14320.98)
+        ->and($log->new_values['total_base_amount'])->toEqual(
+            round((float) Sale::findOrFail($sale['id'])->total_base_amount, 2),
+        );
 });
 
 it('rechaza con 422 un coche que no está disponible', function () {

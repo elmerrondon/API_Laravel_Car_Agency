@@ -89,7 +89,10 @@ class SaleService
                 ];
             }
 
-            $totalBaseAmount = $taxableAmount + $totalTaxes;
+            // La suma de importes ya redondeados puede arrastrar residuo
+            // flotante; la columna decimal(12,2) lo truncaría en la BD y la
+            // auditoría guardaría un valor distinto al persistido.
+            $totalBaseAmount = round($taxableAmount + $totalTaxes, 2);
             $totalAmountPaid = round($totalBaseAmount * $data->exchangeRate, 2);
 
             $baseCurrency = Currency::firstWhere('is_base', true);
