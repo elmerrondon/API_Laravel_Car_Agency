@@ -60,6 +60,18 @@ class StatsController extends Controller
         );
     }
 
+    public function topModels(RankingRequest $request)
+    {
+        return response()->json(
+            $this->service->topModels(
+                $request->startDate(),
+                $request->endDate(),
+                $request->branchId(),
+                $request->limit(),
+            ),
+        );
+    }
+
     public function topUsers(RankingRequest $request)
     {
         return response()->json(

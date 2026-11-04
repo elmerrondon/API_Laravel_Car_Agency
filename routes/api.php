@@ -110,6 +110,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('stats/summary', [StatsController::class, 'summary']);
         Route::get('stats/top-branches', [StatsController::class, 'topBranches']);
         Route::get('stats/top-brands', [StatsController::class, 'topBrands']);
+        Route::get('stats/top-models', [StatsController::class, 'topModels']);
         Route::get('stats/top-cities', [StatsController::class, 'topCities']);
         Route::get('stats/top-users', [StatsController::class, 'topUsers']);
     });
