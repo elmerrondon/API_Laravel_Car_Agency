@@ -117,6 +117,57 @@ class StatsService
         ];
     }
 
+    /**
+     * Vendedores con más ventas completadas y mayor facturación.
+     *
+     * @return array{
+     *     base_currency: string,
+     *     meta: array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null},
+     *     data: list<array{id: int, name: string, last_name: string, code: string, sales_count: int, total_base_amount: float}>
+     * }
+     */
+    public function topUsers(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
+    {
+        $rows = $this->salesQuery($startDate, $endDate, $branchId)
+            ->join('users', 'users.id', '=', 'sales.user_id')
+            ->select('users.id', 'users.name', 'users.last_name', 'users.code')
+            ->selectRaw('COUNT(sales.id) as sales_count')
+            ->selectRaw('COALESCE(SUM(sales.total_base_amount), 0) as total_base_amount')
+            ->groupBy('users.id', 'users.name', 'users.last_name', 'users.code')
+            ->orderByDesc('sales_count')
+            ->orderByDesc('total_base_amount')
+            ->orderBy('users.name')
+            ->orderBy('users.id')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'base_currency' => $this->baseCurrency(),
+            'meta' => $this->rankingMeta($startDate, $endDate, $branchId, $limit),
+            'data' => array_values($rows->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'last_name' => (string) $row->last_name,
+                'code' => (string) $row->code,
+                'sales_count' => (int) $row->sales_count,
+                'total_base_amount' => $this->money($row->total_base_amount),
+            ])->all()),
+        ];
+    }
+
+    /**
+     * @return array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null}
+     */
+    private function rankingMeta(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
+    {
+        return [
+            'limit' => $limit,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'branch_id' => $branchId,
+        ];
+    }
+
     private function baseCurrency(): string
     {
         return (string) (Currency::query()->where('is_base', true)->value('code') ?? 'USD');

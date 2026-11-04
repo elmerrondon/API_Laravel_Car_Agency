@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Stats;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Stats\RankingRequest;
 use App\Http\Requests\Stats\StatsFilterRequest;
 use App\Services\Stats\StatsService;
 
@@ -19,6 +20,18 @@ class StatsController extends Controller
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
+            ),
+        );
+    }
+
+    public function topUsers(RankingRequest $request)
+    {
+        return response()->json(
+            $this->service->topUsers(
+                $request->startDate(),
+                $request->endDate(),
+                $request->branchId(),
+                $request->limit(),
             ),
         );
     }
