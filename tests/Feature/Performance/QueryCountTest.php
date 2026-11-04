@@ -134,3 +134,38 @@ it('no escala las consultas del reporte de ventas con el número de ventas', fun
 
     expect($large)->toBe($small);
 });
+
+it('no escala las consultas de las estadísticas con el número de ventas', function () {
+    $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
+
+    // Calienta la caché de permisos de `view_statistics` para comparar
+    // peticiones simétricas.
+    $admin->hasPermissionTo(PermissionEnum::VIEW_STATISTICS);
+
+    $endpoints = [
+        '/api/stats/summary',
+        '/api/stats/top-users',
+        '/api/stats/top-branches',
+        '/api/stats/top-cities',
+        '/api/stats/top-brands',
+        '/api/stats/top-models',
+        '/api/stats/inventory',
+        '/api/stats/sales/trend',
+    ];
+
+    foreach ($endpoints as $endpoint) {
+        seedSales(5);
+
+        $small = countQueriesDuringRequest(function () use ($endpoint) {
+            $this->getJson($endpoint)->assertOk();
+        });
+
+        seedSales(20);
+
+        $large = countQueriesDuringRequest(function () use ($endpoint) {
+            $this->getJson($endpoint)->assertOk();
+        });
+
+        expect($large)->toBe($small, "{$endpoint} escala consultas con las ventas");
+    }
+});
