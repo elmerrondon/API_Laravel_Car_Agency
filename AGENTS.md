@@ -139,7 +139,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - `StoreSaleRequest` exige `sale_date` exactamente como `Y-m-d H:i:s`, un array `taxes` no vacío con IDs de impuestos activos, y `discount_percentage`/`exchange_rate` con como máximo 2 decimales.
 - Los Resources exponen relaciones solo mediante `whenLoaded()`. Haz eager loading en el servicio o las claves de relación desaparecen; cada servicio centraliza sus eager loads en constantes y `QueryCountTest` fija el número de consultas de todos los listados, así que un N+1 o un eager load de más rompe la suite. `Model::preventLazyLoading()` está activo fuera de producción (`AppServiceProvider`).
 - `ForceJsonResponse` está prepended a todo el grupo de middleware `api` en `bootstrap/app.php`; mantenlo para que los errores de validación y autenticación sigan siendo JSON.
-- La autenticación son tokens bearer de Sanctum desde `POST /api/auth/login`, la única ruta pública. Todo el resto del grupo `api` exige `auth:sanctum` y el middleware `permission:<permiso>` (alias registrado en `bootstrap/app.php`), que consulta los roles del usuario mediante `User::hasPermissionTo()`. Esa consulta se cachea `PERMISSIONS_CACHE_TTL` segundos (300 por defecto; `0` desactiva la caché) y `UserService`/`RoleService` invalidan la entrada al cambiar usuarios o roles; si tocas permisos por fuera de esos servicios, llama a `User::flushPermissionCacheForRole()`. Hay 15 permisos sembrados y la matriz rol-permiso vive en `RolePermissionSeeder` (`admin` 15, `manager` 11, `vendedor` 5); los usuarios demo los crea `UserSeeder`. Los `authorize()` de los FormRequest siguen devolviendo `true`: la autorización real es el middleware, no hay policies ni Gates (la única excepción es `viewApiDocs`, que protege la documentación).
+- La autenticación son tokens bearer de Sanctum desde `POST /api/auth/login`, la única ruta pública. Todo el resto del grupo `api` exige `auth:sanctum`, el middleware `active` y `permission:<permiso>` (alias registrado en `bootstrap/app.php`), que consulta los roles del usuario mediante `User::hasPermissionTo()`. Esa consulta se cachea `PERMISSIONS_CACHE_TTL` segundos (300 por defecto; `0` desactiva la caché) y `UserService`/`RoleService` invalidan la entrada al cambiar usuarios o roles; si tocas permisos por fuera de esos servicios, llama a `User::flushPermissionCacheForRole()`. Hay 15 permisos sembrados y la matriz rol-permiso vive en `RolePermissionSeeder` (`admin` 15, `manager` 11, `vendedor` 5); los usuarios demo los crea `UserSeeder`. Los `authorize()` de los FormRequest siguen devolviendo `true`: la autorización real es el middleware, no hay policies ni Gates (la única excepción es `viewApiDocs`, que protege la documentación).
 - Soft deletes en `User` y `Car`. `Sale` no usa borrado lógico: se cancela con `SaleStatus::CANCELLED`, que además libera el coche.
 - Los códigos de sucursal se generan en el servidor a partir de `max(id)` (`SUC-0001`); el payload de la petición no aporta `code`.
 - Los datos demo están en español. `CarSeeder` busca nombres exactos (`Negro`, `Blanco`, `Sedán`, `Pick-up`, `Corolla`, `F-150`, etc.); mantén los seeders sincronizados si renombras. El orden de `DatabaseSeeder` importa: roles/permisos -> ubicaciones -> usuarios base -> coches -> catálogos de ventas, y `CarSeeder` necesita los catálogos y sucursales anteriores.
@@ -147,6 +147,33 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - Los tests usan Pest con `RefreshDatabase` activo para `tests/Feature` (cada test arranca con migraciones limpias y debe sembrar lo que necesite). `UserFactory` vive en `database/factories/Users/UserFactory.php`, usa el modelo `App\Models\Users\User` y genera usuarios con las columnas reales; `User::factory()` funciona.
 - No hay CI ni tests JS; la verificación es toda local dentro de Docker: `composer test`, `composer analyse` (PHPStan/Larastan **nivel 5 sin baseline**) y `pint --test`. El análisis necesita `--memory-limit=1G` (el script `composer analyse` ya lo pasa); PHPStan 2 rechaza `memoryLimit` en `phpstan.neon`.
 - Todo el código de `app/`, `routes/`, `database/` y `config/` declara `strict_types=1`; los únicos archivos sin él son los generados en `bootstrap/cache/`. Los límites de PHP obligan a castear en el borde (`Controller::perPage()`, `(int)`/`(string)` sobre `validated()`), no dentro de los servicios.
+
+### Identidad y acceso
+
+- `EnsureUserIsActive` (`active`) rechaza con `401` el token de una cuenta desactivada, aunque se emitiera antes de la desactivación. El login también exige `is_active`.
+- `must_change_password` es informativo para el frontend: se expone en el login y en `/auth/me`, pero la API no bloquea. `PUT /auth/password` lo limpia, conserva el token de la petición y revoca los demás.
+- `POST /users/{user}/reset-password` (permiso `manage_users`) asigna una clave temporal, marca `must_change_password` y revoca todos los tokens del objetivo.
+- `UserService` protege al último administrador activo: desactivarlo, borrarlo o quitarle el rol `admin` responde `409` (`LastAdminException`). Solo cuentan administradores activos y no borrados lógicamente.
+
+### Auditoría
+
+- `audit_logs` es append-only: `$guarded = ['*']`, solo escribe `AuditService` con `forceFill()` y no hay rutas de escritura (responden `405`).
+- La auditoría vive en los servicios, nunca en middleware o controladores. Captura el actor Sanctum (`Auth::user()`), IP, User-Agent, valores antiguos/nuevos y redacta claves sensibles (`password`, `token`, `secret`, etc.). Un fallo al insertar registra un warning y devuelve `null`, sin romper la operación de negocio.
+- En operaciones con `DB::transaction` la auditoría se escribe **después** del commit; así no queda un registro de algo que se revirtió.
+- `AuditAction` enumera las acciones (`auth.*`, `user.*`, `role.*`, `car.*`, `branch.*`, `sale.*`) y el morph map de `AppServiceProvider` fija los alias `user`, `role`, `car`, `branch` y `sale` en `auditable_type`.
+- `GET /api/audit-logs` y el show exigen `view_audit_logs` (solo `admin`) y filtran por `user_id`, `action`, `auditable_type`, `auditable_id` y rango `from`/`to` inclusivo (juntos o ninguno).
+
+### Estadísticas
+
+- Los ocho endpoints `/api/stats/*` exigen `view_statistics` (`admin` y `manager`). Solo agregan ventas `completed` y usan `total_base_amount` en moneda base.
+- `start_date`/`end_date` son `Y-m-d` inclusivos y van juntos o ninguno; `branch_id` es un filtro opcional. Usa comparaciones sargables (`>= inicio 00:00`, `< fin + 1 día`), nunca `whereDate()`.
+- Los rankings aceptan `limit` 1-100 (10 por defecto) y devuelven menos filas si no hay datos; el orden es estable (`sales_count desc`, `total_base_amount desc`, nombre, id).
+- Usuarios y coches históricos se leen con joins crudos para incluir soft deletes; el inventario usa el scope de `Car` y sí los excluye. La tendencia rellena con cero los meses sin ventas y agrupa con `DATE_FORMAT` en MySQL y `strftime` en SQLite.
+- Los índices de estadísticas son `sales(branch_id, status, sale_date)` y `cars(branch_id, status)`; se eligieron con `EXPLAIN` y `IndexesTest` los exige.
+
+### Autosuficiencia del stack
+
+- No añadas servicios externos ni dependencias pesadas: nada de SMTP/email, OAuth/Google, Redis, colas o almacenamiento gestionado. Todo vive en la API + MySQL (Sanctum, caché y colas en tablas, sesiones en archivo).
 
 ### Unicidad e índices
 
@@ -168,7 +195,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - `/docs/api` y `/docs/api.json` viven **fuera** de `/api` y los protege el Gate `viewApiDocs`: abiertos en `local`/`testing`, en el resto solo con `DOCS_ENABLED=true`. `composer docs:export` escribe `storage/app/openapi.json` (ignorado por Git).
 - Los PDF se documentan con `#[Response(200, mediaType: 'application/pdf', format: 'binary')]`; el transformador elimina el `application/json` que Scramble infiere de `download()`.
 - El documento declara la licencia MIT desde `ApiDocumentation::document()` (Scramble no la expone por configuración) y los dos FormRequest de ubicaciones leen el modelo con `$this->route('state'|'city')`: Scramble no evalúa propiedades dinámicas como `$this->state` y avisaba de reglas incompletas en `scramble:export`.
-- El 403 solo se añade a rutas con middleware `permission:*`; el 409 a `PATCH /sales/{sale}/cancel` y a los `DELETE` con FK (no a `cars`/`users`, que usan soft delete); el 429 a todas.
+- El 403 solo se añade a rutas con middleware `permission:*`; el 409 a `PATCH /sales/{sale}/cancel`, a los `DELETE` con FK y a la guarda del último administrador (no a `cars`/`users`, que usan soft delete); el 429 a todas.
 - Los parámetros de ruta van en minúscula (`Tax $tax`, no `Tax $Tax`): una mayúscula genera `/taxes/{Tax}` y la validación OpenAPI lo marca como path ambiguo/duplicado frente a `/taxes/{tax}`.
 - Si ejecutas `php artisan scramble:cache`, el documento queda congelado; usa `scramble:clear` después de cambiar rutas o validaciones.
 - Validación del contrato (en el host, la imagen PHP no trae Node): `npx @redocly/cli lint storage/app/openapi.json` y `npx openapi-to-postmanv2 -s storage/app/openapi.json -o /tmp/postman.json`.
