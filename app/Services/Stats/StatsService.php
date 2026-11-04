@@ -156,6 +156,45 @@ class StatsService
     }
 
     /**
+     * Sucursales con más ventas completadas y mayor facturación.
+     *
+     * @return array{
+     *     base_currency: string,
+     *     meta: array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null},
+     *     data: list<array{id: int, name: string, code: string, city: string|null, sales_count: int, total_base_amount: float}>
+     * }
+     */
+    public function topBranches(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
+    {
+        $rows = $this->salesQuery($startDate, $endDate, $branchId)
+            ->join('branches', 'branches.id', '=', 'sales.branch_id')
+            ->leftJoin('cities', 'cities.id', '=', 'branches.city_id')
+            ->select('branches.id', 'branches.name', 'branches.code', 'cities.name as city')
+            ->selectRaw('COUNT(sales.id) as sales_count')
+            ->selectRaw('COALESCE(SUM(sales.total_base_amount), 0) as total_base_amount')
+            ->groupBy('branches.id', 'branches.name', 'branches.code', 'cities.name')
+            ->orderByDesc('sales_count')
+            ->orderByDesc('total_base_amount')
+            ->orderBy('branches.name')
+            ->orderBy('branches.id')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'base_currency' => $this->baseCurrency(),
+            'meta' => $this->rankingMeta($startDate, $endDate, $branchId, $limit),
+            'data' => array_values($rows->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'code' => (string) $row->code,
+                'city' => $row->city === null ? null : (string) $row->city,
+                'sales_count' => (int) $row->sales_count,
+                'total_base_amount' => $this->money($row->total_base_amount),
+            ])->all()),
+        ];
+    }
+
+    /**
      * @return array{limit: int, start_date: string|null, end_date: string|null, branch_id: int|null}
      */
     private function rankingMeta(?string $startDate, ?string $endDate, ?int $branchId, int $limit): array
