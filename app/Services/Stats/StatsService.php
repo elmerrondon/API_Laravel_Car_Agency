@@ -116,12 +116,12 @@ class StatsService
             'total_cars' => $snapshot['total_cars'],
             'total_value' => $snapshot['total_value'],
             'by_status' => $snapshot['by_status'],
-            'by_branch' => array_values($rows->map(fn (object $row): array => [
+            'by_branch' => array_values($rows->map(fn (Car $row): array => [
                 'id' => (int) $row->id,
-                'name' => (string) $row->name,
-                'code' => (string) $row->code,
-                'count' => (int) $row->count,
-                'total_value' => $this->money($row->total_value),
+                'name' => (string) $row->getAttribute('name'),
+                'code' => (string) $row->getAttribute('code'),
+                'count' => (int) $row->getAttribute('count'),
+                'total_value' => $this->money($row->getAttribute('total_value')),
             ])->all()),
         ];
     }

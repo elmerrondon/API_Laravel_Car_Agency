@@ -9,10 +9,10 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-04.
-- **Etapa en curso:** Fase 3 — Estadísticas y rankings (Fases 1 y 2 cerradas).
-- **Verificación vigente:** 237 tests / 1 967 aserciones, PHPStan 0 errores, Pint limpio.
-- **Permisos:** 14 sembrados (`admin` 14, `manager` 10, `vendedor` 5). La Fase 3 los lleva a 15/11/5 con `view_statistics`.
-- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y 0 ventas.
+- **Etapa en curso:** Fase 4 — Testing, calidad y documentación (Fases 1, 2 y 3 cerradas).
+- **Verificación vigente:** 297 tests / 2 377 aserciones, PHPStan 0 errores, Pint limpio en 314 archivos.
+- **Permisos:** 15 sembrados (`admin` 15, `manager` 11, `vendedor` 5).
+- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y 3 ventas del smoke.
 
 ---
 
@@ -59,40 +59,15 @@
 - **Cierre:** cada acceso y operación crítica deja un registro consultable con actor, IP, User-Agent, valores y fecha, sin romper la operación si la auditoría falla.
 - Detalle y verificación: entrada del 2026-11-04 en `MEMORY.md`.
 
----
+### Fase 3 — Estadísticas y rankings ✅
 
-## 🧱 Contexto técnico para la Fase 3
-
-- `sales` no tiene soft deletes; solo las ventas `completed` cuentan para KPIs y rankings.
-- `total_base_amount` es la única métrica monetaria comparable; `total_amount_paid` está en moneda de pago.
-- Las marcas se alcanzan por `cars.car_model.brand`; no hay relación inversa `Car::sales()`, así que las consultas parten de `Sale` con joins.
-- Índices actuales de `sales`: `sale_date`, `(status, sale_date)` y `(branch_id, sale_date)`. Candidato a evaluar con `EXPLAIN`: `(status, branch_id, sale_date)`.
-- Los tests usan SQLite `:memory:` y producción MySQL 8.0: la agrupación por fecha debe ser compatible con ambos.
-- La base local no tiene ventas. Para el smoke de cierre se puede sembrar un `SaleSeeder` demo (solo local/testing) o crear ventas vía API; no añadir Faker a seeders de producción.
-
----
-
-## Fase 3 — Módulo de Estadísticas y Rankings Dinámicos (Dashboard KPIs)
-
-**Objetivo:** entregar al futuro panel de administración métricas agregadas y rankings con filtros de fecha/sucursal y límite dinámico, usando consultas eficientes sobre el esquema actual.
-
-- [x] `3.1` Nuevo permiso `view_statistics` en `PermissionEnum`, seeders y matriz: `admin` y `manager` (conteos finales **15/11/5**). Actualizar tests, README y la tabla de permisos.
-- [ ] `3.2` Requests compartidos: `StatsFilterRequest` (`start_date`/`end_date` juntos o ninguno, `Y-m-d`, fin inclusivo; `branch_id` existente), `RankingRequest` (hereda y añade `limit` con default 10, `min:1`, `max:100`) y requests específicos para tendencia e inventario. Helper `limit()` que normalice a `int` en el borde HTTP.
-- [x] `3.3` `StatsService` base: query de ventas `completed`, filtros sargables por `sale_date` y `branch_id`, moneda base y helpers de redondeo a 2 decimales. Orden estable en rankings (`sales_count desc`, `total_base_amount desc`, nombre/ID asc) y exclusión de ventas canceladas/pendientes. Seleccionar todas las columnas agrupadas para cumplir `ONLY_FULL_GROUP_BY` de MySQL.
-- [x] `3.4` `GET /api/stats/summary`: KPIs del periodo (ventas completadas, ingresos en moneda base, ticket promedio —`0` si no hay ventas—), inventario actual por estado, usuarios activos y sucursales activas. Sin fechas, usar el histórico completo; incluir `base_currency` y los filtros aplicados en `meta`.
-- [x] `3.5` `GET /api/stats/top-users?limit=10`: vendedores ordenados por cantidad de ventas completadas y monto total facturado; incluir `id`, nombre, apellidos, código, `sales_count` y `total_base_amount`. Los usuarios históricos siguen apareciendo aunque estén desactivados o con soft delete.
-- [x] `3.6` `GET /api/stats/top-branches?limit=10`: sucursales con más ventas e ingresos; incluir `id`, nombre, código, ciudad, `sales_count` y `total_base_amount`. Las sucursales sin ventas no se inventan.
-- [x] `3.7` `GET /api/stats/top-cities?limit=10`: agrupación por ciudad (a través de `branch.city`) con ventas e ingresos; incluir ciudad y, si aporta contexto, estado/país.
-- [x] `3.8` `GET /api/stats/top-brands?limit=10`: marcas más vendidas por número de operaciones y monto, uniendo ventas → coches → modelos → marcas. Contar el histórico aunque el coche esté soft-deleted.
-- [x] `3.9` `GET /api/stats/top-models?limit=10`: modelos más vendidos con su marca, `sales_count` y `total_base_amount`, con el mismo criterio histórico.
-- [x] `3.10` `GET /api/stats/inventory`: resumen del inventario actual (sin soft deletes): total de coches, valor total, desglose por estado (`available`/`reserved`/`sold` con etiquetas en español) y por sucursal. Acepta `branch_id`; no aplica filtros de fecha porque es stock actual. Reutilizar `CarStatus::label()` o extraer la etiqueta para no duplicar la de `CarReportService`.
-- [x] `3.11` `GET /api/stats/sales/trend`: serie temporal por mes (`period` `Y-m`) con `sales_count` y `total_base_amount`, filtros `start_date`/`end_date`/`branch_id`. Sin fechas, usar los últimos 12 meses; rellenar los meses sin ventas con cero para que el frontend reciba una serie continua. Usar una expresión de agrupación compatible con MySQL y SQLite (tests).
-- [x] `3.12` Revisar índices con `EXPLAIN` sobre un volumen de ~3 000 ventas: candidatos `sales(status, branch_id, sale_date)` y `cars(status, branch_id)` para inventario. Añadir solo los que mejoren el plan y no dupliquen índices de FK; documentar la decisión.
-- [x] `3.13` Tests de la fase: `limit` por defecto 10, `?limit=5`, `?limit=20`, tope 100, `101` → `422`, y caso con solo 3 filas que devuelve 3; sumas/counts correctos; ventas canceladas excluidas; filtros por rango y sucursal; tendencia mensual con huecos; inventario por estado/sucursal; `401` sin token y `403` para `vendedor`. Añadir los endpoints a `QueryCountTest` con número constante de consultas.
-- [x] `3.14` OpenAPI: nuevo grupo **Estadísticas** con parámetros `limit`, `start_date`, `end_date`, `branch_id`, descripciones y esquemas de respuesta; documentar el `403` y el `422` del límite. Actualizar `OpenApiDocumentTest` y la importación a Postman.
-- [ ] `3.15` Cierre de fase: suite, PHPStan, Pint, `migrate:fresh --seed`, smoke HTTP de `summary`, un top con `limit` y la tendencia.
-
-**Criterio de cierre:** el panel puede pedir cualquier ranking con `limit` dinámico, filtrar por fechas y sucursal, y recibir datos correctos aunque haya menos registros que el límite solicitado.
+- Permiso `view_statistics` (`admin` 15, `manager` 11, `vendedor` 5).
+- Ocho endpoints bajo `/api/stats`: `summary`, `top-users`, `top-branches`, `top-cities`, `top-brands`, `top-models`, `inventory` y `sales/trend`.
+- Solo ventas `completed` y `total_base_amount`; filtros `start_date`/`end_date` inclusivos y `branch_id`; rankings con `limit` 1-100 (10 por defecto) y menos filas si no alcanzan.
+- Histórico con soft deletes en usuarios y coches; inventario actual sin soft deletes; tendencia mensual con los huecos en cero.
+- Índices `sales(branch_id, status, sale_date)` y `cars(branch_id, status)` elegidos con `EXPLAIN` sobre 3 000 ventas/coches.
+- **Cierre:** 297 tests / 2 377 aserciones, PHPStan 0, Pint limpio, `migrate:fresh --seed` y smoke HTTP de summary, top-users y trend.
+- Detalle y verificación: entrada del 2026-11-04 en `MEMORY.md`.
 
 ---
 
