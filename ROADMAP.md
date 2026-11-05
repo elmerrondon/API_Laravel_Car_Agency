@@ -8,11 +8,11 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-04.
+- **Actualizado:** 2026-11-05.
 - **Etapa en curso:** Fase 4 — Testing, calidad y documentación (Fases 1, 2 y 3 cerradas).
-- **Verificación vigente:** 297 tests / 2 377 aserciones, PHPStan 0 errores, Pint limpio en 314 archivos.
+- **Verificación vigente:** 299 tests / 2 385 aserciones, PHPStan 0 errores, Pint limpio en 314 archivos.
 - **Permisos:** 15 sembrados (`admin` 15, `manager` 11, `vendedor` 5).
-- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y 3 ventas del smoke.
+- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y 12 ventas del smoke.
 
 ---
 
@@ -80,7 +80,7 @@
 - [x] `4.3` Actualizar `AGENTS.md`: nuevos permisos y matriz 15/11/5, middleware `active`, flujo `must_change_password`, guarda del último administrador, esquema y convenciones de `audit_logs` (acciones, redacción, escritura tras commit), convenciones de estadísticas (solo `completed`, moneda base, fechas inclusivas, `limit` 10/100) y la regla de no usar servicios externos.
 - [x] `4.4` Actualizar `README.md`: credenciales iniciales, `/auth/me`, cambio y reset de contraseña, tabla de rutas y permisos, sección de auditoría con filtros, sección de estadísticas con ejemplos `curl`, estados de la suite y troubleshooting de los nuevos `401/403/409/422`.
 - [x] `4.5` Verificación integral en Docker: `migrate:fresh --seed` (sin ventas), suite completa, `composer analyse`, `pint --test`, `composer audit` y exportación OpenAPI (`composer docs:export` + validación con Redocly).
-- [ ] `4.6` Smoke HTTP real: login del administrador, `/auth/me`, cambio de clave, reset administrativo, consulta de auditoría de login/logout, `stats/summary`, `top-users?limit=5`, `top-branches`, `top-cities`, `top-brands`, `inventory` y `sales/trend`; comprobar `403` de un vendedor en auditoría/estadísticas y `401` de un usuario desactivado.
+- [x] `4.6` Smoke HTTP real: login del administrador, `/auth/me`, cambio de clave, reset administrativo, consulta de auditoría de login/logout, `stats/summary`, `top-users?limit=5`, `top-branches`, `top-cities`, `top-brands`, `inventory` y `sales/trend`; comprobar `403` de un vendedor en auditoría/estadísticas y `401` de un usuario desactivado.
 - [ ] `4.7` Marcar todas las casillas de esta etapa en `ROADMAP.md`, registrar la memoria técnica en `MEMORY.md` y dejar un commit atómico por micro-tarea completada.
 
 **Criterio de cierre:** suite verde, PHPStan 0, Pint limpio, documentación actualizada y smoke HTTP completo contra Nginx/MySQL.
