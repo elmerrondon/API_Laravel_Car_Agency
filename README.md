@@ -566,7 +566,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-04): **299 tests / 2385 aserciones**, **PHPStan 0 errores** y **Pint limpio (314 archivos)**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-05): **299 tests / 2385 aserciones**, **PHPStan 0 errores**, **Pint limpio (314 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
 
 ### Reglas que fijan los tests
 
@@ -770,7 +770,7 @@ Cada push a `main` (o una ejecución manual con `workflow_dispatch`) construye `
 - `latest`: siempre apunta al último commit de `main`.
 - `sha-<corto>`: versión inmutable del commit, útil para fijar despliegues y hacer rollback.
 
-El workflow solo compila y publica; los tests siguen ejecutándose en local (`composer test`, `composer analyse`, `pint --test`).
+El workflow solo compila y publica; los tests siguen ejecutándose en local (`composer test`, `composer analyse`, `pint --test`, `composer audit`).
 
 ### 3. Crear el servicio en Render
 

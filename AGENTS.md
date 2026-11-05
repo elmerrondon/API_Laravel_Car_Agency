@@ -113,7 +113,7 @@ El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya est�
 
 - `ROADMAP.md` es el único plan de trabajo y la fuente de verdad del avance: revísalo antes de empezar y marca cada tarea con `[x]` al terminarla. No crees listas TODO paralelas.
 - `MEMORY.md` es el historial técnico: consúltalo antes de empezar y añade una entrada fechada al cerrar cada tarea relevante.
-- Cada micro-tarea del roadmap equivale a un commit atómico. Antes de commitear, verifica en Docker con `composer test`, `composer analyse` y `pint --test`.
+- Cada micro-tarea del roadmap equivale a un commit atómico. Antes de commitear, verifica en Docker con `composer test`, `composer analyse`, `pint --test` y `composer audit`.
 - Si una tarea cambia el plan, actualiza `ROADMAP.md`; si cambia una decisión o resuelve un bug no obvio, actualiza `MEMORY.md`. No dupliques en este archivo el plan ni el historial.
 
 ## Estructura del código
@@ -145,7 +145,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - Los datos demo están en español. `CarSeeder` busca nombres exactos (`Negro`, `Blanco`, `Sedán`, `Pick-up`, `Corolla`, `F-150`, etc.); mantén los seeders sincronizados si renombras. El orden de `DatabaseSeeder` importa: roles/permisos -> ubicaciones -> usuarios base -> coches -> catálogos de ventas, y `CarSeeder` necesita los catálogos y sucursales anteriores.
 - **Seeders: datos demo vs. fundacionales.** `DatabaseSeeder` corta en seco cuando `app()->environment('production')`: solo llama a `ProductionAdminSeeder`. Ese seeder no usa Faker; siembra roles/permisos (`RoleSeeder`, `PermissionSeeder`, `RolePermissionSeeder`) y crea/actualiza el administrador con `User::updateOrCreate()` usando `config('seeders.admin_*')` (variables `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_LAST_NAME`, `ADMIN_CODE`, `ADMIN_DOCUMENT_NUMBER`). Es idempotente, identifica al usuario por `code` (no por email), restaura el registro si estaba soft-deleted y re-aplica `ADMIN_PASSWORD` en cada ejecución. Los seeders demo (`UserSeeder` y `CarSeeder`, este último vía `CarFactory`/Faker) solo corren en local/testing; nunca añadas `fake()` ni `factory()` a un seeder que pueda ejecutarse con `composer install --no-dev`.
 - Los tests usan Pest con `RefreshDatabase` activo para `tests/Feature` (cada test arranca con migraciones limpias y debe sembrar lo que necesite). `UserFactory` vive en `database/factories/Users/UserFactory.php`, usa el modelo `App\Models\Users\User` y genera usuarios con las columnas reales; `User::factory()` funciona.
-- No hay CI ni tests JS; la verificación es toda local dentro de Docker: `composer test`, `composer analyse` (PHPStan/Larastan **nivel 5 sin baseline**) y `pint --test`. El análisis necesita `--memory-limit=1G` (el script `composer analyse` ya lo pasa); PHPStan 2 rechaza `memoryLimit` en `phpstan.neon`.
+- No hay CI ni tests JS; la verificación es toda local dentro de Docker: `composer test`, `composer analyse` (PHPStan/Larastan **nivel 5 sin baseline**), `pint --test` y `composer audit` (sin avisos). El análisis necesita `--memory-limit=1G` (el script `composer analyse` ya lo pasa); PHPStan 2 rechaza `memoryLimit` en `phpstan.neon`.
 - Todo el código de `app/`, `routes/`, `database/` y `config/` declara `strict_types=1`; los únicos archivos sin él son los generados en `bootstrap/cache/`. Los límites de PHP obligan a castear en el borde (`Controller::perPage()`, `(int)`/`(string)` sobre `validated()`), no dentro de los servicios.
 
 ### Identidad y acceso
