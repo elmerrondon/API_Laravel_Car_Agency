@@ -28,6 +28,7 @@ it('expone todos los endpoints de la API', function () {
         '/auth/password',
         '/auth/refresh',
         '/audit-logs',
+        '/audit-logs/export',
         '/audit-logs/{audit_log}',
         '/branches',
         '/branches/{branch}',
@@ -243,6 +244,19 @@ it('documenta el listado de auditoría, sus filtros y el permiso', function () {
 
     expect($show['summary'])->toBe('Ver el registro de auditoría')
         ->and($show['responses'])->toHaveKeys(['200', '401', '403', '404', '429']);
+});
+
+it('documenta la exportación CSV de auditoría como binario', function () {
+    $export = openApiDocument()['paths']['/audit-logs/export']['get'];
+
+    expect($export['summary'])->toBe('Exportar registros de auditoría en CSV')
+        ->and($export['responses'])->toHaveKeys(['200', '401', '403', '422', '429'])
+        ->and($export['responses']['200']['content'])->toHaveKey('text/csv')
+        ->and(array_keys($export['responses']['200']['content']))->toBe(['text/csv'])
+        ->and($export['responses']['200']['content']['text/csv']['schema'])->toBe([
+            'type' => 'string',
+            'format' => 'binary',
+        ]);
 });
 
 it('documenta las estadísticas, sus filtros y el límite', function () {

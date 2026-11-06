@@ -125,8 +125,10 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('permissions', [PermissionController::class, 'index']);
     });
 
-    // Auditoría (solo lectura)
+    // Auditoría (solo lectura). La exportación va antes del resource para que
+    // `export` no sea capturado por el route-model binding de `{audit_log}`.
     Route::middleware('permission:view_audit_logs')->group(function () {
+        Route::get('audit-logs/export', [AuditLogController::class, 'export']);
         Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     });
 });

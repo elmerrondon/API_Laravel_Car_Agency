@@ -119,6 +119,7 @@ final class ApiDocumentation
         'reports/sales/pdf' => 'Descargar el reporte de ventas en PDF',
         'sales/{sale}/cancel' => 'Cancelar una venta',
         'users/{user}/reset-password' => 'Restablecer la contraseña de un usuario',
+        'audit-logs/export' => 'Exportar registros de auditoría en CSV',
         'stats/summary' => 'Resumen de KPIs del negocio',
         'stats/top-users' => 'Ranking de vendedores',
         'stats/top-branches' => 'Ranking de sucursales',
@@ -230,18 +231,27 @@ final class ApiDocumentation
     }
 
     /**
-     * Los PDF se sirven como binario: quitamos el `application/json` que
-     * Scramble infiere del tipo de retorno de Laravel.
+     * Los PDF y el CSV se sirven como binario: quitamos el `application/json`
+     * que Scramble infiere del tipo de retorno de Laravel.
      */
     private static function documentBinaryResponses(Operation $operation, string $path): void
     {
-        if (! Str::endsWith($path, '/pdf')) {
+        if (! Str::endsWith($path, ['/pdf', '/export'])) {
             return;
         }
 
         foreach ($operation->responses ?? [] as $response) {
-            if ($response instanceof Response && (int) $response->code === 200) {
-                unset($response->content['application/json']);
+            if (! $response instanceof Response || (int) $response->code !== 200) {
+                continue;
+            }
+
+            foreach (array_keys($response->content) as $mediaType) {
+                // Scramble añade una variante con charset además de la que
+                // declara el atributo `#[Response]`; el contrato queda limpio
+                // con un único `text/csv` (o `application/pdf`).
+                if ($mediaType === 'application/json' || str_starts_with($mediaType, 'text/csv;')) {
+                    unset($response->content[$mediaType]);
+                }
             }
         }
     }
