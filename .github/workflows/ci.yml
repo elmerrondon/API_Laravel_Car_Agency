@@ -1,0 +1,60 @@
+name: CI de calidad
+
+# Workflow independiente del de Docker Hub: valida la suite, el análisis
+# estático y el formato en cada push y pull request, sin servicios externos
+# (SQLite en memoria).
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Tests, PHPStan y Pint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, exif, gd, mbstring, pcntl, pdo_mysql, pdo_sqlite, zip, dom
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache de Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Instalar dependencias
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Preparar entorno
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Suite de tests
+        run: composer test
+
+      - name: Análisis estático
+        run: composer analyse
+
+      - name: Formato
+        run: ./vendor/bin/pint --test
+
+      - name: Vulnerabilidades de dependencias
+        run: composer audit
