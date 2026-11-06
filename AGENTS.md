@@ -135,10 +135,22 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - Los modelos usan subnamespaces de dominio (`App\Models\Cars\Car`, `App\Models\Users\User`), no `App\Models\Car`. Mantén imports y factories alineados al añadir modelos.
 - Las rutas API viven solo en `routes/api.php` (Laravel añade el prefijo `/api`). El route-model binding usa los modelos de dominio directamente.
 
+### Modularidad y tamaño de las clases
+
+- **Umbral práctico:** las clases de aplicación (`app/Services`, `app/Http/Controllers`, `app/OpenApi`, etc.) deben mantenerse idealmente entre 150 y 250 líneas. Un archivo que ya esté por debajo de ~250 líneas no se fragmenta.
+- **Sin micro-fragmentación:** no se crea una clase o Action por cada endpoint o método. La unidad de división es el contexto cohesivo, no la operación individual.
+- **División por cohesión:** cuando un archivo supere ~250 líneas, se separa en 2–3 clases agrupadas en una subcarpeta de su dominio dentro de `app/Services/<Dominio>/` (o la carpeta equivalente). Ejemplos vigentes:
+  - `app/Services/Stats/`: `StatsQuery` (consulta base y helpers), `StatsSummaryService` (KPIs y tendencia), `StatsInventoryService` (inventario) y `StatsRankingService` (rankings).
+  - `app/Services/Users/`: `UserService` (CRUD), `UserAdminGuard` (guarda del último administrador) y `UserPasswordService` (claves temporales).
+  - `app/Services/Audit/`: `AuditService` (escritura y redacción) y `AuditQueryService` (consulta, paginación y CSV).
+  - `app/OpenApi/`: `ApiDocumentation` (catálogos y orquestación), `ApiDocumentationParameters` (paginación y filtros) y `ApiDocumentationResponses` (binarios y errores).
+- **Cero cambios de contrato:** al dividir se conservan las rutas, las respuestas JSON y el comportamiento observable. Solo se actualizan las inyecciones de dependencias en los controllers o servicios consumidores.
+- **Tests:** los archivos de `tests/` también siguen la regla; si un test monolítico supera ~250 líneas se divide por contexto (por ejemplo `tests/Feature/Docs/OpenApiDocumentTest.php`, `OpenApiOperationsTest.php` y `OpenApiDomainTest.php`) y los helpers compartidos se mueven a `tests/Pest.php`.
+
 ## Convenciones y gotchas
 
 - Los DTOs son clases `readonly` con campos nullable y un `fromRequest(FormRequest)` estático. La mayoría de los servicios filtran nulls antes de crear/actualizar, así que las actualizaciones son parciales: omite un campo (o envía `null`) para dejarlo sin cambios.
-- Los endpoints de index paginados aceptan `page` (lo lee el paginador de Laravel, por eso no se valida) y `per_page` (1-100, validado en el FormRequest); el tamaño de página por defecto es 15. Cada servicio pagina con `orderBy('id')` y `withQueryString()`: el orden es determinista y los enlaces de paginación conservan `per_page`. `PaginationTest` lo exige en los 16 listados. `ApiDocumentation` añade `page` a la documentación de todo listado que declare `per_page`, así que si creas un listado nuevo el contrato se completa solo.
+- Los endpoints de index paginados aceptan `page` (lo lee el paginador de Laravel, por eso no se valida) y `per_page` (1-100, validado en el FormRequest); el tamaño de página por defecto es 15. Cada servicio pagina con `orderBy('id')` y `withQueryString()`: el orden es determinista y los enlaces de paginación conservan `per_page`. `PaginationTest` lo exige en los 16 listados. `ApiDocumentationParameters` añade `page` a la documentación de todo listado que declare `per_page`, así que si creas un listado nuevo el contrato se completa solo.
 - Los Enums son string-backed (`CarStatus`, `SaleStatus`, `RoleEnum`, `PermissionEnum`) y están casteados en los modelos. Valida con `Rule::enum(...)` y compara instancias del enum en los servicios, no strings crudos.
 - La creación de ventas es la ruta financiera: `SaleService` envuelve el trabajo en `DB::transaction`, redondea cada importe derivado a 2 decimales, rechaza coches que no estén `available` y marca el coche como `sold`; la cancelación lo devuelve a `available`. Mantén la nueva lógica financiera dentro de transacciones y con 2 decimales.
 - Los reportes viven bajo `/api/reports/*` y exigen `view_reports`. `SaleReportService` filtra por `from`/`to` (juntos o ninguno) y `branch_id`, y resume los importes en moneda base; `CarReportService` agrega por SQL por tipo, marca y estado, excluyendo los coches con soft delete. Las vistas Blade comparten `reports/layout.blade.php` y usan DejaVu Sans para los acentos en Dompdf.
