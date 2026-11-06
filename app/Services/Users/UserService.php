@@ -6,12 +6,8 @@ namespace App\Services\Users;
 
 use App\DTOs\Users\UserData;
 use App\Enums\Audit\AuditAction;
-use App\Enums\Users\RoleEnum;
-use App\Exceptions\Users\LastAdminException;
-use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\Services\Audit\AuditService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class UserService
@@ -21,7 +17,10 @@ class UserService
         'branches.city.state.country',
     ];
 
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly UserAdminGuard $guard,
+    ) {}
 
     public function getAllPaginated(?int $perPage = null)
     {
@@ -90,7 +89,7 @@ class UserService
         $oldBranches = $this->branchIds($user);
 
         $user = DB::transaction(function () use ($user, $data) {
-            $this->guardLastActiveAdmin($user, $data);
+            $this->guard->guardUpdate($user, $data);
 
             // `code` no forma parte de la actualización: es inmutable y el
             // FormRequest ya rechaza cualquier valor distinto del actual.
@@ -181,9 +180,7 @@ class UserService
         $oldValues = $this->userAuditValues($user);
 
         $deleted = DB::transaction(function () use ($user) {
-            if ($user->is_active && $this->isAdmin($user)) {
-                $this->ensureAnotherActiveAdminExists();
-            }
+            $this->guard->guardDeletion($user);
 
             $user->tokens()->delete();
             $user->forgetPermissionCache();
@@ -194,31 +191,6 @@ class UserService
         $this->audit->record(AuditAction::USER_DELETED, $user, $oldValues, []);
 
         return (bool) $deleted;
-    }
-
-    /**
-     * Asigna una contraseña temporal y obliga al usuario a cambiarla.
-     */
-    public function resetPassword(User $user, string $password): void
-    {
-        $oldMustChangePassword = $user->must_change_password;
-
-        DB::transaction(function () use ($user, $password): void {
-            $user->update([
-                'password' => $password,
-                'must_change_password' => true,
-            ]);
-
-            $user->tokens()->delete();
-            $user->forgetPermissionCache();
-        });
-
-        $this->audit->record(
-            AuditAction::USER_PASSWORD_RESET,
-            $user,
-            ['must_change_password' => $oldMustChangePassword],
-            ['must_change_password' => true],
-        );
     }
 
     /**
@@ -268,61 +240,5 @@ class UserService
             static fn (mixed $id): int => (int) $id,
             $user->branches()->pluck('branches.id')->all(),
         );
-    }
-
-    /**
-     * Impide desactivar o quitar el rol `admin` al último administrador activo.
-     */
-    private function guardLastActiveAdmin(User $user, UserData $data): void
-    {
-        if (! $user->is_active || ! $this->isAdmin($user)) {
-            return;
-        }
-
-        $deactivating = $data->isActive === false;
-        $removingAdminRole = $data->roles !== null && ! $this->containsAdminRole($data->roles);
-
-        if ($deactivating || $removingAdminRole) {
-            $this->ensureAnotherActiveAdminExists();
-        }
-    }
-
-    /**
-     * Bloquea las filas de los administradores activos y exige que quede más
-     * de uno, de modo que dos desactivaciones concurrentes no dejen el sistema
-     * sin administración.
-     */
-    private function ensureAnotherActiveAdminExists(): void
-    {
-        $activeAdmins = User::query()
-            ->where('is_active', true)
-            ->whereHas('roles', fn (Builder $query) => $query->where('name', RoleEnum::ADMIN->value))
-            ->lockForUpdate()
-            ->pluck('id');
-
-        if ($activeAdmins->count() <= 1) {
-            throw LastAdminException::cannotRemoveLastActiveAdmin();
-        }
-    }
-
-    private function isAdmin(User $user): bool
-    {
-        return $user->roles()->where('name', RoleEnum::ADMIN->value)->exists();
-    }
-
-    /**
-     * @param  array<array-key, mixed>  $roleIds
-     */
-    private function containsAdminRole(array $roleIds): bool
-    {
-        $adminRoleId = (int) Role::where('name', RoleEnum::ADMIN->value)->value('id');
-
-        foreach ($roleIds as $roleId) {
-            if ((int) $roleId === $adminRoleId) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

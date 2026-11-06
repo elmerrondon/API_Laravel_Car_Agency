@@ -12,11 +12,15 @@ use App\Http\Requests\Users\User\StoreUserRequest;
 use App\Http\Requests\Users\User\UpdateUserRequest;
 use App\Http\Resources\Users\UserResource;
 use App\Models\Users\User;
+use App\Services\Users\UserPasswordService;
 use App\Services\Users\UserService;
 
 class UserController extends Controller
 {
-    public function __construct(private readonly UserService $service) {}
+    public function __construct(
+        private readonly UserService $service,
+        private readonly UserPasswordService $passwordService,
+    ) {}
 
     public function index(IndexUserRequest $request)
     {
@@ -60,7 +64,7 @@ class UserController extends Controller
 
     public function resetPassword(User $user, ResetUserPasswordRequest $request)
     {
-        $this->service->resetPassword($user, (string) $request->validated('password'));
+        $this->passwordService->resetPassword($user, (string) $request->validated('password'));
 
         return response()->json(['message' => 'Password Reset Successfully']);
     }
