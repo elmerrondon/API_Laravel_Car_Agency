@@ -10,6 +10,7 @@ use App\Models\Sales\Sale;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\OpenApi\ApiDocumentation;
+use App\Support\PasswordPolicy;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -49,11 +50,8 @@ class AppServiceProvider extends ServiceProvider
         // allí se degrada a consulta perezosa en lugar de romper la petición.
         Model::preventLazyLoading(! app()->isProduction());
 
-        Password::defaults(function () {
-            return app()->isProduction()
-              ? Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()
-              : Password::min(6);
-        });
+        // Política 100% local: nunca se consulta la API de Have I Been Pwned.
+        Password::defaults(fn (): Password => PasswordPolicy::current());
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.login'))->by(
