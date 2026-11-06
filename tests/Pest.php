@@ -18,6 +18,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
+use function Pest\Laravel\get;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -62,6 +64,20 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Genera el documento OpenAPI una sola vez por ejecución: el contrato no
+ * depende de la base de datos y Scramble tarda ~1 s en construirlo.
+ *
+ * @return array<string, mixed>
+ */
+function openApiDocument(): array
+{
+    /** @var array<string, mixed>|null $document */
+    static $document = null;
+
+    return $document ??= get('/docs/api.json')->json();
 }
 
 /**
