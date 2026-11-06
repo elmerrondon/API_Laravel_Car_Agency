@@ -9,16 +9,22 @@ use App\Http\Requests\Stats\InventoryStatsRequest;
 use App\Http\Requests\Stats\RankingRequest;
 use App\Http\Requests\Stats\StatsFilterRequest;
 use App\Http\Requests\Stats\TrendStatsRequest;
-use App\Services\Stats\StatsService;
+use App\Services\Stats\StatsInventoryService;
+use App\Services\Stats\StatsRankingService;
+use App\Services\Stats\StatsSummaryService;
 
 class StatsController extends Controller
 {
-    public function __construct(private readonly StatsService $service) {}
+    public function __construct(
+        private readonly StatsSummaryService $summaryService,
+        private readonly StatsInventoryService $inventoryService,
+        private readonly StatsRankingService $rankingService,
+    ) {}
 
     public function summary(StatsFilterRequest $request)
     {
         return response()->json(
-            $this->service->summary(
+            $this->summaryService->summary(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
@@ -29,7 +35,7 @@ class StatsController extends Controller
     public function salesTrend(TrendStatsRequest $request)
     {
         return response()->json(
-            $this->service->salesTrend(
+            $this->summaryService->salesTrend(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
@@ -39,13 +45,13 @@ class StatsController extends Controller
 
     public function inventory(InventoryStatsRequest $request)
     {
-        return response()->json($this->service->inventory($request->branchId()));
+        return response()->json($this->inventoryService->inventory($request->branchId()));
     }
 
     public function topBrands(RankingRequest $request)
     {
         return response()->json(
-            $this->service->topBrands(
+            $this->rankingService->topBrands(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
@@ -57,7 +63,7 @@ class StatsController extends Controller
     public function topCities(RankingRequest $request)
     {
         return response()->json(
-            $this->service->topCities(
+            $this->rankingService->topCities(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
@@ -69,7 +75,7 @@ class StatsController extends Controller
     public function topBranches(RankingRequest $request)
     {
         return response()->json(
-            $this->service->topBranches(
+            $this->rankingService->topBranches(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
@@ -81,7 +87,7 @@ class StatsController extends Controller
     public function topModels(RankingRequest $request)
     {
         return response()->json(
-            $this->service->topModels(
+            $this->rankingService->topModels(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
@@ -93,7 +99,7 @@ class StatsController extends Controller
     public function topUsers(RankingRequest $request)
     {
         return response()->json(
-            $this->service->topUsers(
+            $this->rankingService->topUsers(
                 $request->startDate(),
                 $request->endDate(),
                 $request->branchId(),
