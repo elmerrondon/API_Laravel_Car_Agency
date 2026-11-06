@@ -9,6 +9,7 @@ use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
 use App\Exceptions\Users\LastAdminException;
 use App\Exceptions\Users\RoleInUseException;
+use App\Http\Middleware\EnsurePasswordChangeIsEnforced;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForceJsonResponse;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
             'active' => EnsureUserIsActive::class,
+            'password.changed' => EnsurePasswordChangeIsEnforced::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
