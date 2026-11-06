@@ -15,6 +15,14 @@
 
 	encode zstd br gzip
 
+	# Cabeceras básicas de seguridad. La plataforma termina TLS, pero estas
+	# cabeceras las añade la aplicación en cada respuesta.
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer-when-downgrade"
+	}
+
 	# Logs de acceso a stdout para que la plataforma los recolecte.
 	log {
 		output stdout
