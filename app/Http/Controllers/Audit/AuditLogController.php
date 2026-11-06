@@ -10,13 +10,13 @@ use App\Http\Requests\Audit\ExportAuditLogRequest;
 use App\Http\Requests\Audit\IndexAuditLogRequest;
 use App\Http\Resources\Audit\AuditLogResource;
 use App\Models\Audit\AuditLog;
-use App\Services\Audit\AuditService;
+use App\Services\Audit\AuditQueryService;
 use Dedoc\Scramble\Attributes\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuditLogController extends Controller
 {
-    public function __construct(private readonly AuditService $service) {}
+    public function __construct(private readonly AuditQueryService $service) {}
 
     public function index(IndexAuditLogRequest $request)
     {
