@@ -8,11 +8,11 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-05.
-- **Etapa en curso:** Fase 4 cerrada — testing, calidad y documentación completados (Fases 1, 2 y 3 cerradas).
-- **Verificación vigente:** 299 tests / 2 385 aserciones, PHPStan 0 errores, Pint limpio en 314 archivos.
+- **Actualizado:** 2026-11-06.
+- **Etapa en curso:** Fase 5 cerrada — endurecimiento operativo, seguridad y CI (Fases 1-4 cerradas).
+- **Verificación vigente:** 319 tests / 2 461 aserciones, PHPStan 0 errores, Pint limpio en 325 archivos.
 - **Permisos:** 15 sembrados (`admin` 15, `manager` 11, `vendedor` 5).
-- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y 12 ventas del smoke.
+- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y sin ventas tras `migrate:fresh --seed`.
 
 ---
 
@@ -87,6 +87,23 @@
 
 ---
 
+## Fase 5 — Endurecimiento operativo, seguridad y CI
+
+**Objetivo:** cerrar la etapa evolutiva sin dependencias externas en tiempo de ejecución, con retención de auditoría, exportación CSV, enforcement opcional de contraseña temporal, cabeceras de seguridad y CI de calidad.
+
+- [x] `5.1` Extraer `App\Support\PasswordPolicy` y eliminar `->uncompromised()`: producción usa 8 caracteres, mayúsculas, minúsculas, números y símbolos; local/testing mantiene la regla relajada. Test explícito de la regla fuerte y de la ausencia de la comprobación externa.
+- [x] `5.2` Añadir `config/audit.php` (`AUDIT_RETENTION_DAYS=90`), el comando `audit:prune {--days=}` y la programación diaria en `routes/console.php`; test de borrado de antiguos y conservación de recientes.
+- [x] `5.3` Añadir `GET /api/audit-logs/export` con `StreamedResponse` nativo, reutilizando los filtros del listado y escapando celdas de CSV; documentación OpenAPI como `text/csv` binario.
+- [x] `5.4` Añadir el middleware `password.changed` controlado por `ENFORCE_PASSWORD_CHANGE` (desactivado por defecto): solo permite `/auth/me`, `PUT /auth/password` y `POST /auth/logout` cuando el flag está activo; test de las rutas permitidas y bloqueadas.
+- [x] `5.5` Añadir cabeceras `X-Content-Type-Options`, `X-Frame-Options` y `Referrer-Policy` en Nginx y Caddy.
+- [x] `5.6` Crear `.github/workflows/ci.yml` con PHP 8.3, SQLite en memoria, `composer test`, `composer analyse`, `pint --test` y `composer audit`, independiente del workflow de Docker Hub.
+- [x] `5.7` Integrar el smoke test en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`), dejar la base local determinista con `migrate:fresh --seed` y verificar la suite completa.
+- [x] `5.8` Actualizar `ROADMAP.md`, `AGENTS.md`, `MEMORY.md` y `README.md`, y exportar el OpenAPI actualizado (`composer docs:export` + Redocly).
+
+**Criterio de cierre:** suite verde, PHPStan 0, Pint limpio, `composer audit` sin avisos, OpenAPI válido y sin llamadas HTTP salientes en tiempo de ejecución.
+
+---
+
 ## Verificación
 
 ```bash
@@ -97,6 +114,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app ./vendor/bin/pint --test
 docker compose exec -T app composer audit
 docker compose exec -T app composer docs:export
+docker compose exec -T app php artisan schedule:list
 ```
 
 > La suite usa SQLite `:memory:`; MySQL solo se toca en `migrate:fresh --seed` y en los smoke tests HTTP.

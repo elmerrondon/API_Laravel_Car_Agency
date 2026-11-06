@@ -33,7 +33,10 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Rate limiting en login:** 5 intentos por minuto por email + IP. El sexto devuelve `429`.
 - **Revocación de tokens:** cambiar contraseña, desactivar o eliminar un usuario invalida sus sesiones abiertas.
 - **Autoservicio de identidad:** `/auth/me`, cambio de contraseña y reset administrativo con clave temporal.
+- **Política de contraseñas local:** producción exige 8 caracteres con mayúsculas, minúsculas, números y símbolos; no hay llamadas HTTP salientes (`uncompromised` desactivado).
+- **Bloqueo opcional de clave temporal:** con `ENFORCE_PASSWORD_CHANGE=true`, un usuario con `must_change_password` solo puede consultar su perfil, cambiar la clave o cerrar sesión.
 - **Auditoría nativa:** login, usuarios, roles, coches, sucursales y ventas con actor, IP, User-Agent y redacción de secretos.
+- **Retención y exportación de auditoría:** `audit:prune` programado a diario (`AUDIT_RETENTION_DAYS=90`) y `GET /api/audit-logs/export` en CSV con los mismos filtros del listado.
 - **Estadísticas y rankings:** KPIs, inventario, tendencia mensual y rankings de vendedores, sucursales, ciudades, marcas y modelos.
 - **Arquitectura por dominio:** `Cars`, `Locations`, `Sales`, `Users`, `Audit`, `Stats` y `Reports`.
 - **Servicios y DTOs:** controladores delgados, reglas de negocio en `app/Services` y datos inmutables en `app/DTOs`.
@@ -41,6 +44,8 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Soft deletes:** en `User` y `Car`. Las ventas no se borran: se cancelan con `SaleStatus::CANCELLED`.
 - **Reportes PDF:** ventas e inventario, con filtros por fecha y sucursal.
 - **Documentación OpenAPI 3.1.2:** `/docs/api` y `/docs/api.json`, con grupos, resúmenes y errores por dominio; importable en Postman.
+- **Cabeceras de seguridad:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: no-referrer-when-downgrade` en Nginx y Caddy.
+- **CI de calidad:** `.github/workflows/ci.yml` ejecuta tests, PHPStan, Pint y `composer audit` en PHP 8.3 con SQLite en memoria.
 - **Datos demo en español:** 8 sucursales, 52 coches y 3 usuarios con roles `admin`, `manager` y `vendedor`.
 
 ---
@@ -70,6 +75,8 @@ El archivo `.env.example` ya viene alineado con Docker Compose:
 - `DB_PASSWORD=secret`
 - `SESSION_DRIVER=file`
 - `APP_URL=http://localhost:8000`
+- `AUDIT_RETENTION_DAYS=90` (retención de `audit:prune`)
+- `ENFORCE_PASSWORD_CHANGE=false` (bloqueo opcional de clave temporal)
 
 > `.env` es local y está ignorado por Git. No lo subas al repositorio.
 
@@ -175,6 +182,11 @@ Respuesta esperada:
 `must_change_password` es informativo: en `true` indica que la cuenta usa una
 clave temporal (alta administrativa o reset) y el frontend debería pedir el
 cambio antes de continuar. La API no bloquea el login por este flag.
+
+Si defines `ENFORCE_PASSWORD_CHANGE=true`, el middleware `password.changed`
+bloquea con `403` cualquier ruta protegida mientras el flag siga activo, salvo
+`GET /api/auth/me`, `PUT /api/auth/password` y `POST /api/auth/logout`. Está
+desactivado por defecto para no romper clientes que aún no gestionan el cambio.
 
 Guarda el token y úsalo en las siguientes peticiones:
 
@@ -303,6 +315,9 @@ Las rutas viven en `routes/api.php` y Laravel añade el prefijo `/api`.
 | `POST` | `/api/auth/logout` | Requiere token. |
 | `POST` | `/api/auth/refresh` | Requiere token. |
 
+> Con `ENFORCE_PASSWORD_CHANGE=true` y `must_change_password=true`, solo se
+> permiten `GET /auth/me`, `PUT /auth/password` y `POST /auth/logout`.
+
 ### Recursos protegidos
 
 | Grupo | Rutas base | Lectura | Escritura |
@@ -318,7 +333,7 @@ Las rutas viven en `routes/api.php` y Laravel añade el prefijo `/api`.
 | Usuarios | `/api/users` | `manage_users` | `manage_users` |
 | Roles | `/api/roles` | `manage_users` | `manage_users` |
 | Permisos | `/api/permissions` | `manage_users` | Solo lectura |
-| Auditoría | `/api/audit-logs` | `view_audit_logs` | Solo lectura |
+| Auditoría | `/api/audit-logs` y `/api/audit-logs/export` | `view_audit_logs` | Solo lectura |
 | Estadísticas | `/api/stats/*` | `view_statistics` | Solo lectura |
 
 Los recursos estándar (`cars`, catálogos, ubicaciones, usuarios y roles) siguen las convenciones REST:
@@ -410,8 +425,9 @@ cualquier intento de crear, actualizar o borrar registros.
 | :--- | :--- | :--- |
 | `GET` | `/api/audit-logs` | Listado paginado, del más reciente al más antiguo. |
 | `GET` | `/api/audit-logs/{id}` | Detalle con actor, IP, User-Agent y valores antiguos/nuevos. |
+| `GET` | `/api/audit-logs/export` | CSV completo con los mismos filtros, sin paginación. |
 
-Filtros opcionales del listado:
+Filtros opcionales del listado y de la exportación:
 
 | Parámetro | Formato | Notas |
 | :--- | :--- | :--- |
@@ -445,6 +461,34 @@ curl -s "http://localhost:8000/api/audit-logs?action=auth.login_failed&from=2026
 # Historial de un usuario concreto
 curl -s "http://localhost:8000/api/audit-logs?auditable_type=user&auditable_id=3" \
   -H "Authorization: Bearer $TOKEN"
+
+# Exportar a CSV los logins fallidos de octubre
+curl -s -o auditoria.csv \
+  "http://localhost:8000/api/audit-logs/export?action=auth.login_failed&from=2026-10-01&to=2026-10-31" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+La exportación se transmite con `StreamedResponse` y `cursor()`, así que no
+carga toda la tabla en memoria. Incluye BOM UTF-8 para Excel y escapa las celdas
+que empiezan por `=`, `+`, `-`, `@`, tabulador o retorno de carro para evitar
+inyección de fórmulas. El nombre del archivo es `auditoria-YYYYMMDD-HHMMSS.csv`.
+
+### Retención
+
+La tabla no crece sin límite. `AUDIT_RETENTION_DAYS` (90 por defecto) define los
+días que se conservan; el comando `audit:prune` borra solo los registros
+anteriores al corte y está programado a diario a las 03:00 con
+`withoutOverlapping()`.
+
+```bash
+# Usa AUDIT_RETENTION_DAYS
+docker compose exec -T app php artisan audit:prune
+
+# Fuerza una retención concreta
+docker compose exec -T app php artisan audit:prune --days=30
+
+# Comprueba la programación
+docker compose exec -T app php artisan schedule:list
 ```
 
 ---
@@ -566,7 +610,13 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-05): **299 tests / 2385 aserciones**, **PHPStan 0 errores**, **Pint limpio (314 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-06): **319 tests / 2461 aserciones**, **PHPStan 0 errores**, **Pint limpio (325 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+
+El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
+
+### CI de calidad
+
+`.github/workflows/ci.yml` se ejecuta en cada `push` y `pull_request` con PHP 8.3 y SQLite en memoria. Instala dependencias, genera `APP_KEY` y corre `composer test`, `composer analyse`, `pint --test` y `composer audit`. Es independiente del workflow de Docker Hub, que solo publica la imagen PaaS.
 
 ### Reglas que fijan los tests
 
@@ -574,6 +624,8 @@ Estado verificado de la suite (2026-11-05): **299 tests / 2385 aserciones**, **P
 - Ningún N+1 pasa desapercibido: `Model::preventLazyLoading()` está activo fuera de producción.
 - El 403/401/429 de cada ruta y el contrato de la documentación OpenAPI están cubiertos en `tests/Feature/Docs`.
 - Los importes se comparan redondeados a 2 decimales.
+- La política de contraseñas es local y determinista; `PasswordPolicyTest` comprueba que `uncompromised` está desactivado.
+- `AuditPruneCommandTest`, `AuditLogExportTest` y `EnforcePasswordChangeTest` fijan retención, CSV y bloqueo opcional.
 
 ---
 
@@ -598,6 +650,11 @@ docker compose exec -T app php artisan route:list --path=api
 # Limpiar cachés de configuración, rutas y vistas
 docker compose exec -T app php artisan optimize:clear
 docker compose exec -T app php artisan config:clear
+
+# Retención de auditoría y programación
+docker compose exec -T app php artisan audit:prune
+docker compose exec -T app php artisan audit:prune --days=30
+docker compose exec -T app php artisan schedule:list
 
 # Cliente MySQL
 docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency
@@ -853,6 +910,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `npm: not found` | La imagen PHP no incluye Node. | No uses `npm`; este stack no requiere Vite. |
 | `429` al hacer login | Se superaron 5 intentos por minuto. | Espera un minuto o revisa el limiter `login`. |
 | `403` en `/docs/api` | El entorno no es `local`/`testing` y `DOCS_ENABLED=false`. | Activa `DOCS_ENABLED=true` o consulta el documento en desarrollo. |
+| `403` con «You must change your password before continuing» | `ENFORCE_PASSWORD_CHANGE=true` y la cuenta tiene `must_change_password=true`. | Cambia la clave con `PUT /api/auth/password` o desactiva el flag si el cliente aún no lo gestiona. |
 | `422` en `/api/reports/sales/pdf` | El rango supera `REPORTS_MAX_ROWS` (500 ventas). | Acota `from`/`to` o sube el límite junto con la memoria PHP. |
 | `401` con un usuario válido | La cuenta está inactiva o el token expiró/fue revocado. | Actívala con `is_active=true`, vuelve a iniciar sesión o usa `/auth/refresh`. |
 | `403` en `/api/audit-logs` o `/api/stats/*` | El rol no tiene `view_audit_logs` o `view_statistics`. | Usa un `admin` (auditoría) o un `admin`/`manager` (estadísticas). |
@@ -861,6 +919,8 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `422` en rankings | `limit` fuera de 1-100 o fechas enviadas por separado. | Usa `limit` válido y envía `start_date`/`end_date` juntos. |
 | `422` al resetear una contraseña | `password` y `password_confirmation` no coinciden o no cumplen la fuerza mínima. | Corrige el payload; el reset marca `must_change_password`. |
 | `405` en `/api/audit-logs` | La auditoría es append-only. | Solo se consulta con `GET`; no hay escritura pública. |
+| La auditoría crece demasiado | No se ejecuta la retención programada. | Revisa el scheduler y ejecuta `audit:prune`; ajusta `AUDIT_RETENTION_DAYS`. |
+| El CSV de auditoría muestra fórmulas | Un cliente abre el archivo sin respetar el escape. | El servidor prefija `'` a celdas que empiezan por `=`, `+`, `-`, `@`, tabulador o CR. |
 
 Para reiniciar desde cero:
 
@@ -884,6 +944,8 @@ docker compose exec -T app php artisan migrate --seed
 - La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
 - Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local.
 - El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, MySQL sin puerto público, sesiones en `app-storage` y caché/colas en MySQL). Usa `.env.production.example` como plantilla del entorno productivo.
+- Nginx y Caddy añaden `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: no-referrer-when-downgrade` a todas las respuestas.
+- No hay llamadas HTTP salientes en tiempo de ejecución: la política de contraseñas, la auditoría y las estadísticas se resuelven en local.
 
 ---
 

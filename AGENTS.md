@@ -35,11 +35,12 @@ Los comandos de orquestación (`docker compose up`, `down`, `ps`, `logs`) se eje
 - **Regla de construcción en Producción:** Debido a que `docker/nginx/Dockerfile.prod` utiliza un multi-stage build que hace `COPY --from=car-agency-laravel-api:prod`, es obligatorio construir el servicio `app` individualmente antes de levantar el stack completo (`docker compose -f docker-compose.prod.yml --env-file .env.production build app`). De lo contrario, Docker fallará al no encontrar la imagen origen (`pull access denied`).
 - **Dos vías de despliegue que conviven:** la «Vía VPS» (`docker-compose.prod.yml` + `docker/php/Dockerfile` + `docker/nginx/Dockerfile.prod` + `.env.production.example`, multicontenedor con MySQL propio) y la «Vía PaaS» (imagen monolítica para Render/Railway publicada en Docker Hub). Los archivos de la vía PaaS son aditivos: `docker/render/*` y `.github/workflows/deploy-dockerhub.yml`. Al tocar la PaaS no modifiques, renombres ni elimines los de la VPS; la única excepción son los renombrados globales de imágenes acordados con el usuario.
 - `docker/render/Dockerfile.render`: imagen única sobre `dunglas/frankenphp:1-php8.3-alpine` (Caddy + PHP embebido, sin `php-fpm` ni Nginx aparte). Instala las mismas extensiones con `install-php-extensions`, ejecuta `composer install --no-dev` en una capa propia, `php artisan package:discover` tras copiar el código, corre como `www-data`, hace `EXPOSE 8080` y declara un healthcheck por `fsockopen` al `$PORT`. Reutiliza `docker/php/php.ini` (solo lectura) y no depende de `docker-compose`.
-- `docker/render/Caddyfile`: escucha en `:{$PORT:8080}` (Render/Railway inyectan `PORT`), sirve `/var/www/html/public` con `php_server` y manda el access log a `stdout`. Al ser una dirección sin hostname, Caddy **no** activa HTTPS automático: el TLS lo termina la plataforma.
+- `docker/render/Caddyfile`: escucha en `:{$PORT:8080}` (Render/Railway inyectan `PORT`), sirve `/var/www/html/public` con `php_server`, añade las mismas cabeceras de seguridad que Nginx y manda el access log a `stdout`. Al ser una dirección sin hostname, Caddy **no** activa HTTPS automático: el TLS lo termina la plataforma.
 - `docker/render/entrypoint.sh`: crea los directorios de `storage/` y `bootstrap/cache`, aborta si falta `APP_KEY`, ejecuta `php artisan migrate --force` solo con `RUN_MIGRATIONS=true` (añade `--seed` si además defines `RUN_SEED=true`) y `php artisan optimize` salvo `APP_OPTIMIZE=false`; termina con `exec "$@"` para que FrankenPHP reciba las señales del orquestador.
-- `.github/workflows/deploy-dockerhub.yml`: en `push` a `main` (y `workflow_dispatch`) hace login con `secrets.DOCKER_USERNAME`/`secrets.DOCKER_TOKEN`, construye solo `linux/amd64` desde `docker/render/Dockerfile.render` y publica las etiquetas `latest` y `sha-<corto>` en `<usuario>/car-agency-laravel-api` usando la caché de GitHub Actions. No ejecuta la suite: los tests siguen siendo locales (`composer test`, `composer analyse`, `pint --test`).
+- `.github/workflows/deploy-dockerhub.yml`: en `push` a `main` (y `workflow_dispatch`) hace login con `secrets.DOCKER_USERNAME`/`secrets.DOCKER_TOKEN`, construye solo `linux/amd64` desde `docker/render/Dockerfile.render` y publica las etiquetas `latest` y `sha-<corto>` en `<usuario>/car-agency-laravel-api` usando la caché de GitHub Actions. No ejecuta la suite: esa validación vive en `.github/workflows/ci.yml`.
+- `.github/workflows/ci.yml`: workflow ligero e independiente del de Docker Hub. En cada `push` y `pull_request` usa PHP 8.3 + SQLite en memoria y ejecuta `composer test`, `composer analyse`, `pint --test` y `composer audit`. No necesita servicios externos ni secretos.
 - `.env.production.example`: plantilla versionable sin credenciales reales (`CHANGE_ME_*`), con `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `CACHE_STORE`/`CACHE_DRIVER=database`, `SESSION_DRIVER=file` y `QUEUE_CONNECTION=database`. El `.env.production` real está ignorado por Git y el `.dockerignore` no lo copia a la imagen.
-- `docker/nginx/default.conf`: sirve `/var/www/html/public` y pasa PHP a `app:9000`.
+- `docker/nginx/default.conf`: sirve `/var/www/html/public`, pasa PHP a `app:9000` y añade `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: no-referrer-when-downgrade` con `always`.
 - `.dockerignore` excluye `.git`, `vendor`, `node_modules`, `.env`, `storage/*.key`, logs, cachés y artefactos de build.
 - El target `dev` crea y usa el usuario local UID/GID 1000. Si tu usuario WSL usa otros IDs, reconstruye con `docker compose build --build-arg UID=$(id -u) --build-arg GID=$(id -g) app`.
 - `vendor/` es un volumen nombrado y la etapa `dev` no ejecuta `composer install`. En el primer arranque, o si cambia `composer.lock`, ejecuta `docker compose exec -T app composer install`; reconstruir la imagen no llena el volumen.
@@ -78,6 +79,11 @@ docker compose exec -T app ./vendor/bin/pest tests/Feature/FooTest.php
 # Formato
 docker compose exec -T app ./vendor/bin/pint
 
+# Mantenimiento de auditoría (retención por defecto: AUDIT_RETENTION_DAYS=90)
+docker compose exec -T app php artisan audit:prune
+docker compose exec -T app php artisan audit:prune --days=30
+docker compose exec -T app php artisan schedule:list
+
 # Cliente MySQL dentro del contenedor mysql
 docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency
 
@@ -101,7 +107,7 @@ curl -i http://localhost:8080/up
 docker tag car-agency-laravel-api:paas <usuario>/car-agency-laravel-api:latest
 ```
 
-El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya está alineado con Docker Compose (`DB_HOST=mysql`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`, `APP_URL=http://localhost:8000`) y usa MySQL con la base `api_laravel_car_agency`; `phpunit.xml` fuerza SQLite `:memory:` para los tests (por eso la imagen instala `pdo_sqlite`).
+El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya está alineado con Docker Compose (`DB_HOST=mysql`, `DB_PASSWORD=secret`, `SESSION_DRIVER=file`, `APP_URL=http://localhost:8000`) y usa MySQL con la base `api_laravel_car_agency`; `phpunit.xml` fuerza SQLite `:memory:` para los tests (por eso la imagen instala `pdo_sqlite`). El workflow `.github/workflows/ci.yml` repite `composer test`, `composer analyse`, `pint --test` y `composer audit` en PHP 8.3 con SQLite en memoria; el de Docker Hub solo publica la imagen PaaS.
 
 ## Reglas de Git
 
@@ -120,7 +126,7 @@ El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya est�
 
 La app está organizada por dominio de negocio, no por las carpetas estándar de Laravel:
 
-`app/{Enums,DTOs,Models,Services,Http/Controllers,Http/Requests,Http/Resources}/{Cars,Locations,Sales,Users}`; los reportes viven en `app/{Services,Http/Controllers,Http/Requests}/Reports`, las vistas en `resources/views/reports` y los metadatos de OpenAPI en `app/OpenApi`.
+`app/{Enums,DTOs,Models,Services,Http/Controllers,Http/Requests,Http/Resources}/{Cars,Locations,Sales,Users}`; los reportes viven en `app/{Services,Http/Controllers,Http/Requests}/Reports`, la auditoría en `app/{Services,Http/Controllers,Http/Requests}/Audit`, las políticas transversales en `app/Support` (por ejemplo `PasswordPolicy`), las vistas en `resources/views/reports` y los metadatos de OpenAPI en `app/OpenApi`.
 
 Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -> `DTOs/.../*Data::fromRequest()` -> servicio en `app/Services` -> `Http/Resources/...`.
 
@@ -145,13 +151,14 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - Los datos demo están en español. `CarSeeder` busca nombres exactos (`Negro`, `Blanco`, `Sedán`, `Pick-up`, `Corolla`, `F-150`, etc.); mantén los seeders sincronizados si renombras. El orden de `DatabaseSeeder` importa: roles/permisos -> ubicaciones -> usuarios base -> coches -> catálogos de ventas, y `CarSeeder` necesita los catálogos y sucursales anteriores.
 - **Seeders: datos demo vs. fundacionales.** `DatabaseSeeder` corta en seco cuando `app()->environment('production')`: solo llama a `ProductionAdminSeeder`. Ese seeder no usa Faker; siembra roles/permisos (`RoleSeeder`, `PermissionSeeder`, `RolePermissionSeeder`) y crea/actualiza el administrador con `User::updateOrCreate()` usando `config('seeders.admin_*')` (variables `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_LAST_NAME`, `ADMIN_CODE`, `ADMIN_DOCUMENT_NUMBER`). Es idempotente, identifica al usuario por `code` (no por email), restaura el registro si estaba soft-deleted y re-aplica `ADMIN_PASSWORD` en cada ejecución. Los seeders demo (`UserSeeder` y `CarSeeder`, este último vía `CarFactory`/Faker) solo corren en local/testing; nunca añadas `fake()` ni `factory()` a un seeder que pueda ejecutarse con `composer install --no-dev`.
 - Los tests usan Pest con `RefreshDatabase` activo para `tests/Feature` (cada test arranca con migraciones limpias y debe sembrar lo que necesite). `UserFactory` vive en `database/factories/Users/UserFactory.php`, usa el modelo `App\Models\Users\User` y genera usuarios con las columnas reales; `User::factory()` funciona.
-- No hay CI ni tests JS; la verificación es toda local dentro de Docker: `composer test`, `composer analyse` (PHPStan/Larastan **nivel 5 sin baseline**), `pint --test` y `composer audit` (sin avisos). El análisis necesita `--memory-limit=1G` (el script `composer analyse` ya lo pasa); PHPStan 2 rechaza `memoryLimit` en `phpstan.neon`.
+- No hay tests JS. La verificación local es toda dentro de Docker (`composer test`, `composer analyse`, `pint --test` y `composer audit`); `.github/workflows/ci.yml` repite esa misma verificación en PHP 8.3 con SQLite en memoria. El análisis necesita `--memory-limit=1G` (el script `composer analyse` ya lo pasa); PHPStan 2 rechaza `memoryLimit` en `phpstan.neon`.
 - Todo el código de `app/`, `routes/`, `database/` y `config/` declara `strict_types=1`; los únicos archivos sin él son los generados en `bootstrap/cache/`. Los límites de PHP obligan a castear en el borde (`Controller::perPage()`, `(int)`/`(string)` sobre `validated()`), no dentro de los servicios.
 
 ### Identidad y acceso
 
 - `EnsureUserIsActive` (`active`) rechaza con `401` el token de una cuenta desactivada, aunque se emitiera antes de la desactivación. El login también exige `is_active`.
-- `must_change_password` es informativo para el frontend: se expone en el login y en `/auth/me`, pero la API no bloquea. `PUT /auth/password` lo limpia, conserva el token de la petición y revoca los demás.
+- `must_change_password` es informativo por defecto: se expone en el login y en `/auth/me`, y `PUT /auth/password` lo limpia, conserva el token de la petición y revoca los demás. El middleware `password.changed` solo bloquea cuando `ENFORCE_PASSWORD_CHANGE=true` (config `security.enforce_password_change`, desactivado por defecto): con el flag activo solo permite `GET /api/auth/me`, `PUT /api/auth/password` y `POST /api/auth/logout`; el resto responde `403`.
+- La política de contraseñas es 100 % local (`App\Support\PasswordPolicy`): producción exige 8 caracteres con mayúsculas, minúsculas, números y símbolos; local/testing usa mínimo 6. **Nunca** añadas `->uncompromised()` ni otra regla que haga HTTP saliente. `PasswordPolicyTest` fija la regla fuerte y comprueba que `uncompromised` está desactivado.
 - `POST /users/{user}/reset-password` (permiso `manage_users`) asigna una clave temporal, marca `must_change_password` y revoca todos los tokens del objetivo.
 - `UserService` protege al último administrador activo: desactivarlo, borrarlo o quitarle el rol `admin` responde `409` (`LastAdminException`). Solo cuentan administradores activos y no borrados lógicamente.
 
@@ -162,6 +169,8 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - En operaciones con `DB::transaction` la auditoría se escribe **después** del commit; así no queda un registro de algo que se revirtió.
 - `AuditAction` enumera las acciones (`auth.*`, `user.*`, `role.*`, `car.*`, `branch.*`, `sale.*`) y el morph map de `AppServiceProvider` fija los alias `user`, `role`, `car`, `branch` y `sale` en `auditable_type`.
 - `GET /api/audit-logs` y el show exigen `view_audit_logs` (solo `admin`) y filtran por `user_id`, `action`, `auditable_type`, `auditable_id` y rango `from`/`to` inclusivo (juntos o ninguno).
+- `GET /api/audit-logs/export` reutiliza los mismos filtros (sin paginación) y devuelve un CSV por `StreamedResponse` con cursor, BOM UTF-8 y escape de celdas que empiezan por `=`, `+`, `-`, `@`, tabulador o retorno de carro. Va declarado antes del `apiResource` para que `export` no choque con `{audit_log}`.
+- La tabla no crece sin límite: `config/audit.php` define `retention_days` (`AUDIT_RETENTION_DAYS=90`), el comando `audit:prune {--days=}` borra solo lo anterior al corte y `routes/console.php` lo programa a diario a las 03:00 con `withoutOverlapping()`. Sin `--days`, usa la configuración.
 
 ### Estadísticas
 
@@ -173,7 +182,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 
 ### Autosuficiencia del stack
 
-- No añadas servicios externos ni dependencias pesadas: nada de SMTP/email, OAuth/Google, Redis, colas o almacenamiento gestionado. Todo vive en la API + MySQL (Sanctum, caché y colas en tablas, sesiones en archivo).
+- No añadas servicios externos ni dependencias pesadas: nada de SMTP/email, OAuth/Google, Redis, colas o almacenamiento gestionado. Todo vive en la API + MySQL (Sanctum, caché y colas en tablas, sesiones en archivo). Tampoco hay llamadas HTTP salientes en tiempo de ejecución: por eso la política de contraseñas no usa `uncompromised()` (Have I Been Pwned) y la auditoría se exporta con código nativo, sin librerías de terceros.
 
 ### Unicidad e índices
 
@@ -194,6 +203,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - El transformador se registra en `AppServiceProvider::boot()` dentro de `$this->app->booted()` a propósito: Scramble es un provider de paquete y su `boot()` corre después del de la app, así que si lo registras directamente en `boot()` sus extensiones se ejecutan después y pisan tags/resúmenes.
 - `/docs/api` y `/docs/api.json` viven **fuera** de `/api` y los protege el Gate `viewApiDocs`: abiertos en `local`/`testing`, en el resto solo con `DOCS_ENABLED=true`. `composer docs:export` escribe `storage/app/openapi.json` (ignorado por Git).
 - Los PDF se documentan con `#[Response(200, mediaType: 'application/pdf', format: 'binary')]`; el transformador elimina el `application/json` que Scramble infiere de `download()`.
+- La exportación CSV se documenta con `#[Response(200, mediaType: 'text/csv', format: 'binary')]`; el transformador elimina el `application/json` y la variante `text/csv; charset=...` para dejar un único `text/csv`.
 - El documento declara la licencia MIT desde `ApiDocumentation::document()` (Scramble no la expone por configuración) y los dos FormRequest de ubicaciones leen el modelo con `$this->route('state'|'city')`: Scramble no evalúa propiedades dinámicas como `$this->state` y avisaba de reglas incompletas en `scramble:export`.
 - El 403 solo se añade a rutas con middleware `permission:*`; el 409 a `PATCH /sales/{sale}/cancel`, a los `DELETE` con FK y a la guarda del último administrador (no a `cars`/`users`, que usan soft delete); el 429 a todas.
 - Los parámetros de ruta van en minúscula (`Tax $tax`, no `Tax $Tax`): una mayúscula genera `/taxes/{Tax}` y la validación OpenAPI lo marca como path ambiguo/duplicado frente a `/taxes/{tax}`.
@@ -206,6 +216,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - PDF: `REPORTS_MAX_ROWS=500` corta antes de hidratar y responde `422` (`ReportTooLargeException`); `docker/php/php.ini` fija `memory_limit=512M`. 500 filas consumen ~216 MB y ~8 s; 1 000 filas ~508 MB, así que sube ambas cosas a la vez.
 - `SaleReportService` usa comparaciones sargables (`>= from 00:00`, `< to + 1 día`) para aprovechar el índice `(branch_id, sale_date)`; `whereDate()` compila a `date(col)` y lo anula.
 - Los permisos del usuario se cachean `PERMISSIONS_CACHE_TTL` segundos (300 por defecto) para no repetir el join en cada petición.
+- La exportación de auditoría usa `cursor()` y escritura directa a `php://output`: no hidrata toda la tabla ni compite con el límite de memoria de los PDF.
 
 ## Memoria del proyecto
 
