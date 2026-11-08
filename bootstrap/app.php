@@ -13,6 +13,7 @@ use App\Http\Middleware\EnsurePasswordChangeIsEnforced;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\ThrottleAnonymousApi;
 use App\Services\Audit\AuditService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -42,6 +43,12 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->api(prepend: [ForceJsonResponse::class]);
+
+        // `throttle` de ruta se ordena después de `auth:sanctum`, así que el
+        // tráfico sin token nunca llegaría al limitador. Este middleware global
+        // frena por IP a los anónimos y deja pasar a los usuarios autenticados,
+        // que conservan el límite `api` por usuario.
+        $middleware->append(ThrottleAnonymousApi::class);
 
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,

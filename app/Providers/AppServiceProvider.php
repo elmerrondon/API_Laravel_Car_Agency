@@ -59,6 +59,18 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
+        // Freno del tráfico anónimo. Lo aplica el middleware global
+        // `ThrottleAnonymousApi` antes de `auth:sanctum`; un token válido pasa
+        // sin consumir este cupo y conserva el límite `api` por usuario.
+        RateLimiter::for('api-anon', function (Request $request) {
+            if ($request->user('sanctum') !== null) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute((int) config('rate_limits.api_anon'))
+                ->by('api-anon|'.$request->ip());
+        });
+
         // Límite general del API agrupado por usuario (o IP si no hay token).
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.api'))->by(
