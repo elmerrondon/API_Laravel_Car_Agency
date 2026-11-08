@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\Audit\AuditAction;
 use App\Exceptions\Reports\ReportTooLargeException;
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
@@ -14,7 +13,7 @@ use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ThrottleAnonymousApi;
-use App\Services\Audit\AuditService;
+use App\Services\Auth\LoginFailureAuditor;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -96,14 +95,13 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // El limitador de login responde 429 antes de llegar al controlador:
-        // el intento bloqueado también queda auditado, sin guardar la clave.
+        // el intento bloqueado también queda auditado (agrupado por ventana,
+        // sin guardar la clave y sin una fila por cada 429).
         $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
             if ($request->is('api/auth/login')) {
-                app(AuditService::class)->record(
-                    AuditAction::AUTH_LOGIN_FAILED,
-                    null,
-                    [],
-                    ['email' => (string) $request->input('email'), 'reason' => 'throttled'],
+                app(LoginFailureAuditor::class)->record(
+                    (string) $request->input('email'),
+                    'throttled',
                 );
             }
 

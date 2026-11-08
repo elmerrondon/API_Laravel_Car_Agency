@@ -54,9 +54,15 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn (): Password => PasswordPolicy::current());
 
         RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute((int) config('rate_limits.login'))->by(
-                mb_strtolower((string) $request->input('email')).'|'.$request->ip()
-            );
+            $email = mb_strtolower(trim((string) $request->input('email')));
+            $ip = (string) $request->ip();
+
+            // Dos ventanas: email+IP frena la fuerza bruta contra una cuenta y
+            // la ventana por IP corta la rotación de emails (password spraying).
+            return [
+                Limit::perMinute((int) config('rate_limits.login'))->by($email.'|'.$ip),
+                Limit::perMinute((int) config('rate_limits.login_ip'))->by($ip),
+            ];
         });
 
         // Freno del tráfico anónimo. Lo aplica el middleware global

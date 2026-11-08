@@ -78,6 +78,7 @@ it('mantiene el límite de login configurable', function () {
 
 it('lee los límites por defecto de la configuración', function () {
     expect(config('rate_limits.login'))->toBe(5)
+        ->and(config('rate_limits.login_ip'))->toBe(20)
         ->and(config('rate_limits.api_anon'))->toBe(30)
         ->and(config('rate_limits.api'))->toBe(120)
         ->and(config('rate_limits.reports'))->toBe(30);

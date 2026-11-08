@@ -21,7 +21,10 @@ class AuthService
         'branches.city.state.country',
     ];
 
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly LoginFailureAuditor $loginFailures,
+    ) {}
 
     /**
      * @return array{token: string, must_change_password: bool}
@@ -30,13 +33,9 @@ class AuthService
     {
         if (! Auth::attempt(['email' => $email, 'password' => $password, 'is_active' => true])) {
             // El mensaje no revela si el email existe; la auditoría sí guarda
-            // el intento para que un administrador pueda investigarlo.
-            $this->audit->record(
-                AuditAction::AUTH_LOGIN_FAILED,
-                null,
-                [],
-                ['email' => $email, 'reason' => 'invalid_credentials'],
-            );
+            // el intento para que un administrador pueda investigarlo. Los
+            // fallos se agrupan por ventana para no amplificar la tabla.
+            $this->loginFailures->record($email, 'invalid_credentials');
 
             throw new AuthenticationException('Incorrect Credentials');
         }
