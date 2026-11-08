@@ -219,21 +219,27 @@ Los usuarios se crean con `UserSeeder`. La contraseña es el valor de `SEED_USER
 
 > Estas credenciales son solo para desarrollo. Cámbialas antes de desplegar.
 
-### Credenciales Iniciales por Defecto
+### Administrador de producción
 
-Cuando `ADMIN_EMAIL`, `ADMIN_CODE` y `ADMIN_PASSWORD` no se personalizan, el
-seeder de producción crea este administrador:
+En producción `ADMIN_EMAIL` y `ADMIN_PASSWORD` son **obligatorias**. El seeder
+falla antes de escribir nada si el email falta, no es válido o conserva un
+marcador `CHANGE_ME_*`, y si la contraseña falta, es `secret1234`, conserva un
+`CHANGE_ME_*` o no cumple la política fuerte: 8 caracteres con mayúsculas,
+minúsculas, números y símbolos.
 
-| Campo | Valor por defecto |
-| :--- | :--- |
-| Email | `admin@agency.com` |
-| Código | `USR-0001` |
-| Contraseña | `secret1234` |
+| Variable | Obligatoria en producción | Valor de local/testing |
+| :--- | :---: | :--- |
+| `ADMIN_EMAIL` | Sí | `admin@agency.com` |
+| `ADMIN_PASSWORD` | Sí | `secret1234` |
+| `ADMIN_CODE` | No | `USR-0001` |
+| `ADMIN_NAME` | No | `Administrador` |
+| `ADMIN_LAST_NAME` | No | `General` |
+| `ADMIN_DOCUMENT_NUMBER` | No | `V-00000001` |
 
 > **Cámbiala en el primer arranque.** `ProductionAdminSeeder` vuelve a aplicar
 > `ADMIN_PASSWORD` cada vez que se ejecuta `php artisan migrate --seed` o
 > `php artisan db:seed`, así que la variable de entorno es la fuente de verdad.
-> Define al menos `ADMIN_EMAIL` y `ADMIN_PASSWORD` antes de desplegar.
+> Define `ADMIN_EMAIL` y `ADMIN_PASSWORD` en `.env.production` antes de desplegar.
 
 Variables disponibles (todas opcionales salvo email y contraseña en producción):
 `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_CODE`, `ADMIN_NAME`,
@@ -846,7 +852,7 @@ LOG_CHANNEL=stderr
 # Administrador inicial (lo usa ProductionAdminSeeder con `--seed`).
 # Cambia la contraseña antes del primer despliegue: es la fuente de verdad.
 ADMIN_EMAIL=admin@tudominio.com
-ADMIN_PASSWORD=...            # mínimo 8 caracteres
+ADMIN_PASSWORD=...            # 8+ con mayúsculas, minúsculas, números y símbolos
 # Opcionales:
 # ADMIN_NAME=Administrador
 # ADMIN_LAST_NAME=General
@@ -870,7 +876,7 @@ QUEUE_CONNECTION=database
 5. **Pre-Deploy Command**: `php artisan migrate --force --seed` (equivale a `RUN_MIGRATIONS=true` + `RUN_SEED=true`).
 6. Despliega. Al terminar, `https://tu-servicio.onrender.com/up` responde `200` y `/api/cars` responde `401` sin token.
 
-> **Administrador inicial.** En producción `DatabaseSeeder` no ejecuta los seeders demo (usan Faker, que no se instala con `composer install --no-dev`): solo siembra roles/permisos y crea el administrador con `ADMIN_EMAIL` y `ADMIN_PASSWORD`. Es idempotente (no duplica usuarios ni roles), pero `ADMIN_PASSWORD` es la fuente de verdad: cada ejecución de `--seed` vuelve a fijar esa contraseña. Si no defines `ADMIN_PASSWORD`, se usa `secret1234` y el seeder emite un aviso en los logs; cámbiala de inmediato.
+> **Administrador inicial.** En producción `DatabaseSeeder` no ejecuta los seeders demo (usan Faker, que no se instala con `composer install --no-dev`): solo siembra roles/permisos y crea el administrador con `ADMIN_EMAIL` y `ADMIN_PASSWORD`. Es idempotente (no duplica usuarios ni roles), pero `ADMIN_PASSWORD` es la fuente de verdad: cada ejecución de `--seed` vuelve a fijar esa contraseña. Si faltan las credenciales, conservan un `CHANGE_ME_*` o la clave no cumple la política fuerte, el seeder aborta antes de escribir nada para no dejar un administrador con credenciales conocidas.
 
 En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, añade un MySQL gestionado, define las mismas variables y el comando de release `php artisan migrate --force --seed`.
 

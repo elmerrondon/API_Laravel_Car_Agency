@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\Users\RoleEnum;
+use App\Exceptions\Users\InsecureAdminCredentialsException;
 use App\Models\Locations\Branch;
 use App\Models\Users\Role;
 use App\Models\Users\User;
+use App\Support\PasswordPolicy;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RolePermissionSeeder;
 use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Datos fundacionales de producción.
@@ -26,16 +29,33 @@ use Illuminate\Support\Facades\Hash;
 class ProductionAdminSeeder extends Seeder
 {
     /**
-     * Contraseña por defecto de `config/seeders.php`. Solo sirve para el primer
-     * arranque; se avisa cuando se usa para que se cambie de inmediato.
+     * Contraseña de conveniencia para local/testing. En producción la clave es
+     * obligatoria y debe cumplir la política fuerte: aquí solo se usa cuando
+     * el seeder se ejecuta fuera de producción sin definirla.
      */
     private const DEFAULT_PASSWORD = 'secret1234';
+
+    /**
+     * Email de conveniencia para local/testing. En producción se exige uno real.
+     */
+    private const DEFAULT_EMAIL = 'admin@agency.com';
 
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
+        $email = trim((string) config('seeders.admin_email'));
+        $password = (string) config('seeders.admin_password');
+
+        // Validar antes de escribir roles/permisos: un fallo de configuración
+        // no debe dejar la base a medio sembrar.
+        if (app()->isProduction()) {
+            $this->assertSecureCredentials($email, $password);
+        } elseif ($password === '') {
+            $password = self::DEFAULT_PASSWORD;
+        }
+
         // RBAC: sin roles ni permisos, el administrador no podría hacer nada.
         // Estos seeders son estáticos (no dependen de Faker) y son idempotentes.
         $this->call([
@@ -43,9 +63,6 @@ class ProductionAdminSeeder extends Seeder
             PermissionSeeder::class,
             RolePermissionSeeder::class,
         ]);
-
-        $email = (string) config('seeders.admin_email');
-        $password = (string) config('seeders.admin_password');
 
         // `code` es la identidad estable del registro: permite cambiar el email
         // entre despliegues sin crear un administrador duplicado. `withTrashed`
@@ -79,15 +96,48 @@ class ProductionAdminSeeder extends Seeder
             $user->branches()->sync([$branch->id]);
         }
 
-        if ($password === self::DEFAULT_PASSWORD) {
+        if (! app()->isProduction() && $password === self::DEFAULT_PASSWORD) {
             $this->warn(
-                'ADMIN_PASSWORD no está definida: se usó la contraseña por defecto. '
-                .'Cámbiala en la plataforma y vuelve a ejecutar el seeder.'
+                'ADMIN_PASSWORD no está definida: se usó la contraseña de local/testing. '
+                .'En producción el seeder aborta si no defines una clave segura.'
             );
         }
 
-        if ($email === 'admin@agency.com') {
-            $this->warn('ADMIN_EMAIL no está definida: se usó admin@agency.com por defecto.');
+        if (! app()->isProduction() && $email === self::DEFAULT_EMAIL) {
+            $this->warn('ADMIN_EMAIL no está definida: se usó admin@agency.com de local/testing.');
+        }
+    }
+
+    /**
+     * Falla rápido si el administrador fundacional no es seguro.
+     *
+     * Se ejecuta solo con `APP_ENV=production`, antes de tocar la base de datos.
+     */
+    private function assertSecureCredentials(string $email, string $password): void
+    {
+        if ($email === '' || str_starts_with($email, 'CHANGE_ME_') || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw InsecureAdminCredentialsException::email();
+        }
+
+        if ($password === '') {
+            throw InsecureAdminCredentialsException::missingPassword();
+        }
+
+        if ($password === self::DEFAULT_PASSWORD) {
+            throw InsecureAdminCredentialsException::defaultPassword();
+        }
+
+        if (str_starts_with($password, 'CHANGE_ME_')) {
+            throw InsecureAdminCredentialsException::placeholderPassword();
+        }
+
+        $validator = Validator::make(
+            ['password' => $password],
+            ['password' => PasswordPolicy::strong()],
+        );
+
+        if ($validator->fails()) {
+            throw InsecureAdminCredentialsException::weakPassword();
         }
     }
 
