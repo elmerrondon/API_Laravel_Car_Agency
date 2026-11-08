@@ -30,6 +30,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // TrustProxies es global y lee la lista de proxies de
+        // `config/trustedproxy.php` en cada petición. Aquí solo se fijan las
+        // cabeceras que puede reenviar el proxy: IP real, host, puerto y
+        // esquema. Sin `TRUSTED_PROXIES`, esas cabeceras se ignoran.
+        $middleware->trustProxies(
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO,
+        );
+
         $middleware->api(prepend: [ForceJsonResponse::class]);
 
         $middleware->alias([
