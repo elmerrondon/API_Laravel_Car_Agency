@@ -42,8 +42,10 @@ services:
       dockerfile: docker/nginx/Dockerfile.prod
     image: car-agency-laravel-api-nginx:prod
     restart: unless-stopped
+    # Solo loopback: el TLS lo termina un proxy del host (Caddy, Nginx, Traefik)
+    # o la superposición docker-compose.tls.yml. Nunca se publica HTTP plano.
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     depends_on:
       app:
         condition: service_healthy

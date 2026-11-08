@@ -3,6 +3,10 @@
 .env
 .env.backup
 .env.production
+# Certificados TLS locales: la superposición docker-compose.tls.yml los monta
+# en tiempo de ejecución; nunca deben entrar en un commit.
+/docker/certs/*
+!/docker/certs/.gitkeep
 .phpactor.json
 .phpunit.result.cache
 /.fleet

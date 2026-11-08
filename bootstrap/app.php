@@ -8,6 +8,7 @@ use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleNotCancellableException;
 use App\Exceptions\Users\LastAdminException;
 use App\Exceptions\Users\RoleInUseException;
+use App\Http\Middleware\AddHstsHeader;
 use App\Http\Middleware\EnsurePasswordChangeIsEnforced;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -48,6 +49,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // frena por IP a los anónimos y deja pasar a los usuarios autenticados,
         // que conservan el límite `api` por usuario.
         $middleware->append(ThrottleAnonymousApi::class);
+
+        // HSTS solo sobre HTTPS. Cuando el TLS termina en un proxy, la petición
+        // es "secure" gracias a `TrustProxies` y `X-Forwarded-Proto`.
+        $middleware->append(AddHstsHeader::class);
 
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,

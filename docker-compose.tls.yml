@@ -1,0 +1,21 @@
+# Superposición opcional para terminar TLS dentro del stack, sin un proxy del
+# host. Uso:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml \
+#     --env-file .env.production up -d
+#
+# Requiere `docker/certs/fullchain.pem` y `docker/certs/privkey.pem` (ver README,
+# sección «TLS propio dentro del stack»). La vía recomendada sigue siendo un
+# proxy externo: este archivo existe para VPS sin proxy o con certificados
+# emitidos por una CA interna.
+#
+# `!override` sustituye los puertos del compose base; sin él, Compose sumaría
+# `127.0.0.1:80` y `80:80` y el arranque fallaría por puerto duplicado.
+services:
+  nginx:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/tls.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/certs:/etc/nginx/certs:ro

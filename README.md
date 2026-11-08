@@ -718,7 +718,8 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 
 | Archivo | Propósito |
 | :--- | :--- |
-| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en el puerto 80, MySQL 8.0 sin puerto público y `scheduler` (`schedule:work`). Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
+| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en `127.0.0.1:80` (solo loopback, espera un proxy TLS), MySQL 8.0 sin puerto público y `scheduler` (`schedule:work`). Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
+| `docker-compose.tls.yml` + `docker/nginx/tls.conf` | Superposición opcional para terminar TLS dentro del stack: publica `80`/`443`, redirige HTTP a HTTPS y monta `docker/certs`. |
 | `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-laravel-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
 | `.env.production.example` | Plantilla versionable, sin credenciales reales (marcadores `CHANGE_ME_*`). |
 
@@ -730,7 +731,9 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 cp .env.production.example .env.production
 ```
 
-Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
+Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real (`https://api.example.com`) y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
+
+Para TLS deja `TRUSTED_PROXIES=172.28.0.0/16` (la red de Compose), `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. `HSTS_INCLUDE_SUBDOMAINS` solo debe activarse si **todos** los subdominios del dominio sirven HTTPS. Los detalles y las dos vías de terminación TLS están en el paso 5.
 
 El archivo `.env.production` está ignorado por Git y `.dockerignore` evita que se copie dentro de la imagen. Sesiones, caché y colas usan el stack existente (`SESSION_DRIVER=file` dentro de `app-storage`, `CACHE_STORE=database` y `QUEUE_CONNECTION=database`), sin dependencias extra. Los logs salen por `stderr` (`LOG_CHANNEL=stderr`) para que Docker los recoja con `docker compose logs`.
 
@@ -755,7 +758,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production \
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera su healthcheck (`fsockopen` al puerto 9000) y solo entonces inicia `nginx`, que publica `80:80`. MySQL queda aislado en la red interna `car-agency-prod`.
+Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera su healthcheck (`fsockopen` al puerto 9000) y solo entonces inicia `nginx`, que publica **solo `127.0.0.1:80`**. MySQL queda aislado en la red interna `car-agency-prod`. El puerto público `80`/`443` lo atiende un proxy TLS del host (paso 5) o la superposición `docker-compose.tls.yml`.
 
 El servicio `scheduler` arranca con la misma imagen y el mismo `.env.production`, ejecuta `php artisan schedule:work` y comparte el volumen `app-storage`. No publica puertos y tiene el healthcheck desactivado (no sirve HTTP). Gracias a él corren a diario `audit:prune` (03:00) y `sanctum:prune-expired --hours=24` (03:15) sin depender del cron del host.
 
@@ -771,18 +774,109 @@ docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
 
 > Las cachés de `optimize` se escriben en `bootstrap/cache` dentro del contenedor, no en el volumen `app-storage`: se pierden al recrear `app`, así que vuelve a ejecutar `optimize` después de cada despliegue. Si cambias `.env.production`, ejecuta `php artisan optimize:clear` y reinicia `app`; con la configuración cacheada, los cambios de entorno no se leen.
 
+### Paso 5: TLS y proxy inverso
+
+El compose base **no publica HTTP plano a Internet**: Nginx escucha solo en `127.0.0.1:80`. Hay dos formas de terminar TLS; elige una.
+
+#### Vía recomendada: proxy externo en el host
+
+Caddy, Nginx o Traefik termina HTTPS y reenvía a `http://127.0.0.1:80`. Es la vía con renovación automática y la única que permite mantener el stack sin certificados dentro de Docker.
+
+1. Apunta el DNS (`A`/`AAAA`) de `api.example.com` al servidor.
+2. Deja en `.env.production`: `APP_URL=https://api.example.com`, `TRUSTED_PROXIES=172.28.0.0/16`, `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`.
+3. Levanta el stack (pasos 2-4) y comprueba que responde en loopback: `curl -i http://127.0.0.1/up`.
+4. Configura el proxy. Ejemplo con **Caddy** (obtiene y renueva el certificado solo):
+
+```caddyfile
+api.example.com {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:80
+}
+```
+
+Caddy envía `X-Forwarded-For`, `X-Forwarded-Proto` y `X-Forwarded-Host` automáticamente. Ejemplo con **Nginx + Certbot**:
+
+```nginx
+# Redirección global de HTTP a HTTPS (Certbot añade el bloque TLS al ejecutar
+# `certbot --nginx -d api.example.com`).
+server {
+    listen 80;
+    server_name api.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/api.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:80;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Port  443;
+    }
+}
+```
+
+```bash
+certbot --nginx -d api.example.com      # emite el certificado y edita el sitio
+systemctl enable --now certbot.timer    # renovación automática
+nginx -t && systemctl reload nginx
+```
+
+**Renovación:** Certbot renueva a los 60 días y recarga Nginx; Caddy lo hace sin intervención. Tras renovar, no hace falta tocar el stack de la API: el certificado vive en el proxy.
+
+**Cutover:** baja el TTL del DNS al menos una hora antes; emite el certificado con el puerto 80 libre (o con el método DNS-01 si ya hay un servicio); arranca el stack nuevo en `127.0.0.1:80`; activa el proxy y valida `https://api.example.com/up`, el `301` desde `http://` y las cabeceras de seguridad. Mantén el despliegue anterior hasta comprobar login y reportes; después retíralo.
+
+> El proxy debe reenviar `X-Forwarded-Proto`; sin esa cabecera Laravel no puede saber que la petición original era HTTPS y no enviará HSTS. La IP del proxy también debe entrar en `TRUSTED_PROXIES` (la red de Compose ya está incluida). Si el proxy corre en otro host, añade su IP o rango separado por comas.
+
+#### Vía alternativa: TLS propio dentro del stack
+
+Para VPS sin proxy o con certificados de una CA interna. La superposición publica `80`/`443`, redirige HTTP a HTTPS y monta los certificados en `/etc/nginx/certs`.
+
+```bash
+mkdir -p docker/certs
+# Certificado y clave con los nombres exactos que espera docker/nginx/tls.conf
+sudo cp /etc/letsencrypt/live/api.example.com/fullchain.pem docker/certs/
+sudo cp /etc/letsencrypt/live/api.example.com/privkey.pem   docker/certs/
+sudo chown root:root docker/certs/*.pem && sudo chmod 600 docker/certs/*.pem
+
+docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml \
+  --env-file .env.production up -d
+```
+
+- `docker/certs/*.pem` está ignorado por Git; nunca se hornea en la imagen (`.dockerignore` excluye el directorio).
+- `tls.conf` marca la petición como HTTPS (`HTTPS`, `REQUEST_SCHEME` y `X-Forwarded-Proto`) para que Laravel aplique HSTS y genere URLs `https://`.
+- Comprueba la configuración tras copiar certificados: `docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml --env-file .env.production exec -T nginx nginx -t`.
+- **Renovación:** renueva con `certbot renew` (DNS-01, o `--standalone` con el stack parado) y copia de nuevo los `.pem`; recarga sin cortar el servicio con `... exec -T nginx nginx -s reload`. Si el certificado caduca, el healthcheck del proxy fallará y el navegador rechazará la conexión.
+
+> La superposición usa `ports: !override` para sustituir el `127.0.0.1:80` del compose base (requiere Docker Compose 2.24+; este repo usa v5). Si cambias `APP_URL` o el dominio, actualiza también `server_name` en `docker/nginx/tls.conf`.
+
 ### Verificar y detener
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production ps
-curl -i http://localhost/up
-curl -i http://localhost/api/cars   # 401: la API exige token Bearer
+
+# Stack base: solo accesible desde el propio host (el proxy escucha delante)
+curl -i http://127.0.0.1/up
+curl -i http://127.0.0.1/api/cars   # 401: la API exige token Bearer
+
+# Con TLS (proxy externo o superposición tls)
+curl -i https://api.example.com/up
+curl -I http://api.example.com      # 301 a https://
+curl -sI https://api.example.com/up | grep -i strict-transport-security
 
 # Detener conservando los volúmenes
 docker compose -f docker-compose.prod.yml --env-file .env.production down
 ```
 
-> Solo Nginx publica un puerto (`80:80`); MySQL queda aislado en la red interna. El volumen `app-storage` conserva `storage/` (sesiones, logs y cachés de framework) entre despliegues. `docker compose ... down -v` borra la base de datos y el volumen de storage.
+> Solo Nginx publica un puerto, y en el compose base lo hace en `127.0.0.1:80`; MySQL queda aislado en la red interna. El volumen `app-storage` conserva `storage/` (sesiones, logs y cachés de framework) entre despliegues. `docker compose ... down -v` borra la base de datos y el volumen de storage.
 
 ---
 
@@ -805,6 +899,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 - **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
 - **Migraciones y seed**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force --seed`) o define `RUN_MIGRATIONS=true` y `RUN_SEED=true` para que los ejecute el entrypoint. El `--seed` solo crea roles/permisos y el administrador; no inserta datos demo.
 - **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a una base gestionada externa (Aiven, el plugin MySQL de Railway, etc.).
+- **TLS lo termina la plataforma**: el contenedor recibe HTTP por `$PORT`, así que configura `APP_URL=https://...`, `TRUSTED_PROXIES=*` (la plataforma es el único origen que alcanza el contenedor), `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. Sin `TRUSTED_PROXIES=*`, Laravel ignora `X-Forwarded-Proto`, no detecta HTTPS y no envía HSTS. En local con `docker run` sobre HTTP deja `TRUSTED_PROXIES` vacío y `HSTS_ENABLED=false`.
 
 Construir y probar en local sin compose:
 

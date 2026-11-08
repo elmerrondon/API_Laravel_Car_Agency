@@ -7,6 +7,9 @@
 .env.*
 !.env.example
 
+# Los certificados se montan desde el host y no deben hornearse en la imagen.
+docker/certs
+
 vendor
 node_modules
 public/build
