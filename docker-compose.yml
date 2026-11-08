@@ -60,6 +60,12 @@ services:
     networks:
       - car-agency
 
+  # Ejecuta `audit:prune` y `sanctum:prune-expired` según routes/console.php.
+  # Reutiliza la imagen y el entorno de `app` sin publicar puertos.
+  scheduler:
+    extends: app
+    command: ["php", "artisan", "schedule:work"]
+
 volumes:
   vendor:
   mysql-data:

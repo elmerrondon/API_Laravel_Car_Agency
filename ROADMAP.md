@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-07.
-- **Etapa en curso:** Fase 6 — P0 de blindaje (plan derivado de la revisión integral del 2026-11-07). Fases 1-5 cerradas. `6.1`, `6.3`, `6.4` y `6.5` completadas.
+- **Etapa en curso:** Fase 6 — P0 de blindaje (plan derivado de la revisión integral del 2026-11-07). Fases 1-5 cerradas. `6.1`, `6.3`, `6.4`, `6.5` y `6.6` completadas; pendiente `6.2` (TLS).
 - **Plan vigente:** Fases 6-9 de este documento. Las fases 6-8 son de ejecución y la 9 es de cierre y verificación integral.
-- **Verificación vigente:** 338 tests / 2 516 aserciones, PHPStan 0 errores, Pint limpio en 342 archivos.
+- **Verificación vigente:** 339 tests / 2 520 aserciones, PHPStan 0 errores, Pint limpio en 343 archivos.
 - **Permisos:** 15 sembrados (`admin` 15, `manager` 11, `vendedor` 5).
 - **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y sin ventas tras `migrate:fresh --seed`.
 
@@ -134,7 +134,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 - [x] `6.3` Configurar proxies de confianza (`S-05`): registrar `trustProxies` en `bootstrap/app.php` leyendo `TRUSTED_PROXIES` (lista o `*`) y las cabeceras `X-Forwarded-*`; añadir la variable a `.env.example` y `.env.production.example`. Test con `X-Forwarded-For` que compruebe que `$request->ip()` y la auditoría usan la IP real.
 - [x] `6.4` Limitar el tráfico anónimo antes de `auth:sanctum` (`S-03`): middleware que aplique un límite por IP a peticiones sin token válido (`RATE_LIMIT_API_ANON`, 30/min por defecto) y mantenga el límite por usuario después de autenticar; los tokens inválidos también se limitan por IP. Tests: sin token y con el límite en 1 la segunda petición da `429`; el límite por usuario sigue funcionando.
 - [x] `6.5` Acotar el *password spraying* y la amplificación de auditoría (`S-04`): limitador de login con dos ventanas (email+IP 5/min y por IP 20/min) y auditoría de fallos agrupada por ventana para no insertar una fila por intento ni por cada `429`. Tests: rotar emails desde una IP acaba en `429` y el número de filas de auditoría de un ataque está acotado.
-- [ ] `6.6` Ejecutar el scheduler y programar la purga de tokens (`S-07`): añadir el servicio `scheduler` (`php artisan schedule:work`) a `docker-compose.yml` y `docker-compose.prod.yml`; programar `sanctum:prune-expired --hours=24` junto a `audit:prune` en `routes/console.php`; documentar el cron equivalente para PaaS. `php artisan schedule:list` debe mostrar ambas tareas.
+- [x] `6.6` Ejecutar el scheduler y programar la purga de tokens (`S-07`): añadir el servicio `scheduler` (`php artisan schedule:work`) a `docker-compose.yml` y `docker-compose.prod.yml`; programar `sanctum:prune-expired --hours=24` junto a `audit:prune` en `routes/console.php`; documentar el cron equivalente para PaaS. `php artisan schedule:list` debe mostrar ambas tareas.
 
 **Criterio de cierre:** los seis P0 verificados con pruebas dinámicas (429 anónimo, 429 por rotación de emails, IP real detrás de proxy, seeder que falla con clave insegura, scheduler activo y TLS/HSTS en producción), suite verde, PHPStan 0, Pint limpio y `composer audit` sin avisos.
 

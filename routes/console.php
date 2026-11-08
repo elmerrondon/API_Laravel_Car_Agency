@@ -14,3 +14,9 @@ Artisan::command('inspire', function () {
 Schedule::command('audit:prune')
     ->dailyAt('03:00')
     ->withoutOverlapping();
+
+// Los tokens Bearer caducados tampoco se borran solos: sin esta purga la tabla
+// `personal_access_tokens` crece con cada login y renovación.
+Schedule::command('sanctum:prune-expired --hours=24')
+    ->dailyAt('03:15')
+    ->withoutOverlapping();
