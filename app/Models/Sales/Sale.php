@@ -37,7 +37,9 @@ class Sale extends Model
 
     public function car(): BelongsTo
     {
-        return $this->belongsTo(Car::class);
+        // El histórico conserva la marca y el modelo aunque el coche se haya
+        // borrado lógicamente después de la venta.
+        return $this->belongsTo(Car::class)->withTrashed();
     }
 
     public function user(): BelongsTo
