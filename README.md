@@ -1044,6 +1044,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `429` al hacer login | Se superaron 5 intentos por minuto. | Espera un minuto o revisa el limiter `login`. |
 | `403` en `/docs/api` | El entorno no es `local`/`testing` y `DOCS_ENABLED=false`. | Activa `DOCS_ENABLED=true` o consulta el documento en desarrollo. |
 | `403` con «You must change your password before continuing» | `ENFORCE_PASSWORD_CHANGE=true` y la cuenta tiene `must_change_password=true`. | Cambia la clave con `PUT /api/auth/password` o desactiva el flag si el cliente aún no lo gestiona. |
+| `413 Request Entity Too Large` | El cuerpo supera el límite de 8 MB compartido por Nginx (`client_max_body_size`) y PHP (`post_max_size`/`upload_max_filesize`). | Reduce el payload; si de verdad necesitas más, sube ambos límites a la vez. |
 | `422` en `/api/reports/sales/pdf` | El rango supera `REPORTS_MAX_ROWS` (500 ventas). | Acota `from`/`to` o sube el límite junto con la memoria PHP. |
 | `401` con un usuario válido | La cuenta está inactiva o el token expiró/fue revocado. | Actívala con `is_active=true`, vuelve a iniciar sesión o usa `/auth/refresh`. |
 | `403` en `/api/audit-logs` o `/api/stats/*` | El rol no tiene `view_audit_logs` o `view_statistics`. | Usa un `admin` (auditoría) o un `admin`/`manager` (estadísticas). |
