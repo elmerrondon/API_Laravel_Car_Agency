@@ -35,7 +35,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Autoservicio de identidad:** `/auth/me`, cambio de contraseña y reset administrativo con clave temporal.
 - **Política de contraseñas local:** producción exige 8 caracteres con mayúsculas, minúsculas, números y símbolos; no hay llamadas HTTP salientes (`uncompromised` desactivado).
 - **Bloqueo opcional de clave temporal:** con `ENFORCE_PASSWORD_CHANGE=true`, un usuario con `must_change_password` solo puede consultar su perfil, cambiar la clave o cerrar sesión.
-- **Auditoría nativa:** login, usuarios, roles, coches, sucursales y ventas con actor, IP, User-Agent y redacción de secretos.
+- **Auditoría nativa:** login, usuarios, roles, coches, sucursales, ventas, catálogos y ubicaciones con actor, IP, User-Agent y redacción de secretos.
 - **Retención y exportación de auditoría:** `audit:prune` programado a diario (`AUDIT_RETENTION_DAYS=90`) y `GET /api/audit-logs/export` en CSV con los mismos filtros del listado.
 - **Estadísticas y rankings:** KPIs, inventario, tendencia mensual y rankings de vendedores, sucursales, ciudades, marcas y modelos.
 - **Arquitectura por dominio:** `Cars`, `Locations`, `Sales`, `Users`, `Audit`, `Stats` y `Reports`.
@@ -440,7 +440,7 @@ Filtros opcionales del listado y de la exportación:
 | :--- | :--- | :--- |
 | `user_id` | entero | Actor que realizó la acción. |
 | `action` | `auth.login`, `user.updated`, `sale.cancelled`, etc. | Validado contra el enum `AuditAction`. |
-| `auditable_type` | `user`, `role`, `car`, `branch`, `sale` | Recurso afectado. |
+| `auditable_type` | `user`, `role`, `car`, `branch`, `sale`, `brand`, `car_model`, `car_type`, `category`, `color`, `currency`, `payment_method`, `tax`, `country`, `state`, `city` | Recurso afectado. |
 | `auditable_id` | entero | Se combina con `auditable_type`. |
 | `from` / `to` | `Y-m-d` | Rango inclusivo; van juntos o ninguno. |
 | `per_page` | 1-100 | 15 por defecto. |
@@ -455,6 +455,9 @@ Acciones registradas:
   y `role.deleted`.
 - Negocio: `car.created`, `car.updated`, `car.deleted`, `branch.created`,
   `branch.updated`, `branch.deleted`, `sale.created` y `sale.cancelled`.
+- Catálogos: `catalog.created`, `catalog.updated` y `catalog.deleted` para
+  marcas, modelos, tipos, categorías, colores, monedas, métodos de pago e
+  impuestos. Una actualización solo se registra si cambia algún valor.
 
 Las contraseñas y los tokens nunca se guardan: las claves sensibles se sustituyen
 por `[REDACTED]`. La auditoría se escribe después del commit de la transacción y,

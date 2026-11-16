@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Sales;
 
 use App\DTOs\Sales\CurrencyData;
+use App\Enums\Audit\AuditAction;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
+use App\Services\Audit\AuditService;
 use LogicException;
 
 class CurrencyService
 {
+    public function __construct(private readonly AuditService $audit) {}
+
     public function getAllPaginatedCurrecies(?int $perPage = null)
     {
         return Currency::select(['id', 'name', 'code', 'is_base', 'is_active'])
@@ -19,7 +23,7 @@ class CurrencyService
             ->withQueryString();
     }
 
-    public function createCurrency(CurrencyData $data)
+    public function createCurrency(CurrencyData $data): Currency
     {
         $dataArray = ['name' => $data->name, 'code' => $data->code, 'is_base' => $data->isBase, 'is_active' => $data->isActive];
 
@@ -37,11 +41,15 @@ class CurrencyService
 
         $currency->refresh();
 
+        $this->audit->record(AuditAction::CATALOG_CREATED, $currency, [], $this->currencyAuditValues($currency));
+
         return $currency;
     }
 
-    public function updateCurrency(Currency $currency, CurrencyData $data)
+    public function updateCurrency(Currency $currency, CurrencyData $data): Currency
     {
+        $oldValues = $this->currencyAuditValues($currency);
+
         $dataArray = ['name' => $data->name, 'code' => $data->code, 'is_base' => $data->isBase, 'is_active' => $data->isActive];
 
         $cleanArray = array_filter($dataArray, function ($value) {
@@ -64,11 +72,18 @@ class CurrencyService
         }
 
         $currency->update($cleanArray);
+        $currency->refresh();
+
+        $newValues = $this->currencyAuditValues($currency);
+
+        if ($oldValues !== $newValues) {
+            $this->audit->record(AuditAction::CATALOG_UPDATED, $currency, $oldValues, $newValues);
+        }
 
         return $currency;
     }
 
-    public function deleteCurrency(Currency $currency)
+    public function deleteCurrency(Currency $currency): bool
     {
         if ($currency->is_base && Sale::exists()) {
             throw new LogicException('The currency base cannot be deleted because sales already exists in the system');
@@ -77,6 +92,25 @@ class CurrencyService
             throw new LogicException('The currency cannot be deleted because it is the system base currency, change the base currency to delete it');
         }
 
-        return $currency->delete();
+        $oldValues = $this->currencyAuditValues($currency);
+
+        $deleted = $currency->delete();
+
+        $this->audit->record(AuditAction::CATALOG_DELETED, $currency, $oldValues, []);
+
+        return (bool) $deleted;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currencyAuditValues(Currency $currency): array
+    {
+        return [
+            'name' => (string) $currency->name,
+            'code' => (string) $currency->code,
+            'is_base' => (bool) $currency->is_base,
+            'is_active' => (bool) $currency->is_active,
+        ];
     }
 }

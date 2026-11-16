@@ -106,16 +106,8 @@ it('hace que cada controller delegue en un servicio', function () {
 | usen esos nombres sin persistir nada (hoy está vacía).
 */
 it('hace que todo servicio de escritura use AuditService', function () {
-    // Temporal: servicios pendientes de auditar en 7.2 y 7.3. Debe quedar vacía.
+    // Temporal: servicios pendientes de auditar en 7.3. Debe quedar vacía.
     $pendingAudit = [
-        'App\Services\Cars\BrandService',
-        'App\Services\Cars\CarModelService',
-        'App\Services\Cars\CarTypeService',
-        'App\Services\Cars\CategoryService',
-        'App\Services\Cars\ColorService',
-        'App\Services\Sales\CurrencyService',
-        'App\Services\Sales\PaymentMethodService',
-        'App\Services\Sales\TaxService',
         'App\Services\Locations\CountryService',
         'App\Services\Locations\StateService',
         'App\Services\Locations\CityService',
