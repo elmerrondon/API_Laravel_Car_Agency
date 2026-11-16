@@ -154,7 +154,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 - [x] `7.8` Manejar la ausencia de moneda base (`L-05`): validar `Currency::firstWhere('is_base', true)` y lanzar una excepción de dominio (`422`/`409`) antes de crear la venta. Test con base de datos sin moneda base: la ruta financiera no produce `500`.
 - [x] `7.9` Acotar `sale_date` (`L-06`): `before_or_equal:now` y una cota inferior razonable y configurable. Tests de fecha futura y demasiado antigua.
 - [x] `7.10` Obligar a cambiar la clave fijada por un administrador (`S-08`): en `UserService::updateUser`, si llega `password`, marcar `must_change_password = true`; el autoservicio `PUT /auth/password` lo limpia. Actualizar auditoría y tests.
-- [ ] `7.11` Descubrir paquetes en tiempo de build (`I-01`): ejecutar `php artisan package:discover` en la etapa de build de producción para no hacerlo en cada arranque.
+- [x] `7.11` Descubrir paquetes en tiempo de build (`I-01`): ejecutar `php artisan package:discover` en la etapa de build de producción para no hacerlo en cada arranque.
 - [ ] `7.12` Unificar el tamaño máximo de cuerpo (`I-02`): alinear `client_max_body_size` de Nginx con `post_max_size`/`upload_max_filesize` de PHP (`8m`) y documentarlo.
 - [ ] `7.13` Runbook de backups y restauración (`I-03`): procedimiento `mysqldump`, retención, programación con cron/systemd, restauración probada y alternativa gestionada en PaaS. Añadir script de ejemplo y verificar una restauración en staging.
 - [ ] `7.14` Procesar colas en producción (`I-04`): añadir el servicio `worker` (`php artisan queue:work`) al compose de producción, con reinicio y límites; documentar el equivalente en PaaS. Si se opta por no encolar, fijar `QUEUE_CONNECTION=sync` y justificarlo.

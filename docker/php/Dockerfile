@@ -93,6 +93,7 @@ RUN composer dump-autoload --no-dev --optimize --no-scripts \
         storage/framework/sessions \
         storage/framework/views \
         storage/logs \
+    && php artisan package:discover --ansi \
     && chown -R www-data:www-data storage bootstrap/cache
 
 USER www-data
