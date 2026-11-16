@@ -28,7 +28,7 @@ class StoreSaleRequest extends FormRequest
     {
         return [
             'discount_percentage' => ['required', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
-            'exchange_rate' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'exchange_rate' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
             'taxes' => ['required', 'array', 'min:1'],
             'taxes.*' => ['required', 'integer', 'min:1', 'distinct', 'exists:taxes,id,is_active,1'],
             'sale_date' => ['required', 'date_format:Y-m-d H:i:s'],

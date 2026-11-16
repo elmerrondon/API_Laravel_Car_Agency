@@ -172,6 +172,19 @@ it('rechaza una fecha de venta que no sea Y-m-d H:i:s', function () {
         ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
 });
 
+it('rechaza tipos de cambio cero o negativos', function () {
+    $car = sellingCar(1000);
+
+    foreach ([0, -1, -0.5] as $invalid) {
+        $this->postJson('/api/sales', salePayload($car, ['exchange_rate' => $invalid]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('exchange_rate');
+    }
+
+    expect(Sale::count())->toBe(0)
+        ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
+});
+
 it('valida impuestos, descuento y tipo de cambio', function () {
     $car = sellingCar(1000);
 

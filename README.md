@@ -355,6 +355,9 @@ DELETE /api/recurso/{id}      Eliminar
 ```
 
 Las ventas solo permiten `index`, `show`, `store` y `PATCH /{sale}/cancel`.
+En `POST /api/sales`, `exchange_rate` debe ser mayor que `0` (con hasta dos
+decimales). La tasa expresa cuántas unidades de la moneda de pago equivalen a
+una de la moneda base; una venta en la moneda base usa tasa `1`.
 
 ### Paginación
 
