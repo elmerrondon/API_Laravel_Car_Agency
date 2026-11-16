@@ -900,6 +900,65 @@ docker compose -f docker-compose.prod.yml --env-file .env.production down
 
 > Solo Nginx publica un puerto, y en el compose base lo hace en `127.0.0.1:80`; MySQL queda aislado en la red interna. El volumen `app-storage` conserva `storage/` (sesiones, logs y cachés de framework) entre despliegues. `docker compose ... down -v` borra la base de datos y el volumen de storage.
 
+### Backups y restauración
+
+Dos scripts de ejemplo cubren el ciclo completo sobre el stack de Compose:
+
+| Script | Qué hace |
+| :--- | :--- |
+| `docker/scripts/backup-mysql.sh` | `mysqldump` comprimido con `--single-transaction --routines --triggers --events --add-drop-database`, más retención por días. |
+| `docker/scripts/restore-mysql.sh` | Detiene `app`/`scheduler`, recrea la base desde el dump y vuelve a arrancar los servicios. Exige `--confirm`. |
+
+```bash
+# Copia en ./backups (ignorado por Git), conservando 7 días
+BACKUP_RETENTION_DAYS=7 ./docker/scripts/backup-mysql.sh backups
+
+# Restauración (recrea la base de datos)
+./docker/scripts/restore-mysql.sh backups/api_laravel_car_agency-20261116-010723.sql.gz --confirm
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/up
+```
+
+Los scripts leen `MYSQL_DATABASE` y `MYSQL_ROOT_PASSWORD` del contenedor `mysql`, así que las credenciales no viajan en la línea de comandos del host. `COMPOSE_FILE` y `ENV_FILE` permiten apuntar al compose de desarrollo (`COMPOSE_FILE=docker-compose.yml ENV_FILE=`).
+
+Programación recomendada (diaria, fuera de la ventana de uso):
+
+```cron
+# /etc/cron.d/api-backup
+15 3 * * * root cd /srv/api && BACKUP_RETENTION_DAYS=14 ./docker/scripts/backup-mysql.sh /var/backups/api >> /var/log/api-backup.log 2>&1
+```
+
+Alternativa con systemd:
+
+```ini
+# /etc/systemd/system/api-backup.service
+[Unit]
+Description=Backup MySQL API Car Agency
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/api
+Environment=BACKUP_RETENTION_DAYS=14
+ExecStart=/srv/api/docker/scripts/backup-mysql.sh /var/backups/api
+```
+
+```ini
+# /etc/systemd/system/api-backup.timer
+[Unit]
+Description=Backup diario MySQL API Car Agency
+[Timer]
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+systemctl enable --now api-backup.timer
+```
+
+**Restauración probada (staging).** El procedimiento se validó sobre una copia real: se generó el dump, se insertó una fila marcadora, se restauró y se comprobó que la fila desaparecía y que `users`, `cars` y `sales` conservaban sus conteos. Tras restaurar, si Nginx devuelve `502`, reinícialo para que vuelva a resolver el servicio `app` (`docker compose ... restart nginx`). Guarda las copias fuera del host o en almacenamiento externo: el volumen `mysql-data` no sustituye a un backup.
+
+**PaaS (Render/Railway).** Con MySQL gestionado, activa las copias automáticas del proveedor y usa sus snapshots para restaurar; el contenedor monolítico no incluye MySQL. Para una copia manual, ejecuta `mysqldump` desde una shell del servicio con las variables `DB_*` o desde tu equipo contra la base gestionada (con TLS y usuario restringido). Si la plataforma no ofrece backups, programa un job externo que llame a `mysqldump` y suba el archivo a un almacenamiento duradero.
+
 ---
 
 ## ☁️ Despliegue en PaaS (Render / Railway)

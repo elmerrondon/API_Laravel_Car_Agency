@@ -43,6 +43,7 @@ Los comandos de orquestación (`docker compose up`, `down`, `ps`, `logs`) se eje
 - `.env.production.example`: plantilla versionable sin credenciales reales (`CHANGE_ME_*`), con `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `CACHE_STORE`/`CACHE_DRIVER=database`, `SESSION_DRIVER=file` y `QUEUE_CONNECTION=database`. El `.env.production` real está ignorado por Git y el `.dockerignore` no lo copia a la imagen.
 - `docker/nginx/default.conf`: sirve `/var/www/html/public`, pasa PHP a `app:9000`, reenvía `X-Forwarded-For/Host/Port/Proto` del proxy externo y añade `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: no-referrer-when-downgrade` con `always`. `client_max_body_size 8m` replica `post_max_size`/`upload_max_filesize` de `docker/php/php.ini`: un cuerpo mayor responde `413` en el borde. `AddHstsHeader` añade `Strict-Transport-Security` solo cuando la petición es HTTPS y `HSTS_ENABLED=true`; `HSTS_MAX_AGE` y `HSTS_INCLUDE_SUBDOMAINS` viven en `config/security.php`.
 - `.dockerignore` excluye `.git`, `vendor`, `node_modules`, `.env`, `storage/*.key`, logs, cachés y artefactos de build.
+- `docker/scripts/backup-mysql.sh` y `docker/scripts/restore-mysql.sh` son el runbook ejecutable de backups: dump comprimido con `mysqldump` (transaccional, rutinas, triggers, eventos y `--add-drop-database`), retención por `BACKUP_RETENTION_DAYS` y restauración que detiene `app`/`scheduler`, recrea la base y los reinicia (exige `--confirm`). Leen `MYSQL_DATABASE`/`MYSQL_ROOT_PASSWORD` dentro del contenedor `mysql`; `COMPOSE_FILE`/`ENV_FILE` permiten usarlos contra desarrollo. `./backups` está ignorado por Git. El procedimiento y la programación con cron/systemd viven en `README.md`.
 - El target `dev` crea y usa el usuario local UID/GID 1000. Si tu usuario WSL usa otros IDs, reconstruye con `docker compose build --build-arg UID=$(id -u) --build-arg GID=$(id -g) app`.
 - `vendor/` es un volumen nombrado y la etapa `dev` no ejecuta `composer install`. En el primer arranque, o si cambia `composer.lock`, ejecuta `docker compose exec -T app composer install`; reconstruir la imagen no llena el volumen.
 - `composer setup` **no** es adecuado dentro de `app`: intenta ejecutar `npm install`/`npm run build` y la imagen PHP no incluye Node. Usa `composer install`; Vite no forma parte del stack Docker actual. `composer dev` tampoco aplica: el stack ya sirve con Nginx + PHP-FPM.
@@ -84,6 +85,10 @@ docker compose exec -T app ./vendor/bin/pint
 docker compose exec -T app php artisan audit:prune
 docker compose exec -T app php artisan audit:prune --days=30
 docker compose exec -T app php artisan schedule:list
+
+# Backups y restauración de MySQL (producción por defecto; COMPOSE_FILE/ENV_FILE para desarrollo)
+./docker/scripts/backup-mysql.sh backups
+./docker/scripts/restore-mysql.sh backups/api_laravel_car_agency-YYYYMMDD-HHMMSS.sql.gz --confirm
 
 # Cliente MySQL dentro del contenedor mysql
 docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency

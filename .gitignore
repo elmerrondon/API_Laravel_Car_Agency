@@ -23,6 +23,8 @@
 /storage/*.key
 /storage/pail
 /vendor
+# Copias de seguridad locales de MySQL (ver docker/scripts/backup-mysql.sh).
+/backups
 Homestead.json
 Homestead.yaml
 Thumbs.db
