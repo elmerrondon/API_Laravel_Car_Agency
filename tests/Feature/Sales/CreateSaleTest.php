@@ -48,7 +48,7 @@ function salePayload(Car $car, array $overrides = []): array
         'sale_date' => '2026-02-10 10:30:00',
         'car_id' => $car->id,
         'user_id' => User::where('email', 'manager@caragency.test')->value('id'),
-        'branch_id' => Branch::firstOrFail()->id,
+        'branch_id' => $car->branch_id,
         'payment_currency_id' => Currency::where('code', 'EUR')->value('id'),
         'payment_method_id' => PaymentMethod::firstOrFail()->id,
     ], $overrides);
@@ -157,6 +157,31 @@ it('rechaza con 422 un coche que no está disponible', function () {
 
     expect(Sale::count())->toBe(0)
         ->and($car->fresh()->status)->toBe(CarStatus::RESERVED);
+});
+
+it('rechaza una sucursal distinta a la del coche', function () {
+    $car = sellingCar(1000);
+    $otherBranch = Branch::whereKeyNot($car->branch_id)->firstOrFail();
+
+    $this->postJson('/api/sales', salePayload($car, ['branch_id' => $otherBranch->id]))
+        ->assertUnprocessable()
+        ->assertJsonPath('message', sprintf(
+            'The sale branch (%d) does not match the car branch (%d)',
+            $otherBranch->id,
+            $car->branch_id,
+        ));
+
+    expect(Sale::count())->toBe(0)
+        ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
+});
+
+it('persiste la sucursal del coche en la venta', function () {
+    $car = sellingCar(1000);
+
+    $sale = $this->postJson('/api/sales', salePayload($car))->assertCreated()->json('data');
+
+    expect($sale['branch']['id'])->toBe($car->branch_id)
+        ->and((int) Sale::findOrFail($sale['id'])->branch_id)->toBe($car->branch_id);
 });
 
 it('rechaza una fecha de venta que no sea Y-m-d H:i:s', function () {

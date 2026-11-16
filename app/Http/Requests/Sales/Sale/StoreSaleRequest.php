@@ -34,6 +34,7 @@ class StoreSaleRequest extends FormRequest
             'sale_date' => ['required', 'date_format:Y-m-d H:i:s'],
             'car_id' => ['required', 'integer', 'min:1', Rule::exists('cars', 'id')->where('status', CarStatus::AVAILABLE->value)],
             'user_id' => ['required', 'integer', 'min:1', 'exists:users,id,is_active,1'],
+            // Debe coincidir con la sucursal del coche; el servicio lo verifica.
             'branch_id' => ['required', 'integer', 'min:1', 'exists:branches,id,is_active,1'],
             'payment_currency_id' => ['required', 'integer', 'min:1', 'exists:currencies,id,is_active,1'],
             'payment_method_id' => ['required', 'integer', 'min:1', 'exists:payment_methods,id,is_active,1'],

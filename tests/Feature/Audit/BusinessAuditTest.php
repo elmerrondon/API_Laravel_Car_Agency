@@ -106,7 +106,6 @@ it('audita el ciclo de vida de una sucursal', function () {
 it('audita la creación y cancelación de una venta después del commit', function () {
     $car = Car::where('status', CarStatus::AVAILABLE)->firstOrFail();
     $tax = Tax::where('code', 'I0001')->firstOrFail();
-    $branch = Branch::firstOrFail();
     $paymentCurrency = Currency::where('code', 'EUR')->firstOrFail();
     $paymentMethod = PaymentMethod::firstOrFail();
 
@@ -117,7 +116,7 @@ it('audita la creación y cancelación de una venta después del commit', functi
         'sale_date' => '2026-02-10 10:30:00',
         'car_id' => $car->id,
         'user_id' => $this->admin->id,
-        'branch_id' => $branch->id,
+        'branch_id' => $car->branch_id,
         'payment_currency_id' => $paymentCurrency->id,
         'payment_method_id' => $paymentMethod->id,
     ])->assertCreated()->json('data');
@@ -142,7 +141,7 @@ it('audita la creación y cancelación de una venta después del commit', functi
         ->and($createdLog->new_values['status'])->toBe(SaleStatus::COMPLETED->value)
         ->and($createdLog->new_values['total_base_amount'])->toEqual((float) $saleModel->total_base_amount)
         ->and($createdLog->new_values['car_id'])->toBe($car->id)
-        ->and($createdLog->new_values['branch_id'])->toBe($branch->id)
+        ->and($createdLog->new_values['branch_id'])->toBe($car->branch_id)
         ->and($createdLog->new_values['user_id'])->toBe($this->admin->id)
         ->and($cancelledLog->old_values['status'])->toBe(SaleStatus::COMPLETED->value)
         ->and($cancelledLog->new_values['status'])->toBe(SaleStatus::CANCELLED->value)

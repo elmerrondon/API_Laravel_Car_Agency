@@ -358,6 +358,8 @@ Las ventas solo permiten `index`, `show`, `store` y `PATCH /{sale}/cancel`.
 En `POST /api/sales`, `exchange_rate` debe ser mayor que `0` (con hasta dos
 decimales). La tasa expresa cuántas unidades de la moneda de pago equivalen a
 una de la moneda base; una venta en la moneda base usa tasa `1`.
+`branch_id` debe coincidir con la sucursal del coche: la venta se registra
+siempre en la sucursal del vehículo y una sucursal distinta responde `422`.
 
 ### Paginación
 

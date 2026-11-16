@@ -10,6 +10,7 @@ use App\Enums\Cars\CarStatus;
 use App\Enums\Sales\SaleStatus;
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
+use App\Exceptions\Sales\SaleBranchMismatchException;
 use App\Exceptions\Sales\SaleNotCancellableException;
 use App\Models\Cars\Car;
 use App\Models\Sales\Currency;
@@ -68,6 +69,12 @@ class SaleService
                 throw CarNotAvailableException::notAvailable();
             }
 
+            // La sucursal se deriva siempre del coche; el payload solo puede
+            // confirmarla. Así una venta nunca queda en otra sucursal.
+            if ($data->branchId !== (int) $car->branch_id) {
+                throw SaleBranchMismatchException::between($data->branchId, (int) $car->branch_id);
+            }
+
             $basePrice = $car->price;
             $discountPercentage = $data->discountPercentage;
             $totalDiscount = round($basePrice * ($discountPercentage / 100), 2);
@@ -111,7 +118,7 @@ class SaleService
                     'sale_date' => $data->saleDate,
                     'car_id' => $data->carId,
                     'user_id' => $data->userId,
-                    'branch_id' => $data->branchId,
+                    'branch_id' => (int) $car->branch_id,
                     'payment_currency_id' => $data->paymentCurrencyId,
                     'base_currency_id' => $baseCurrency->id,
                     'payment_method_id' => $data->paymentMethodId,

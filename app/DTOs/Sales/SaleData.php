@@ -7,6 +7,10 @@ namespace App\DTOs\Sales;
 use App\DTOs\Concerns\NormalizesRequestValues;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * `branchId` es la sucursal declarada en el payload: `SaleService` la compara
+ * con la del coche y persiste siempre la sucursal del coche.
+ */
 readonly class SaleData
 {
     use NormalizesRequestValues;
