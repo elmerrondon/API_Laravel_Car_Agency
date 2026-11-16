@@ -92,6 +92,24 @@ it('actualiza nombre, email, roles y sucursales', function () {
         ->and($user->hasPermissionTo(PermissionEnum::MANAGE_USERS))->toBeFalse();
 });
 
+it('obliga a cambiar la clave fijada por un administrador', function () {
+    $created = $this->postJson('/api/users', $this->payload)->assertCreated()->json('data');
+
+    $user = User::findOrFail($created['id']);
+    $user->update(['must_change_password' => false]);
+    $user->createToken('web');
+
+    $this->patchJson("/api/users/{$created['id']}", [
+        'password' => 'otra-clave-123',
+        'password_confirmation' => 'otra-clave-123',
+    ])->assertOk()
+        ->assertJsonPath('data.must_change_password', true);
+
+    expect($user->fresh()->must_change_password)->toBeTrue()
+        ->and(Hash::check('otra-clave-123', $user->fresh()->password))->toBeTrue()
+        ->and($user->tokens()->count())->toBe(0);
+});
+
 it('rechaza actualizar con el email de otro usuario', function () {
     $created = $this->postJson('/api/users', $this->payload)->assertCreated()->json('data');
     $other = User::where('email', 'manager@caragency.test')->firstOrFail();

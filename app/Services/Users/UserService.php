@@ -95,6 +95,12 @@ class UserService
             // FormRequest ya rechaza cualquier valor distinto del actual.
             $arrayData = ['name' => $data->name, 'last_name' => $data->lastName, 'document_number' => $data->documentNumber, 'email' => $data->email, 'password' => $data->password, 'is_active' => $data->isActive];
 
+            // Una clave fijada por un administrador es temporal: el usuario
+            // debe reemplazarla en su primer acceso.
+            if ($data->password !== null) {
+                $arrayData['must_change_password'] = true;
+            }
+
             $cleanData = array_filter($arrayData, function ($value) {
                 return $value !== null;
             });
@@ -130,6 +136,12 @@ class UserService
         $newChanged = [];
 
         foreach ($newAttributes as $attribute => $value) {
+            // `USER_PASSWORD_CHANGED` ya documenta el paso a clave temporal;
+            // no se duplica en el evento genérico de actualización.
+            if ($attribute === 'must_change_password' && $data->password !== null) {
+                continue;
+            }
+
             if ($oldAttributes[$attribute] !== $value) {
                 $oldChanged[$attribute] = $oldAttributes[$attribute];
                 $newChanged[$attribute] = $value;

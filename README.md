@@ -269,6 +269,10 @@ Los tokens expiran a los **120 minutos**. `POST /api/auth/logout` invalida el to
 | `PUT /api/auth/password` | Cambia la contraseña propia. Exige `current_password`, `password` y `password_confirmation`; revoca los demás tokens y conserva el de la petición. |
 | `POST /api/users/{user}/reset-password` | Un administrador (`manage_users`) asigna una clave temporal, marca `must_change_password=true` y revoca todos los tokens del usuario. |
 
+Cualquier clave fijada por un administrador (también con `PATCH /api/users/{user}`
+y `password`) es temporal: marca `must_change_password=true`, revoca los tokens
+del usuario y se limpia cuando este usa `PUT /api/auth/password`.
+
 Un usuario desactivado recibe `401` en cualquier ruta autenticada, aunque su token aún no haya expirado. Para dejar el sistema sin administración, la API responde `409` al borrar, desactivar o quitar el rol `admin` al último administrador activo, y `422` si un rol queda sin permisos o se intenta modificar el `code` de un usuario.
 
 | Código | Cuándo |
