@@ -279,7 +279,7 @@ Un usuario desactivado recibe `401` en cualquier ruta autenticada, aunque su tok
 | `403` | Autenticado, pero sin el permiso requerido. |
 | `404` | Recurso inexistente o con soft delete. |
 | `409` | Conflicto de estado o integridad: venta ya cancelada, rol con usuarios, borrado con FK o moneda base. |
-| `422` | Error de validación. El detalle viene en `errors`. |
+| `422` | Error de validación (detalle en `errors`) o regla de negocio incumplida (mensaje en `message`). |
 | `429` | Demasiadas peticiones: se superó el límite del *rate limiter*. Espera un minuto. |
 
 ### Rate limits
@@ -360,6 +360,11 @@ decimales). La tasa expresa cuántas unidades de la moneda de pago equivalen a
 una de la moneda base; una venta en la moneda base usa tasa `1`.
 `branch_id` debe coincidir con la sucursal del coche: la venta se registra
 siempre en la sucursal del vehículo y una sucursal distinta responde `422`.
+
+En coches, el alta solo admite `status=available`; la edición manual mueve
+entre `available` y `reserved`, y `sold` lo asigna únicamente la venta. Un coche
+con venta `completed` queda bloqueado para la edición manual (`422`) hasta que
+la venta se cancele.
 
 ### Paginación
 

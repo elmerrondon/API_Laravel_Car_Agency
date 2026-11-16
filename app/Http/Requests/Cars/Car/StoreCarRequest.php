@@ -32,7 +32,8 @@ class StoreCarRequest extends FormRequest
             'year' => ['required', 'integer', 'min:1900', 'max:2100'],
             // El VIN es único global, incluso entre coches con soft delete.
             'vin' => ['required', 'string', 'min:17', 'max:17', 'regex:/^[a-zA-Z0-9]+$/', 'unique:cars,vin'],
-            'status' => ['required', 'string', Rule::enum(CarStatus::class)],
+            // Un coche siempre nace disponible; `sold` lo asigna la venta.
+            'status' => ['required', 'string', Rule::in([CarStatus::AVAILABLE->value])],
             'color_id' => ['required', 'integer', 'exists:colors,id'],
             'car_model_id' => ['required', 'integer', 'exists:car_models,id'],
             'car_type_id' => ['required', 'integer', 'exists:car_types,id'],

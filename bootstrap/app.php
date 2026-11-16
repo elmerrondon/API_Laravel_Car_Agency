@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\Cars\CarStatusTransitionException;
 use App\Exceptions\Reports\ReportTooLargeException;
 use App\Exceptions\Sales\CarNotAvailableException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
@@ -67,7 +68,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(
-            fn (CarNotAvailableException|SaleBranchMismatchException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 422)
+            fn (CarNotAvailableException|SaleBranchMismatchException|CarStatusTransitionException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 422)
         );
 
         $exceptions->render(

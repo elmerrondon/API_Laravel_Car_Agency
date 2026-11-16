@@ -6,7 +6,11 @@ namespace App\Services\Cars;
 
 use App\DTOs\Cars\CarData;
 use App\Enums\Audit\AuditAction;
+use App\Enums\Cars\CarStatus;
+use App\Enums\Sales\SaleStatus;
+use App\Exceptions\Cars\CarStatusTransitionException;
 use App\Models\Cars\Car;
+use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
 
 class CarService
@@ -41,7 +45,13 @@ class CarService
 
     public function createCar(CarData $data): Car
     {
-        $arrayData = ['price' => round($data->price, 2), 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
+        $status = $data->status === null ? CarStatus::AVAILABLE : CarStatus::from($data->status);
+
+        if ($status !== CarStatus::AVAILABLE) {
+            throw CarStatusTransitionException::onCreation($status);
+        }
+
+        $arrayData = ['price' => round($data->price, 2), 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $status->value, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
 
         $cleanData = array_filter($arrayData, function ($value) {
             return $value !== null;
@@ -58,6 +68,20 @@ class CarService
 
     public function updateCar(Car $car, CarData $data): Car
     {
+        // Una venta completada congela el coche: el histórico financiero no
+        // debe moverse por una edición manual posterior.
+        if ($this->hasCompletedSale($car)) {
+            throw CarStatusTransitionException::lockedByCompletedSale((int) $car->getKey());
+        }
+
+        if ($data->status !== null) {
+            $target = CarStatus::from($data->status);
+
+            if (! $this->isManualTransitionAllowed($car->status, $target)) {
+                throw CarStatusTransitionException::manualChange($car->status, $target);
+            }
+        }
+
         $oldValues = $this->carAuditValues($car);
 
         $arrayData = ['price' => $data->price !== null ? round($data->price, 2) : null, 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
@@ -84,6 +108,27 @@ class CarService
         $this->audit->record(AuditAction::CAR_DELETED, $car, $oldValues, []);
 
         return (bool) $deleted;
+    }
+
+    /**
+     * Un coche con venta completada queda congelado para la edición manual.
+     */
+    private function hasCompletedSale(Car $car): bool
+    {
+        return Sale::query()
+            ->where('car_id', $car->getKey())
+            ->where('status', SaleStatus::COMPLETED->value)
+            ->exists();
+    }
+
+    /**
+     * La edición manual solo mueve entre `available` y `reserved`; `sold` es
+     * exclusivo de `SaleService`.
+     */
+    private function isManualTransitionAllowed(CarStatus $current, CarStatus $target): bool
+    {
+        return in_array($target, [CarStatus::AVAILABLE, CarStatus::RESERVED], true)
+            && in_array($current, [CarStatus::AVAILABLE, CarStatus::RESERVED], true);
     }
 
     /**
