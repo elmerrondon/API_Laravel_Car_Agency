@@ -197,6 +197,29 @@ it('responde 409 si no hay moneda base configurada', function () {
         ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
 });
 
+it('rechaza ventas futuras y anteriores a la fecha mínima', function () {
+    $car = sellingCar(1000);
+
+    foreach ([
+        now()->addDay()->format('Y-m-d H:i:s'),
+        '1999-12-31 23:59:59',
+    ] as $invalid) {
+        $this->postJson('/api/sales', salePayload($car, ['sale_date' => $invalid]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('sale_date');
+    }
+
+    expect(Sale::count())->toBe(0)
+        ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
+});
+
+it('admite la fecha mínima configurada', function () {
+    $car = sellingCar(1000);
+
+    $this->postJson('/api/sales', salePayload($car, ['sale_date' => '2000-01-01 00:00:00']))
+        ->assertCreated();
+});
+
 it('rechaza una fecha de venta que no sea Y-m-d H:i:s', function () {
     $car = sellingCar(1000);
 
