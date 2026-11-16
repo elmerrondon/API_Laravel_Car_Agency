@@ -4,9 +4,20 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Cars\Brand;
 use App\Models\Cars\Car;
+use App\Models\Cars\CarModel;
+use App\Models\Cars\CarType;
+use App\Models\Cars\Category;
+use App\Models\Cars\Color;
 use App\Models\Locations\Branch;
+use App\Models\Locations\City;
+use App\Models\Locations\Country;
+use App\Models\Locations\State;
+use App\Models\Sales\Currency;
+use App\Models\Sales\PaymentMethod;
 use App\Models\Sales\Sale;
+use App\Models\Sales\Tax;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\OpenApi\ApiDocumentation;
@@ -36,14 +47,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Alias legibles para `audit_logs.auditable_type`: el log guarda
-        // `user`, `role`, `car`, `branch` o `sale`, no el FQCN del modelo.
+        // Alias legibles para `audit_logs.auditable_type`: el log guarda el
+        // alias (`user`, `car`, `brand`, `city`…), no el FQCN del modelo.
         Relation::morphMap([
             'user' => User::class,
             'role' => Role::class,
             'car' => Car::class,
             'branch' => Branch::class,
             'sale' => Sale::class,
+            'brand' => Brand::class,
+            'car_model' => CarModel::class,
+            'car_type' => CarType::class,
+            'category' => Category::class,
+            'color' => Color::class,
+            'currency' => Currency::class,
+            'payment_method' => PaymentMethod::class,
+            'tax' => Tax::class,
+            'country' => Country::class,
+            'state' => State::class,
+            'city' => City::class,
         ]);
 
         // Un N+1 debe doler en desarrollo y en tests, no en producción:

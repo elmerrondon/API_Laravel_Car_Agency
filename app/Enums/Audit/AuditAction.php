@@ -34,4 +34,14 @@ enum AuditAction: string
     case BRANCH_DELETED = 'branch.deleted';
     case SALE_CREATED = 'sale.created';
     case SALE_CANCELLED = 'sale.cancelled';
+
+    // Catálogos de coches y ventas
+    case CATALOG_CREATED = 'catalog.created';
+    case CATALOG_UPDATED = 'catalog.updated';
+    case CATALOG_DELETED = 'catalog.deleted';
+
+    // Ubicaciones (país, estado y ciudad)
+    case LOCATION_CREATED = 'location.created';
+    case LOCATION_UPDATED = 'location.updated';
+    case LOCATION_DELETED = 'location.deleted';
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -96,4 +97,55 @@ it('hace que cada controller delegue en un servicio', function () {
 
         expect($injectsService)->toBeTrue("El controller [{$controller}] no inyecta ningún servicio.");
     }
+});
+
+/*
+| La auditoría es obligatoria en toda escritura. El test detecta servicios con
+| métodos públicos `create*`, `update*` o `delete*` y exige que inyecten
+| `AuditService`; la lista blanca solo admite servicios de solo lectura que
+| usen esos nombres sin persistir nada (hoy está vacía).
+*/
+it('hace que todo servicio de escritura use AuditService', function () {
+    // Temporal: servicios pendientes de auditar en 7.2 y 7.3. Debe quedar vacía.
+    $pendingAudit = [
+        'App\Services\Cars\BrandService',
+        'App\Services\Cars\CarModelService',
+        'App\Services\Cars\CarTypeService',
+        'App\Services\Cars\CategoryService',
+        'App\Services\Cars\ColorService',
+        'App\Services\Sales\CurrencyService',
+        'App\Services\Sales\PaymentMethodService',
+        'App\Services\Sales\TaxService',
+        'App\Services\Locations\CountryService',
+        'App\Services\Locations\StateService',
+        'App\Services\Locations\CityService',
+    ];
+
+    $services = collect(File::allFiles(app_path('Services')))
+        ->map(fn (SplFileInfo $file): string => 'App\Services\\'.Str::of($file->getRelativePathname())
+            ->replace(['/', '.php'], ['\\', ''])
+            ->toString())
+        ->reject(fn (string $class): bool => $class === AuditService::class)
+        ->values();
+
+    $offenders = $services
+        ->reject(fn (string $class): bool => in_array($class, $pendingAudit, true))
+        ->filter(function (string $class): bool {
+            $reflection = new ReflectionClass($class);
+
+            $writes = collect($reflection->getMethods(ReflectionMethod::IS_PUBLIC))
+                ->contains(fn (ReflectionMethod $method): bool => preg_match('/^(create|update|delete)/i', $method->getName()) === 1);
+
+            if (! $writes) {
+                return false;
+            }
+
+            return ! collect($reflection->getConstructor()?->getParameters() ?? [])
+                ->contains(fn (ReflectionParameter $parameter): bool => $parameter->getType()?->getName() === AuditService::class);
+        })
+        ->values();
+
+    expect($offenders)->toBeEmpty(
+        'Estos servicios escriben sin auditar: '.$offenders->implode(', ')
+    );
 });
