@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Services\Locations;
 
 use App\DTOs\Locations\StateData;
+use App\Enums\Audit\AuditAction;
 use App\Models\Locations\State;
+use App\Services\Audit\AuditService;
 
 class StateService
 {
     private const COUNTRY_RELATION = 'country:id,name,is_active';
+
+    public function __construct(private readonly AuditService $audit) {}
 
     public function getAllPaginated(?int $perPage = null)
     {
@@ -37,11 +41,15 @@ class StateService
 
         $state->refresh();
 
+        $this->audit->record(AuditAction::LOCATION_CREATED, $state, [], $this->stateAuditValues($state));
+
         return $this->getState($state);
     }
 
     public function updateState(State $state, StateData $data): State
     {
+        $oldValues = $this->stateAuditValues($state);
+
         $dataArray = ['name' => $data->name, 'country_id' => $data->country_id, 'is_active' => $data->isActive];
 
         $cleanData = array_filter($dataArray, function ($value) {
@@ -49,12 +57,37 @@ class StateService
         });
 
         $state->update($cleanData);
+        $state->refresh();
+
+        $newValues = $this->stateAuditValues($state);
+
+        if ($oldValues !== $newValues) {
+            $this->audit->record(AuditAction::LOCATION_UPDATED, $state, $oldValues, $newValues);
+        }
 
         return $this->getState($state);
     }
 
     public function deleteState(State $state): bool
     {
-        return $state->delete();
+        $oldValues = $this->stateAuditValues($state);
+
+        $deleted = $state->delete();
+
+        $this->audit->record(AuditAction::LOCATION_DELETED, $state, $oldValues, []);
+
+        return (bool) $deleted;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function stateAuditValues(State $state): array
+    {
+        return [
+            'name' => (string) $state->name,
+            'country_id' => (int) $state->country_id,
+            'is_active' => (bool) $state->is_active,
+        ];
     }
 }

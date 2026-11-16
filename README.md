@@ -458,6 +458,8 @@ Acciones registradas:
 - Catálogos: `catalog.created`, `catalog.updated` y `catalog.deleted` para
   marcas, modelos, tipos, categorías, colores, monedas, métodos de pago e
   impuestos. Una actualización solo se registra si cambia algún valor.
+- Ubicaciones: `location.created`, `location.updated` y `location.deleted`
+  para países, estados y ciudades. Las sucursales conservan `branch.*`.
 
 Las contraseñas y los tokens nunca se guardan: las claves sensibles se sustituyen
 por `[REDACTED]`. La auditoría se escribe después del commit de la transacción y,

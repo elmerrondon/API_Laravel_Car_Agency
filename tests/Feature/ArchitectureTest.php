@@ -106,12 +106,8 @@ it('hace que cada controller delegue en un servicio', function () {
 | usen esos nombres sin persistir nada (hoy está vacía).
 */
 it('hace que todo servicio de escritura use AuditService', function () {
-    // Temporal: servicios pendientes de auditar en 7.3. Debe quedar vacía.
-    $pendingAudit = [
-        'App\Services\Locations\CountryService',
-        'App\Services\Locations\StateService',
-        'App\Services\Locations\CityService',
-    ];
+    // Servicios de solo lectura que usan create/update/delete sin persistir.
+    $readOnlyServices = [];
 
     $services = collect(File::allFiles(app_path('Services')))
         ->map(fn (SplFileInfo $file): string => 'App\Services\\'.Str::of($file->getRelativePathname())
@@ -121,7 +117,7 @@ it('hace que todo servicio de escritura use AuditService', function () {
         ->values();
 
     $offenders = $services
-        ->reject(fn (string $class): bool => in_array($class, $pendingAudit, true))
+        ->reject(fn (string $class): bool => in_array($class, $readOnlyServices, true))
         ->filter(function (string $class): bool {
             $reflection = new ReflectionClass($class);
 
