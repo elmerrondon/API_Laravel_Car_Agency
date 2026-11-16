@@ -68,6 +68,16 @@ services:
     networks:
       - car-agency-prod
 
+  # Worker de colas: procesa los jobs de la tabla `jobs` (QUEUE_CONNECTION=database).
+  # Reutiliza imagen, entorno y volumen de `app`; no publica puertos. `--max-time`
+  # recicla el proceso cada hora para liberar memoria y `restart` lo relanza.
+  worker:
+    extends: app
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
   # Programador de tareas: `audit:prune` y `sanctum:prune-expired`.
   # Reutiliza imagen, entorno y volumen de `app`; no publica puertos y no
   # hereda el healthcheck de PHP-FPM porque aquí no se sirve HTTP.

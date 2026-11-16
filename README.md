@@ -740,7 +740,7 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 
 | Archivo | Propósito |
 | :--- | :--- |
-| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en `127.0.0.1:80` (solo loopback, espera un proxy TLS), MySQL 8.0 sin puerto público y `scheduler` (`schedule:work`). Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
+| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en `127.0.0.1:80` (solo loopback, espera un proxy TLS), MySQL 8.0 sin puerto público, `worker` (`queue:work`) y `scheduler` (`schedule:work`). Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
 | `docker-compose.tls.yml` + `docker/nginx/tls.conf` | Superposición opcional para terminar TLS dentro del stack: publica `80`/`443`, redirige HTTP a HTTPS y monta `docker/certs`. |
 | `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-laravel-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
 | `.env.production.example` | Plantilla versionable, sin credenciales reales (marcadores `CHANGE_ME_*`). |
@@ -781,6 +781,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 ```
 
 Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera su healthcheck (`fsockopen` al puerto 9000) y solo entonces inicia `nginx`, que publica **solo `127.0.0.1:80`**. MySQL queda aislado en la red interna `car-agency-prod`. El puerto público `80`/`443` lo atiende un proxy TLS del host (paso 5) o la superposición `docker-compose.tls.yml`.
+
+El servicio `worker` reutiliza la misma imagen y el mismo `.env.production`, ejecuta `php artisan queue:work --sleep=3 --tries=3 --max-time=3600` y comparte el volumen `app-storage`. No publica puertos y tiene el healthcheck desactivado. Procesa los jobs de la tabla `jobs` (`QUEUE_CONNECTION=database`); `--max-time=3600` recicla el proceso cada hora para liberar memoria y `restart: unless-stopped` lo relanza.
 
 El servicio `scheduler` arranca con la misma imagen y el mismo `.env.production`, ejecuta `php artisan schedule:work` y comparte el volumen `app-storage`. No publica puertos y tiene el healthcheck desactivado (no sirve HTTP). Gracias a él corren a diario `audit:prune` (03:00) y `sanctum:prune-expired --hours=24` (03:15) sin depender del cron del host.
 
@@ -907,7 +909,7 @@ Dos scripts de ejemplo cubren el ciclo completo sobre el stack de Compose:
 | Script | Qué hace |
 | :--- | :--- |
 | `docker/scripts/backup-mysql.sh` | `mysqldump` comprimido con `--single-transaction --routines --triggers --events --add-drop-database`, más retención por días. |
-| `docker/scripts/restore-mysql.sh` | Detiene `app`/`scheduler`, recrea la base desde el dump y vuelve a arrancar los servicios. Exige `--confirm`. |
+| `docker/scripts/restore-mysql.sh` | Detiene `app`/`worker`/`scheduler`, recrea la base desde el dump y vuelve a arrancar los servicios. Exige `--confirm`. |
 
 ```bash
 # Copia en ./backups (ignorado por Git), conservando 7 días
@@ -1076,7 +1078,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 
 - **Almacenamiento efímero**: `storage/` vive dentro del contenedor, así que logs, sesiones de archivo y archivos locales se pierden en cada redespliegue. Para persistencia real usa un disco de la plataforma o un bucket S3.
 - **Sesiones**: `SESSION_DRIVER=file` funciona con una sola instancia. Con varias réplicas necesitas un almacén compartido (Redis o la tabla `sessions`, que hoy no existe como migración).
-- **Colas**: la imagen no arranca un worker. Si usas `QUEUE_CONNECTION=database`, crea un worker en la plataforma con la misma imagen y comando `php artisan queue:work --tries=1`.
+- **Colas**: la imagen no arranca un worker. Si usas `QUEUE_CONNECTION=database`, crea un proceso en la plataforma con la misma imagen y comando `php artisan queue:work --sleep=3 --tries=3 --max-time=3600` (con reinicio automático); es el equivalente PaaS del servicio `worker` del stack VPS.
 - **Tareas programadas**: la imagen tampoco ejecuta `schedule:work`. Crea un Cron Job de la plataforma con la misma imagen y el comando `php artisan schedule:run` cada minuto, o un proceso aparte con `php artisan schedule:work`. Sin él no corren `audit:prune` ni `sanctum:prune-expired`, y las tablas de auditoría y tokens crecen sin límite.
 - **Sin estado en la imagen**: la configuración llega por variables de entorno; nunca hornees `.env` ni credenciales en la imagen.
 

@@ -5,8 +5,8 @@
 # Uso:
 #   ./docker/scripts/restore-mysql.sh backups/api_laravel_car_agency-XXXX.sql.gz --confirm
 #
-# Detiene `app` y `scheduler` durante la restauración para no dejar conexiones
-# abiertas contra una base que se va a recrear. El dump incluye
+# Detiene `app`, `worker` y `scheduler` durante la restauración para no dejar
+# conexiones abiertas contra una base que se va a recrear. El dump incluye
 # `DROP DATABASE` + `CREATE DATABASE` (--add-drop-database).
 #
 # Variables de entorno:
@@ -40,7 +40,11 @@ if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
 fi
 
 # shellcheck disable=SC2086
-docker compose $ENV_ARGS -f "$COMPOSE_FILE" stop app scheduler >/dev/null 2>&1 || true
+# Se detiene servicio a servicio para que el script también funcione contra el
+# compose de desarrollo, donde `worker` no existe.
+for service in app worker scheduler; do
+    docker compose $ENV_ARGS -f "$COMPOSE_FILE" stop "$service" >/dev/null 2>&1 || true
+done
 
 # shellcheck disable=SC2086
 if gunzip -c "$BACKUP_FILE" | docker compose $ENV_ARGS -f "$COMPOSE_FILE" exec -T mysql sh -c '
@@ -50,11 +54,15 @@ if gunzip -c "$BACKUP_FILE" | docker compose $ENV_ARGS -f "$COMPOSE_FILE" exec -
 else
     echo "[restore] ERROR: la restauración falló; revisa el contenedor mysql" >&2
     # shellcheck disable=SC2086
-    docker compose $ENV_ARGS -f "$COMPOSE_FILE" start app scheduler >/dev/null 2>&1 || true
+    for service in app worker scheduler; do
+        docker compose $ENV_ARGS -f "$COMPOSE_FILE" start "$service" >/dev/null 2>&1 || true
+    done
     exit 1
 fi
 
 # shellcheck disable=SC2086
-docker compose $ENV_ARGS -f "$COMPOSE_FILE" start app scheduler >/dev/null 2>&1 || true
+for service in app worker scheduler; do
+    docker compose $ENV_ARGS -f "$COMPOSE_FILE" start "$service" >/dev/null 2>&1 || true
+done
 
-echo "[restore] Servicios app y scheduler reiniciados"
+echo "[restore] Servicios app, worker y scheduler reiniciados"
