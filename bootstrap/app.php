@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Exceptions\Cars\CarStatusTransitionException;
 use App\Exceptions\Reports\ReportTooLargeException;
 use App\Exceptions\Sales\CarNotAvailableException;
+use App\Exceptions\Sales\MissingBaseCurrencyException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleBranchMismatchException;
 use App\Exceptions\Sales\SaleNotCancellableException;
@@ -72,7 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(
-            fn (SaleAlreadyCancelledException|SaleNotCancellableException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
+            fn (SaleAlreadyCancelledException|SaleNotCancellableException|MissingBaseCurrencyException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
         );
 
         $exceptions->render(

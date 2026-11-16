@@ -184,6 +184,19 @@ it('persiste la sucursal del coche en la venta', function () {
         ->and((int) Sale::findOrFail($sale['id'])->branch_id)->toBe($car->branch_id);
 });
 
+it('responde 409 si no hay moneda base configurada', function () {
+    Currency::query()->update(['is_base' => false]);
+
+    $car = sellingCar(1000);
+
+    $this->postJson('/api/sales', salePayload($car))
+        ->assertStatus(409)
+        ->assertJsonPath('message', 'The sale cannot be created because no base currency is configured');
+
+    expect(Sale::count())->toBe(0)
+        ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
+});
+
 it('rechaza una fecha de venta que no sea Y-m-d H:i:s', function () {
     $car = sellingCar(1000);
 

@@ -9,6 +9,7 @@ use App\Enums\Audit\AuditAction;
 use App\Enums\Cars\CarStatus;
 use App\Enums\Sales\SaleStatus;
 use App\Exceptions\Sales\CarNotAvailableException;
+use App\Exceptions\Sales\MissingBaseCurrencyException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleBranchMismatchException;
 use App\Exceptions\Sales\SaleNotCancellableException;
@@ -103,6 +104,10 @@ class SaleService
             $totalAmountPaid = round($totalBaseAmount * $data->exchangeRate, 2);
 
             $baseCurrency = Currency::firstWhere('is_base', true);
+
+            if ($baseCurrency === null) {
+                throw MissingBaseCurrencyException::create();
+            }
 
             $sale = Sale::create(
                 [
