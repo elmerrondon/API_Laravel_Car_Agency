@@ -171,7 +171,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 - [x] `8.2` Ajustar el pool de PHP-FPM (`P-02`): `docker/php/www.conf` con `pm.max_children` calculado por RAM, `pm.max_requests=500` y `request_terminate_timeout`; documentar la fórmula y el reinicio tras despliegue.
 - [x] `8.3` Activar OPcache de producción (`P-03`): `opcache.validate_timestamps=0`, `memory_consumption=128`, `max_accelerated_files=10000` y JIT desactivado para este perfil.
 - [x] `8.4` Comprimir respuestas (`P-04`): `gzip on` en Nginx con `application/json`, `text/csv` y `text/plain`; nunca comprimir PDF.
-- [ ] `8.5` Ajustar MySQL (`P-05`): `innodb_buffer_pool_size` configurable por entorno (25-50 % de la RAM), `slow_query_log` y `long_query_time`; documentar el cálculo.
+- [x] `8.5` Ajustar MySQL (`P-05`): `innodb_buffer_pool_size` configurable por entorno (25-50 % de la RAM), `slow_query_log` y `long_query_time`; documentar el cálculo.
 - [ ] `8.6` Limitar la generación de PDF por separado (`P-06`): limitador `reports-pdf` (5/min) manteniendo `reports` en 30/min para JSON; configuración y tests.
 - [ ] `8.7` Completar cabeceras de seguridad (`S-11`): `server_tokens off`, `Permissions-Policy`, CSP para `/docs/api` y HSTS solo bajo HTTPS; replicar en Caddy y verificar que se aplican también en errores.
 - [ ] `8.8` Cerrar el MySQL de desarrollo (`S-09`): publicar solo en `127.0.0.1:3306`, eliminar `MYSQL_ROOT_HOST: "%"` y crear un usuario de aplicación no root.

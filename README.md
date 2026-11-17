@@ -816,6 +816,24 @@ El target `prod` copia `docker/php/opcache-prod.ini`: `opcache.enable=1`, `memor
 
 Nginx comprime con gzip las respuestas `application/json`, `text/csv` y `text/plain` (`gzip_comp_level 5`, `gzip_min_length 512`). Los PDF **no** se comprimen: ya vienen comprimidos y gzip solo gastaría CPU y latencia. El JSON de la API y la exportación CSV de auditoría viajan comprimidos cuando el cliente envía `Accept-Encoding: gzip`; en PaaS el `Caddyfile` aplica `encode zstd br gzip`.
 
+### Ajuste de MySQL
+
+El contenedor `mysql` arranca con el buffer pool y el log lento configurables por entorno:
+
+| Variable | Producción | Desarrollo | Criterio |
+| :--- | :--- | :--- | :--- |
+| `MYSQL_INNODB_BUFFER_POOL_SIZE` | `512M` | `256M` | 25-50 % de la RAM del servidor: 2 GB → 512M-1G, 4 GB → 1G-2G, 8 GB → 2G-4G. |
+| `MYSQL_LONG_QUERY_TIME` | `1` | `1` | Segundos a partir de los que una consulta se registra. |
+
+El log lento se escribe en la tabla `mysql.slow_log` (`--log-output=TABLE`), así que se consulta con SQL normal y persiste en el volumen `mysql-data`:
+
+```bash
+docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency \
+  -e "SELECT start_time, query_time, rows_examined, sql_text FROM mysql.slow_log ORDER BY start_time DESC LIMIT 10;"
+```
+
+Cambiar estas variables exige recrear el contenedor (`docker compose up -d mysql` en desarrollo, `... up -d mysql` en producción); MySQL solo las lee al arrancar. En MySQL 8.0.28+ la tabla `mysql.slow_log` usa el motor CSV y está protegida: consúltala con un usuario administrador.
+
 ### Paso 5: TLS y proxy inverso
 
 El compose base **no publica HTTP plano a Internet**: Nginx escucha solo en `127.0.0.1:80`. Hay dos formas de terminar TLS; elige una.
