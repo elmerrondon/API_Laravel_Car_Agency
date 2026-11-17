@@ -71,7 +71,7 @@ El archivo `.env.example` ya viene alineado con Docker Compose:
 
 - `DB_HOST=mysql`
 - `DB_DATABASE=api_laravel_car_agency`
-- `DB_USERNAME=root`
+- `DB_USERNAME=car_agency`
 - `DB_PASSWORD=secret`
 - `SESSION_DRIVER=file`
 - `APP_URL=http://localhost:8000`
@@ -94,10 +94,10 @@ Servicios que se levantan:
 | :--- | :--- | :--- |
 | `nginx` | `8000` | Sirve la API en `http://localhost:8000`. |
 | `app` | Interno `9000` | PHP 8.3-FPM. |
-| `mysql` | `3306` | MySQL 8.0 con la base `api_laravel_car_agency`. |
+| `mysql` | `127.0.0.1:3306` | MySQL 8.0 con la base `api_laravel_car_agency` (solo loopback). |
 | `scheduler` | — | `php artisan schedule:work`: ejecuta la purga de auditoría y de tokens. |
 
-MySQL tiene un healthcheck; el contenedor `app` espera a que esté listo antes de arrancar. `scheduler` reutiliza la imagen, el entorno y los volúmenes de `app`; no publica puertos y no necesita recibir tráfico.
+MySQL tiene un healthcheck; el contenedor `app` espera a que esté listo antes de arrancar. `scheduler` reutiliza la imagen, el entorno y los volúmenes de `app`; no publica puertos y no necesita recibir tráfico. El puerto de MySQL se publica solo en `127.0.0.1` y la aplicación conecta con el usuario `car_agency` (sin privilegios de administración); los comandos `mysql -uroot` de esta guía son tareas administrativas puntuales, nunca las credenciales de la app.
 
 ### 3. Instalar dependencias y generar la clave
 
@@ -1129,7 +1129,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `vendor/autoload.php` no existe | Faltan dependencias PHP. | `docker compose exec -T app composer install`. |
 | Error 500 al abrir la API | `APP_KEY` vacío o dependencias sin instalar. | `key:generate` y `composer install`. |
 | `SQLSTATE[HY000] [2002]` | La app no encuentra MySQL o aún no está listo. | `docker compose ps`, `docker compose logs mysql`; usa `DB_HOST=mysql`. |
-| `Access denied for user 'root'` | Credenciales distintas a las del compose. | Revisa `DB_PASSWORD=secret` y `docker-compose.yml`. |
+| `Access denied for user 'car_agency'` | Credenciales distintas a las del compose. | Revisa `DB_PASSWORD=secret` y `docker-compose.yml`; si la base ya existía antes del cambio, crea el usuario `car_agency` a mano. |
 | Error de tabla `sessions` | `SESSION_DRIVER=database` sin migración de sesiones. | Usa `SESSION_DRIVER=file` en `.env`. |
 | `port is already allocated` | Otro proceso usa `8000` o `3306`. | Cambia los puertos en `docker-compose.yml`. |
 | `pull access denied for car-agency-laravel-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
@@ -1174,7 +1174,7 @@ docker compose exec -T app php artisan migrate --seed
 - `phpunit.xml` fuerza SQLite `:memory:` para los tests.
 - PHPStan/Larastan corre en **nivel 5 sin baseline**: si añades código, `composer analyse` debe seguir en 0 errores.
 - La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
-- Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local.
+- Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local y para tareas administrativas; la aplicación usa el usuario `car_agency` y el puerto solo escucha en `127.0.0.1`.
 - El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, MySQL sin puerto público, sesiones en `app-storage` y caché/colas en MySQL). Usa `.env.production.example` como plantilla del entorno productivo.
 - Nginx y Caddy añaden `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer-when-downgrade` y `Permissions-Policy` a todas las respuestas, incluidos los errores (`always` en Nginx). Nginx oculta su versión con `server_tokens off` y solo `/docs/api` recibe una CSP que permite Stoplight Elements (JS/CSS de `unpkg.com` y scripts inline); el resto de la API no necesita CSP porque no sirve HTML.
 - No hay llamadas HTTP salientes en tiempo de ejecución: la política de contraseñas, la auditoría y las estadísticas se resuelven en local.
