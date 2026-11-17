@@ -238,7 +238,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 
 ### Límites y rendimiento
 
-- Rate limits en `config/rate_limits.php`: `login` 5/min (email+IP), `api` 120/min y `reports` 30/min (usuario, o IP sin token). Ajustables con `RATE_LIMIT_LOGIN`, `RATE_LIMIT_API` y `RATE_LIMIT_REPORTS`.
+- Rate limits en `config/rate_limits.php`: `login` 5/min (email+IP), `api` 120/min, `reports` 30/min y `reports-pdf` 5/min (usuario, o IP sin token). Ajustables con `RATE_LIMIT_LOGIN`, `RATE_LIMIT_API`, `RATE_LIMIT_REPORTS` y `RATE_LIMIT_REPORTS_PDF`. Los PDF llevan el cupo general de reportes **y** el suyo propio, porque Dompdf cuesta mucho más que el JSON.
 - PDF: `REPORTS_MAX_ROWS=500` corta antes de hidratar y responde `422` (`ReportTooLargeException`); `docker/php/php.ini` fija `memory_limit=512M`. 500 filas consumen ~216 MB y ~8 s; 1 000 filas ~508 MB, así que sube ambas cosas a la vez.
 - `SaleReportService` usa comparaciones sargables (`>= from 00:00`, `< to + 1 día`) para aprovechar el índice `(branch_id, sale_date)`; `whereDate()` compila a `date(col)` y lo anula.
 - Los permisos del usuario se cachean `PERMISSIONS_CACHE_TTL` segundos (300 por defecto) para no repetir el join en cada petición.

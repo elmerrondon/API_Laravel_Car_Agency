@@ -100,9 +100,9 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed', 'throttle:api']
 
     // Reportes
     Route::middleware(['permission:view_reports', 'throttle:reports'])->group(function () {
-        Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf']);
+        Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf'])->middleware('throttle:reports-pdf');
         Route::get('reports/cars', [CarReportController::class, 'index']);
-        Route::get('reports/cars/pdf', [CarReportController::class, 'pdf']);
+        Route::get('reports/cars/pdf', [CarReportController::class, 'pdf'])->middleware('throttle:reports-pdf');
     });
 
     // Estadísticas (solo lectura)

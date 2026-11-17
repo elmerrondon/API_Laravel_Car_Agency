@@ -63,6 +63,25 @@ it('aplica un límite más estricto a los reportes', function () {
     $this->getJson('/api/reports/cars')->assertStatus(429);
 });
 
+it('aplica un cupo propio a la generación de PDF', function () {
+    config([
+        'rate_limits.api' => 10,
+        'rate_limits.reports' => 10,
+        'rate_limits.reports_pdf' => 1,
+    ]);
+
+    actingAsRole(RoleEnum::ADMIN);
+
+    $this->get('/api/reports/cars/pdf')->assertOk();
+
+    $this->get('/api/reports/cars/pdf')
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+
+    // El JSON de reportes usa otro cupo y sigue disponible.
+    $this->getJson('/api/reports/cars')->assertOk();
+});
+
 it('mantiene el límite de login configurable', function () {
     config(['rate_limits.login' => 2]);
 
@@ -81,5 +100,6 @@ it('lee los límites por defecto de la configuración', function () {
         ->and(config('rate_limits.login_ip'))->toBe(20)
         ->and(config('rate_limits.api_anon'))->toBe(30)
         ->and(config('rate_limits.api'))->toBe(120)
-        ->and(config('rate_limits.reports'))->toBe(30);
+        ->and(config('rate_limits.reports'))->toBe(30)
+        ->and(config('rate_limits.reports_pdf'))->toBe(5);
 });

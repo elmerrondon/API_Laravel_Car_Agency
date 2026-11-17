@@ -26,4 +26,6 @@ return [
 
     'reports' => (int) env('RATE_LIMIT_REPORTS', 30),
 
+    'reports_pdf' => (int) env('RATE_LIMIT_REPORTS_PDF', 5),
+
 ];

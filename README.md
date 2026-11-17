@@ -296,6 +296,7 @@ Los límites se definen en `config/rate_limits.php` y se pueden ajustar con vari
 | `login` | `POST /api/auth/login` | 5/min (`RATE_LIMIT_LOGIN`) | email + IP |
 | `api` | Resto de rutas autenticadas | 120/min (`RATE_LIMIT_API`) | usuario (o IP sin token) |
 | `reports` | `/api/reports/*` | 30/min (`RATE_LIMIT_REPORTS`) | usuario (o IP sin token) |
+| `reports-pdf` | `/api/reports/*/pdf` | 5/min (`RATE_LIMIT_REPORTS_PDF`) | usuario (o IP sin token) |
 
 El reporte PDF es la ruta más cara: además del límite, corta en `REPORTS_MAX_ROWS` (500 por defecto) y responde `422` si el rango de fechas lo supera.
 

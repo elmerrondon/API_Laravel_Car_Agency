@@ -113,6 +113,14 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
+        // Los PDF son mucho más caros que el JSON (Dompdf consume CPU y memoria),
+        // así que tienen su propio cupo además del general de reportes.
+        RateLimiter::for('reports-pdf', function (Request $request) {
+            return Limit::perMinute((int) config('rate_limits.reports_pdf'))->by(
+                'reports-pdf|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+            );
+        });
+
         // La documentación se abre en local/testing; en el resto de entornos
         // exige DOCS_ENABLED=true de forma explícita.
         Gate::define('viewApiDocs', function (?User $user = null): bool {
