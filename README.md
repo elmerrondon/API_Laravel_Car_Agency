@@ -261,6 +261,8 @@ Authorization: Bearer <token>
 
 Los tokens expiran a los **120 minutos**. `POST /api/auth/logout` invalida el token actual y `POST /api/auth/refresh` emite uno nuevo. Por rendimiento, la API no actualiza `last_used_at` en cada petición (`SANCTUM_LAST_USED_AT=false`); actívalo solo si necesitas auditar el uso por token.
 
+Los tokens nuevos llevan el prefijo `car_` (`SANCTUM_TOKEN_PREFIX`), así que el valor devuelto por el login se ve como `4|car_xxxxxxxx...`. El prefijo ayuda a los escáneres de secretos a detectar un token filtrado. **Trátalo como opaco**: no parsees el segmento aleatorio ni asumas que empieza por un carácter concreto. Los tokens emitidos antes del cambio siguen siendo válidos.
+
 ### Autoservicio de identidad
 
 | Método y ruta | Qué hace |

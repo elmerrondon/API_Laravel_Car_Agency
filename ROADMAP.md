@@ -176,7 +176,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 - [x] `8.7` Completar cabeceras de seguridad (`S-11`): `server_tokens off`, `Permissions-Policy`, CSP para `/docs/api` y HSTS solo bajo HTTPS; replicar en Caddy y verificar que se aplican también en errores.
 - [x] `8.8` Cerrar el MySQL de desarrollo (`S-09`): publicar solo en `127.0.0.1:3306`, eliminar `MYSQL_ROOT_HOST: "%"` y crear un usuario de aplicación no root.
 - [x] `8.9` Rechazar CORS comodín en producción (`S-10`): fallar el arranque si `CORS_ALLOWED_ORIGINS` es `*` o está vacío en producción; mantener `*` en local/testing y añadir test de configuración.
-- [ ] `8.10` Prefijar los tokens de Sanctum (`S-12`): `SANCTUM_TOKEN_PREFIX=car_` por defecto en `.env.example` y `.env.production.example`, test de token nuevo con prefijo y nota de impacto para clientes.
+- [x] `8.10` Prefijar los tokens de Sanctum (`S-12`): `SANCTUM_TOKEN_PREFIX=car_` por defecto en `.env.example` y `.env.production.example`, test de token nuevo con prefijo y nota de impacto para clientes.
 - [ ] `8.11` Profundizar el healthcheck (`I-05`): `/up` con comprobación de base de datos y caché sin filtrar detalles y comando `health:check` para los healthchecks de Docker; actualizar app, Nginx y PaaS. `/up` responde `503` si la base falla.
 - [ ] `8.12` Eliminar los tests de ejemplo (`Q-01`): borrar `tests/Feature/ExampleTest.php` y `tests/Unit/ExampleTest.php` conservando el smoke test real.
 - [ ] `8.13` Subir PHPStan a nivel 6 (`Q-02`): corregir los errores y actualizar `phpstan.neon`; `composer analyse` en 0 errores.
