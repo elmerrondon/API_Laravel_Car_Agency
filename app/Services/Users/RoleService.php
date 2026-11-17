@@ -29,6 +29,11 @@ class RoleService
             ->withQueryString();
     }
 
+    public function getRole(Role $role): Role
+    {
+        return $role->load('permissions');
+    }
+
     public function createRole(RoleData $data): Role
     {
 

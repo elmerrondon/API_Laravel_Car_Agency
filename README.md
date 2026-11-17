@@ -646,7 +646,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-16): **375 tests / 2716 aserciones**, **PHPStan 0 errores**, **Pint limpio (360 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-16): **376 tests / 2719 aserciones**, **PHPStan 0 errores**, **Pint limpio (361 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 

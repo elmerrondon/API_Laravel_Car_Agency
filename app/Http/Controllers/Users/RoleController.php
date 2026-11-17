@@ -31,9 +31,7 @@ class RoleController extends Controller
 
     public function show(Role $role): RoleResource
     {
-        $role->load('permissions');
-
-        return new RoleResource($role);
+        return new RoleResource($this->service->getRole($role));
     }
 
     public function store(StoreRoleRequest $request): RoleResource|JsonResponse
