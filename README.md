@@ -808,6 +808,10 @@ pm.max_children = floor((RAM_MB - 512) / 75)
 
 > Las cachés de `optimize` se escriben en `bootstrap/cache` dentro del contenedor, no en el volumen `app-storage`: se pierden al recrear `app`, así que vuelve a ejecutar `optimize` después de cada despliegue. Si cambias `.env.production`, ejecuta `php artisan optimize:clear` y reinicia `app`; con la configuración cacheada, los cambios de entorno no se leen.
 
+### OPcache de producción
+
+El target `prod` copia `docker/php/opcache-prod.ini`: `opcache.enable=1`, `memory_consumption=128`, `max_accelerated_files=10000`, `validate_timestamps=0` y JIT desactivado (`jit_buffer_size=0`). El código va horneado en la imagen, así que no se revalida en cada petición; **cada despliegue debe crear un contenedor nuevo** (no basta con copiar archivos dentro de `app`), porque con `validate_timestamps=0` un cambio en disco no se vería hasta reiniciar FPM. El JIT queda apagado a propósito: la API está limitada por E/S y MySQL, y el JIT añade memoria y tiempo de compilación sin mejora medible. El entorno de desarrollo no usa este archivo, así que los cambios de código siguen aplicándose al instante.
+
 ### Paso 5: TLS y proxy inverso
 
 El compose base **no publica HTTP plano a Internet**: Nginx escucha solo en `127.0.0.1:80`. Hay dos formas de terminar TLS; elige una.

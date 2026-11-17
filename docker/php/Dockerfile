@@ -78,6 +78,8 @@ FROM base AS prod
 ENV APP_ENV=production \
     APP_DEBUG=false
 
+COPY docker/php/opcache-prod.ini /usr/local/etc/php/conf.d/zz-opcache-prod.ini
+
 COPY composer.json composer.lock ./
 
 RUN composer install \

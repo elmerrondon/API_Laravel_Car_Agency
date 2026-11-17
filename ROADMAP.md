@@ -169,7 +169,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 
 - [x] `8.1` Evitar la escritura de `last_used_at` en cada petición (`P-01`): `config/sanctum.php` con `last_used_at => env('SANCTUM_LAST_USED_AT', false)` y documentación del trade-off.
 - [x] `8.2` Ajustar el pool de PHP-FPM (`P-02`): `docker/php/www.conf` con `pm.max_children` calculado por RAM, `pm.max_requests=500` y `request_terminate_timeout`; documentar la fórmula y el reinicio tras despliegue.
-- [ ] `8.3` Activar OPcache de producción (`P-03`): `opcache.validate_timestamps=0`, `memory_consumption=128`, `max_accelerated_files=10000` y JIT desactivado para este perfil.
+- [x] `8.3` Activar OPcache de producción (`P-03`): `opcache.validate_timestamps=0`, `memory_consumption=128`, `max_accelerated_files=10000` y JIT desactivado para este perfil.
 - [ ] `8.4` Comprimir respuestas (`P-04`): `gzip on` en Nginx con `application/json`, `text/csv` y `text/plain`; nunca comprimir PDF.
 - [ ] `8.5` Ajustar MySQL (`P-05`): `innodb_buffer_pool_size` configurable por entorno (25-50 % de la RAM), `slow_query_log` y `long_query_time`; documentar el cálculo.
 - [ ] `8.6` Limitar la generación de PDF por separado (`P-06`): limitador `reports-pdf` (5/min) manteniendo `reports` en 30/min para JSON; configuración y tests.
