@@ -182,7 +182,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 - [x] `8.13` Subir PHPStan a nivel 6 (`Q-02`): corregir los errores y actualizar `phpstan.neon`; `composer analyse` en 0 errores.
 - [x] `8.14` Subir PHPStan a nivel 7 (`Q-02`): corregir los errores o justificar un baseline mínimo documentado en `MEMORY.md`. Nivel 8 queda como objetivo posterior.
 - [x] `8.15` Mover la carga de relaciones de rol al servicio (`Q-03`): `RoleController::show` deja de hacer `$role->load('permissions')` y pasa a `RoleService::getRole()`.
-- [ ] `8.16` Corregir el typo de monedas (`Q-04`): renombrar `getAllPaginatedCurrecies` a `getAllPaginatedCurrencies` y actualizar llamadas y tests.
+- [x] `8.16` Corregir el typo de monedas (`Q-04`): renombrar `getAllPaginatedCurrecies` a `getAllPaginatedCurrencies` y actualizar llamadas y tests.
 - [ ] `8.17` Unificar el nombre del token (`Q-05`): constante `TOKEN_NAME` en `AuthService` usada por login y refresh, con test.
 - [ ] `8.18` Ampliar CI y dependencias (`Q-06`): matriz PHP 8.2/8.3/8.4 en `ci.yml`, `.github/dependabot.yml` para Composer y GitHub Actions, y decisión documentada sobre `linux/arm64` en la imagen PaaS.
 

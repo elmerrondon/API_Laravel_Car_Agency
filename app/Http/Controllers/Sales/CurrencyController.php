@@ -25,7 +25,7 @@ class CurrencyController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $currencies = $this->service->getAllPaginatedCurrecies($perPage);
+        $currencies = $this->service->getAllPaginatedCurrencies($perPage);
 
         return CurrencyResource::collection($currencies);
     }

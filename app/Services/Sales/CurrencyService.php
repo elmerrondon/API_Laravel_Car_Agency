@@ -17,7 +17,7 @@ class CurrencyService
     public function __construct(private readonly AuditService $audit) {}
 
     /** @return LengthAwarePaginator<int, Currency> */
-    public function getAllPaginatedCurrecies(?int $perPage = null): LengthAwarePaginator
+    public function getAllPaginatedCurrencies(?int $perPage = null): LengthAwarePaginator
     {
         return Currency::select(['id', 'name', 'code', 'is_base', 'is_active'])
             ->orderBy('id')
