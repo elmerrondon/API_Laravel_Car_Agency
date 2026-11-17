@@ -21,7 +21,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 | Servidor web | Nginx + PHP-FPM | Stack de desarrollo dentro de Docker. |
 | Autenticación | Laravel Sanctum | Tokens bearer opacos con expiración. |
 | Reportes | Dompdf | Generación de reportes PDF de ventas e inventario. |
-| Tests | Pest | Suite de pruebas de Feature y Unit. |
+| Tests | Pest | Suite de pruebas de Feature. |
 | Formato | Laravel Pint | Estilo de código PHP. |
 
 ---
