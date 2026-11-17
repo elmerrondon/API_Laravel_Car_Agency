@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Users\RoleEnum;
 use App\Models\Users\Role;
 use App\Models\Users\User;
+use App\Services\Auth\AuthService;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RolePermissionSeeder;
 use Database\Seeders\Users\RoleSeeder;
@@ -36,7 +37,7 @@ it('entrega un token nuevo y revoca el anterior', function () {
     expect($newToken)->toBeString()
         ->not->toBeEmpty()
         ->not->toBe($this->token)
-        ->and($this->user->tokens()->pluck('name')->all())->toBe(['api_token']);
+        ->and($this->user->tokens()->pluck('name')->all())->toBe([AuthService::TOKEN_NAME]);
 
     $this->app['auth']->forgetGuards();
 

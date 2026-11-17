@@ -16,6 +16,13 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
 {
+    /**
+     * Nombre con el que se registran todos los tokens personales. Login y
+     * refresh deben coincidir para que la auditoría y la revocación por nombre
+     * sean predecibles.
+     */
+    public const TOKEN_NAME = 'api-token';
+
     private const PROFILE_RELATIONS = [
         'roles.permissions',
         'branches.city.state.country',
@@ -46,7 +53,7 @@ class AuthService
         $this->audit->record(AuditAction::AUTH_LOGIN, $user, [], ['email' => $email]);
 
         return [
-            'token' => $user->createToken('api-token')->plainTextToken,
+            'token' => $user->createToken(self::TOKEN_NAME)->plainTextToken,
             // Es informativo: el login no se bloquea, pero el frontend puede
             // forzar el cambio antes de dejar operar al empleado.
             'must_change_password' => $user->must_change_password,
@@ -114,7 +121,7 @@ class AuthService
         $token = $user->currentAccessToken();
         $token?->delete();
 
-        $newToken = $user->createToken('api_token')->plainTextToken;
+        $newToken = $user->createToken(self::TOKEN_NAME)->plainTextToken;
 
         $this->audit->record(AuditAction::AUTH_TOKEN_REFRESHED, $user);
 
