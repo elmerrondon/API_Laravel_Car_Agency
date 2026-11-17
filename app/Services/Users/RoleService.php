@@ -141,10 +141,10 @@ class RoleService
         return [
             'name' => (string) $role->name,
             'description' => (string) $role->description,
-            'permissions' => array_map(
+            'permissions' => array_values(array_map(
                 static fn (mixed $id): int => (int) $id,
                 $role->permissions()->pluck('permissions.id')->all(),
-            ),
+            )),
         ];
     }
 }

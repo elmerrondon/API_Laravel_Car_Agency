@@ -239,10 +239,10 @@ class UserService
      */
     private function roleIds(User $user): array
     {
-        return array_map(
+        return array_values(array_map(
             static fn (mixed $id): int => (int) $id,
             $user->roles()->pluck('roles.id')->all(),
-        );
+        ));
     }
 
     /**
@@ -250,9 +250,9 @@ class UserService
      */
     private function branchIds(User $user): array
     {
-        return array_map(
+        return array_values(array_map(
             static fn (mixed $id): int => (int) $id,
             $user->branches()->pluck('branches.id')->all(),
-        );
+        ));
     }
 }
