@@ -97,7 +97,7 @@ Servicios que se levantan:
 | `mysql` | `127.0.0.1:3306` | MySQL 8.0 con la base `api_laravel_car_agency` (solo loopback). |
 | `scheduler` | — | `php artisan schedule:work`: ejecuta la purga de auditoría y de tokens. |
 
-MySQL tiene un healthcheck; el contenedor `app` espera a que esté listo antes de arrancar. `scheduler` reutiliza la imagen, el entorno y los volúmenes de `app`; no publica puertos y no necesita recibir tráfico. El puerto de MySQL se publica solo en `127.0.0.1` y la aplicación conecta con el usuario `car_agency` (sin privilegios de administración); los comandos `mysql -uroot` de esta guía son tareas administrativas puntuales, nunca las credenciales de la app.
+MySQL tiene un healthcheck; el contenedor `app` espera a que esté listo antes de arrancar y publica su propio estado con `php artisan health:check` (base de datos + caché). `nginx` comprueba `/up` por HTTP. `scheduler` reutiliza la imagen, el entorno y los volúmenes de `app`; no publica puertos y no necesita recibir tráfico. El puerto de MySQL se publica solo en `127.0.0.1` y la aplicación conecta con el usuario `car_agency` (sin privilegios de administración); los comandos `mysql -uroot` de esta guía son tareas administrativas puntuales, nunca las credenciales de la app.
 
 ### 3. Instalar dependencias y generar la clave
 
@@ -783,7 +783,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.production \
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera su healthcheck (`fsockopen` al puerto 9000) y solo entonces inicia `nginx`, que publica **solo `127.0.0.1:80`**. MySQL queda aislado en la red interna `car-agency-prod`. El puerto público `80`/`443` lo atiende un proxy TLS del host (paso 5) o la superposición `docker-compose.tls.yml`.
+Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera a que arranque y solo entonces inicia `nginx`, que publica **solo `127.0.0.1:80`**. MySQL queda aislado en la red interna `car-agency-prod`. El puerto público `80`/`443` lo atiende un proxy TLS del host (paso 5) o la superposición `docker-compose.tls.yml`.
+
+El healthcheck de `app` combina `fsockopen` al puerto 9000 con `php artisan health:check` (base de datos + caché), y `nginx` tiene el suyo contra `/up`. `/up` responde `200 {"status":"ok"}` cuando la base y la caché responden y `503 {"status":"unavailable"}` cuando alguna falla, sin exponer el error (el detalle va al log). En el primer despliegue, antes de `migrate`, `health:check` falla porque aún no existen las tablas; por eso `nginx` usa `service_started` y no bloquea el paso 4. Después de migrar, `docker compose ps` debe mostrar ambos servicios como `healthy`.
 
 El servicio `worker` reutiliza la misma imagen y el mismo `.env.production`, ejecuta `php artisan queue:work --sleep=3 --tries=3 --max-time=3600` y comparte el volumen `app-storage`. No publica puertos y tiene el healthcheck desactivado. Procesa los jobs de la tabla `jobs` (`QUEUE_CONNECTION=database`); `--max-time=3600` recicla el proceso cada hora para liberar memoria y `restart: unless-stopped` lo relanza.
 

@@ -11,6 +11,7 @@ use App\Exceptions\Sales\SaleBranchMismatchException;
 use App\Exceptions\Sales\SaleNotCancellableException;
 use App\Exceptions\Users\LastAdminException;
 use App\Exceptions\Users\RoleInUseException;
+use App\Http\Controllers\HealthController;
 use App\Http\Middleware\AddHstsHeader;
 use App\Http\Middleware\EnsurePasswordChangeIsEnforced;
 use App\Http\Middleware\EnsureUserHasPermission;
@@ -25,13 +26,18 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
-        health: '/up',
+        // `/up` vive fuera de los grupos web/api y no arrastra sesión ni CSRF:
+        // comprueba base de datos y caché y responde 503 si alguna falla.
+        then: function (): void {
+            Route::get('/up', HealthController::class)->name('health');
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         // TrustProxies es global y lee la lista de proxies de
