@@ -2,7 +2,8 @@ name: CI de calidad
 
 # Workflow independiente del de Docker Hub: valida la suite, el análisis
 # estático y el formato en cada push y pull request, sin servicios externos
-# (SQLite en memoria).
+# (SQLite en memoria). La matriz cubre el rango declarado en composer.json
+# (`php: ^8.2`): 8.2, 8.3 y 8.4. La imagen de desarrollo usa 8.3.
 
 on:
   push:
@@ -14,19 +15,24 @@ concurrency:
 
 jobs:
   quality:
-    name: Tests, PHPStan y Pint
+    name: PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
 
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      - name: Configurar PHP 8.3
+      - name: Configurar PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
           extensions: bcmath, exif, gd, mbstring, pcntl, pdo_mysql, pdo_sqlite, zip, dom
           coverage: none
           tools: composer:v2
@@ -35,9 +41,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.composer/cache
-          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-composer-
+            ${{ runner.os }}-php-${{ matrix.php }}-composer-
 
       - name: Instalar dependencias
         run: composer install --no-interaction --prefer-dist --no-progress

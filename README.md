@@ -45,7 +45,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Reportes PDF:** ventas e inventario, con filtros por fecha y sucursal.
 - **Documentación OpenAPI 3.1.2:** `/docs/api` y `/docs/api.json`, con grupos, resúmenes y errores por dominio; importable en Postman.
 - **Cabeceras de seguridad:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer-when-downgrade`, `Permissions-Policy` restrictiva y `server_tokens off` en Nginx; CSP solo en `/docs/api` y HSTS únicamente sobre HTTPS.
-- **CI de calidad:** `.github/workflows/ci.yml` ejecuta tests, PHPStan, Pint y `composer audit` en PHP 8.3 con SQLite en memoria.
+- **CI de calidad:** `.github/workflows/ci.yml` ejecuta tests, PHPStan, Pint y `composer audit` en una matriz PHP 8.2/8.3/8.4 con SQLite en memoria.
 - **Datos demo en español:** 8 sucursales, 52 coches y 3 usuarios con roles `admin`, `manager` y `vendedor`.
 
 ---
@@ -652,7 +652,7 @@ El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmoke
 
 ### CI de calidad
 
-`.github/workflows/ci.yml` se ejecuta en cada `push` y `pull_request` con PHP 8.3 y SQLite en memoria. Instala dependencias, genera `APP_KEY` y corre `composer test`, `composer analyse`, `pint --test` y `composer audit`. Es independiente del workflow de Docker Hub, que solo publica la imagen PaaS.
+`.github/workflows/ci.yml` se ejecuta en cada `push` y `pull_request` con una matriz de PHP **8.2, 8.3 y 8.4** (el rango que declara `composer.json`) y SQLite en memoria. Instala dependencias, genera `APP_KEY` y corre `composer test`, `composer analyse`, `pint --test` y `composer audit` en cada versión. La imagen de desarrollo sigue usando PHP 8.3. Es independiente del workflow de Docker Hub, que solo publica la imagen PaaS.
 
 ### Reglas que fijan los tests
 
@@ -1062,6 +1062,8 @@ Cada push a `main` (o una ejecución manual con `workflow_dispatch`) construye `
 - `sha-<corto>`: versión inmutable del commit, útil para fijar despliegues y hacer rollback.
 
 El workflow solo compila y publica; los tests siguen ejecutándose en local (`composer test`, `composer analyse`, `pint --test`, `composer audit`).
+
+**Plataforma de la imagen (`linux/amd64`).** Solo se publica `linux/amd64` a propósito: Render y Railway ejecutan contenedores amd64, y añadir `linux/arm64` obligaría a emular la otra arquitectura en cada build (mucho más lento y sin uso real para estas plataformas). Si algún día despliegas en un host arm64 (por ejemplo un VPS Graviton o una Raspberry Pi), construye la imagen en ese host con `docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .`; el Dockerfile es multi-arquitectura y no contiene binarios específicos de amd64. Para publicar ambas plataformas habría que cambiar `platforms` en `.github/workflows/deploy-dockerhub.yml` a `linux/amd64,linux/arm64` y aceptar el coste de emulación.
 
 ### 3. Crear el servicio en Render
 
