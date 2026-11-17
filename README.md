@@ -796,6 +796,16 @@ docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
 - `migrate --force --seed` crea el esquema y también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que este paso va antes de recibir tráfico. El `--seed` en producción solo siembra roles/permisos y el administrador definido por `ADMIN_EMAIL`/`ADMIN_PASSWORD` (añade esas variables a `.env.production`); no inserta datos demo.
 - `optimize` cachea configuración, eventos, rutas y vistas compiladas (`config:cache`, `event:cache`, `route:cache`, `view:cache`) para que cada petición no reconstruya el bootstrap.
 
+### Ajuste de PHP-FPM
+
+El pool vive en `docker/php/www.conf` y lo comparten desarrollo y producción. `pm.max_children` se calcula con la RAM del servidor o del límite del contenedor:
+
+```text
+pm.max_children = floor((RAM_MB - 512) / 75)
+```
+
+512 MB quedan para el sistema, MySQL y Nginx, y 75 MB es el consumo medio de un worker de esta API. Referencias: 1 GB → 7, 2 GB → 20 (valor por defecto), 4 GB → 47, 8 GB → 102. Si cambias el valor, **recrea** los contenedores (`docker compose -f docker-compose.prod.yml --env-file .env.production up -d --force-recreate app worker scheduler`): FPM solo lee el pool al arrancar. `pm.max_requests=500` recicla cada worker para evitar fugas y `request_terminate_timeout=60s` corta peticiones que superen el `fastcgi_read_timeout` de Nginx.
+
 > Las cachés de `optimize` se escriben en `bootstrap/cache` dentro del contenedor, no en el volumen `app-storage`: se pierden al recrear `app`, así que vuelve a ejecutar `optimize` después de cada despliegue. Si cambias `.env.production`, ejecuta `php artisan optimize:clear` y reinicia `app`; con la configuración cacheada, los cambios de entorno no se leen.
 
 ### Paso 5: TLS y proxy inverso

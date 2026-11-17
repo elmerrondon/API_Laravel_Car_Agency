@@ -44,6 +44,7 @@ RUN apk add --no-cache \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 WORKDIR /var/www/html
 
@@ -64,7 +65,9 @@ RUN mkdir -p \
         storage/framework/sessions \
         storage/framework/views \
         storage/logs \
-    && chown -R app:app vendor storage bootstrap/cache
+    && chown -R app:app vendor storage bootstrap/cache \
+    # En desarrollo FPM no corre como root: `user`/`group` solo generan avisos.
+    && sed -i '/^user = www-data$/d;/^group = www-data$/d' /usr/local/etc/php-fpm.d/www.conf
 
 USER app
 
