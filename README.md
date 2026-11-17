@@ -44,7 +44,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Soft deletes:** en `User` y `Car`. Las ventas no se borran: se cancelan con `SaleStatus::CANCELLED`.
 - **Reportes PDF:** ventas e inventario, con filtros por fecha y sucursal.
 - **Documentación OpenAPI 3.1.2:** `/docs/api` y `/docs/api.json`, con grupos, resúmenes y errores por dominio; importable en Postman.
-- **Cabeceras de seguridad:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: no-referrer-when-downgrade` en Nginx y Caddy.
+- **Cabeceras de seguridad:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer-when-downgrade`, `Permissions-Policy` restrictiva y `server_tokens off` en Nginx; CSP solo en `/docs/api` y HSTS únicamente sobre HTTPS.
 - **CI de calidad:** `.github/workflows/ci.yml` ejecuta tests, PHPStan, Pint y `composer audit` en PHP 8.3 con SQLite en memoria.
 - **Datos demo en español:** 8 sucursales, 52 coches y 3 usuarios con roles `admin`, `manager` y `vendedor`.
 
@@ -1176,7 +1176,7 @@ docker compose exec -T app php artisan migrate --seed
 - La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
 - Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local.
 - El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, MySQL sin puerto público, sesiones en `app-storage` y caché/colas en MySQL). Usa `.env.production.example` como plantilla del entorno productivo.
-- Nginx y Caddy añaden `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: no-referrer-when-downgrade` a todas las respuestas.
+- Nginx y Caddy añaden `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer-when-downgrade` y `Permissions-Policy` a todas las respuestas, incluidos los errores (`always` en Nginx). Nginx oculta su versión con `server_tokens off` y solo `/docs/api` recibe una CSP que permite Stoplight Elements (JS/CSS de `unpkg.com` y scripts inline); el resto de la API no necesita CSP porque no sirve HTML.
 - No hay llamadas HTTP salientes en tiempo de ejecución: la política de contraseñas, la auditoría y las estadísticas se resuelven en local.
 
 ---

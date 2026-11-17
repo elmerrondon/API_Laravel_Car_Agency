@@ -15,13 +15,20 @@
 
 	encode zstd br gzip
 
-	# Cabeceras básicas de seguridad. La plataforma termina TLS, pero estas
-	# cabeceras las añade la aplicación en cada respuesta.
+	# Cabeceras de seguridad. La plataforma termina TLS, pero estas cabeceras
+	# las añade Caddy en cada respuesta (incluidos los errores). HSTS lo pone
+	# la aplicación solo sobre HTTPS.
 	header {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer-when-downgrade"
+		Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+		-Server
 	}
+
+	# CSP solo para la documentación interactiva (Stoplight Elements carga JS y
+	# CSS desde unpkg.com y usa scripts inline).
+	header /docs/api Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://unpkg.com; font-src 'self' data: https://unpkg.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
 	# Logs de acceso a stdout para que la plataforma los recolecte.
 	log {

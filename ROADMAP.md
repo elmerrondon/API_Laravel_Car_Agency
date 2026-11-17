@@ -173,7 +173,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 - [x] `8.4` Comprimir respuestas (`P-04`): `gzip on` en Nginx con `application/json`, `text/csv` y `text/plain`; nunca comprimir PDF.
 - [x] `8.5` Ajustar MySQL (`P-05`): `innodb_buffer_pool_size` configurable por entorno (25-50 % de la RAM), `slow_query_log` y `long_query_time`; documentar el cálculo.
 - [x] `8.6` Limitar la generación de PDF por separado (`P-06`): limitador `reports-pdf` (5/min) manteniendo `reports` en 30/min para JSON; configuración y tests.
-- [ ] `8.7` Completar cabeceras de seguridad (`S-11`): `server_tokens off`, `Permissions-Policy`, CSP para `/docs/api` y HSTS solo bajo HTTPS; replicar en Caddy y verificar que se aplican también en errores.
+- [x] `8.7` Completar cabeceras de seguridad (`S-11`): `server_tokens off`, `Permissions-Policy`, CSP para `/docs/api` y HSTS solo bajo HTTPS; replicar en Caddy y verificar que se aplican también en errores.
 - [ ] `8.8` Cerrar el MySQL de desarrollo (`S-09`): publicar solo en `127.0.0.1:3306`, eliminar `MYSQL_ROOT_HOST: "%"` y crear un usuario de aplicación no root.
 - [ ] `8.9` Rechazar CORS comodín en producción (`S-10`): fallar el arranque si `CORS_ALLOWED_ORIGINS` es `*` o está vacío en producción; mantener `*` en local/testing y añadir test de configuración.
 - [ ] `8.10` Prefijar los tokens de Sanctum (`S-12`): `SANCTUM_TOKEN_PREFIX=car_` por defecto en `.env.example` y `.env.production.example`, test de token nuevo con prefijo y nota de impacto para clientes.
