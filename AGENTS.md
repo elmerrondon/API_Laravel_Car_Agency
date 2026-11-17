@@ -245,7 +245,8 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 
 ### Límites y rendimiento
 
-- Rate limits en `config/rate_limits.php`: `login` 5/min (email+IP), `api` 120/min, `reports` 30/min y `reports-pdf` 5/min (usuario, o IP sin token). Ajustables con `RATE_LIMIT_LOGIN`, `RATE_LIMIT_API`, `RATE_LIMIT_REPORTS` y `RATE_LIMIT_REPORTS_PDF`. Los PDF llevan el cupo general de reportes **y** el suyo propio, porque Dompdf cuesta mucho más que el JSON.
+- Rate limits en `config/rate_limits.php`: `login` 5/min (email+IP), `login_ip` 20/min (IP), `api-anon` 30/min (IP sin token), `api` 120/min, `reports` 30/min y `reports-pdf` 5/min (usuario, o IP sin token). Ajustables con `RATE_LIMIT_LOGIN`, `RATE_LIMIT_LOGIN_IP`, `RATE_LIMIT_API_ANON`, `RATE_LIMIT_API`, `RATE_LIMIT_REPORTS` y `RATE_LIMIT_REPORTS_PDF`. Los PDF llevan el cupo general de reportes **y** el suyo propio, porque Dompdf cuesta mucho más que el JSON.
+- `ThrottleAnonymousApi` es middleware **global** y corre antes de que el kernel reenlace la petición en `dispatchToRouter()`; en ese punto `$request->user()` todavía devuelve `null` porque la petición no tiene *user resolver*. El limitador `api-anon` debe comprobar `Auth::guard('sanctum')->user()`: con `$request->user()` el tráfico autenticado consume el cupo anónimo (30/min) y `RateLimitTest` lo detecta.
 - PDF: `REPORTS_MAX_ROWS=500` corta antes de hidratar y responde `422` (`ReportTooLargeException`); `docker/php/php.ini` fija `memory_limit=512M`. 500 filas consumen ~216 MB y ~8 s; 1 000 filas ~508 MB, así que sube ambas cosas a la vez.
 - `SaleReportService` usa comparaciones sargables (`>= from 00:00`, `< to + 1 día`) para aprovechar el índice `(branch_id, sale_date)`; `whereDate()` compila a `date(col)` y lo anula.
 - Los permisos del usuario se cachean `PERMISSIONS_CACHE_TTL` segundos (300 por defecto) para no repetir el join en cada petición.

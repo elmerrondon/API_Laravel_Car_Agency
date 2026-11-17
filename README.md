@@ -296,6 +296,8 @@ Los límites se definen en `config/rate_limits.php` y se pueden ajustar con vari
 | Limiter | Rutas | Límite | Se cuenta por |
 | :--- | :--- | :--- | :--- |
 | `login` | `POST /api/auth/login` | 5/min (`RATE_LIMIT_LOGIN`) | email + IP |
+| `login_ip` | `POST /api/auth/login` | 20/min (`RATE_LIMIT_LOGIN_IP`) | IP: corta la rotación de emails (*password spraying*) |
+| `api-anon` | Cualquier ruta `/api/*` sin token | 30/min (`RATE_LIMIT_API_ANON`) | IP |
 | `api` | Resto de rutas autenticadas | 120/min (`RATE_LIMIT_API`) | usuario (o IP sin token) |
 | `reports` | `/api/reports/*` | 30/min (`RATE_LIMIT_REPORTS`) | usuario (o IP sin token) |
 | `reports-pdf` | `/api/reports/*/pdf` | 5/min (`RATE_LIMIT_REPORTS_PDF`) | usuario (o IP sin token) |
@@ -646,9 +648,33 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-16): **377 tests / 2723 aserciones**, **PHPStan 0 errores**, **Pint limpio (362 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-17): **378 tests / 2724 aserciones**, **PHPStan nivel 7 con 0 errores**, **Pint limpio (362 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
+
+### Verificación integral
+
+Antes de cerrar una entrega se repite esta batería. La suite usa SQLite en memoria, pero `migrate:fresh --seed` y los smoke tests sí tocan MySQL:
+
+```bash
+docker compose exec -T app php artisan migrate:fresh --seed
+docker compose exec -T app composer test
+docker compose exec -T app composer analyse
+docker compose exec -T app ./vendor/bin/pint --test
+docker compose exec -T app composer audit
+docker compose exec -T app composer docs:export
+npx @redocly/cli lint storage/app/openapi.json   # en el host: la imagen PHP no trae Node
+docker compose exec -T app php artisan schedule:list
+docker compose exec -T app php artisan health:check
+docker compose config >/dev/null
+docker compose -f docker-compose.prod.yml --env-file .env.production config >/dev/null
+docker build -f docker/php/Dockerfile --target prod -t car-agency-laravel-api:prod .
+docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
+```
+
+Redocly valida el contrato sin errores; el único aviso es `no-server-example.com` porque `servers` apunta a `http://localhost:8000/api`, que es lo correcto en desarrollo. Los dos builds se ejecutan en el host porque son de Docker.
+
+El smoke HTTP real (2026-11-17) comprobó login con prefijo `car_`, `429` anónimo a los 30/min, rotación de emails frenada a los 20/min, IP real vía `X-Forwarded-For` con `TRUSTED_PROXIES`, auditoría de catálogos, venta con `exchange_rate=0` y sucursal incoherente (`422`), estado `sold` manual (`422`), coche con soft delete visible en la venta histórica y `/up` en `200`. Ese recorrido detectó que el limitador anónimo contaba también el tráfico autenticado; quedó corregido y cubierto por `RateLimitTest`.
 
 ### CI de calidad
 
@@ -797,6 +823,8 @@ El servicio `scheduler` arranca con la misma imagen y el mismo `.env.production`
 docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force --seed
 docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
 ```
+
+> En el primer despliegue, `worker` y `scheduler` arrancan antes de que existan las tablas y reinician en bucle hasta que corre `migrate`; `restart: unless-stopped` los recupera solos en cuanto la base está lista. Si quieres evitar ese ruido en los logs, levanta primero solo `mysql` y `app`, ejecuta este paso y después `up -d` con el stack completo.
 
 - `migrate --force --seed` crea el esquema y también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que este paso va antes de recibir tráfico. El `--seed` en producción solo siembra roles/permisos y el administrador definido por `ADMIN_EMAIL`/`ADMIN_PASSWORD` (añade esas variables a `.env.production`); no inserta datos demo.
 - `optimize` cachea configuración, eventos, rutas y vistas compiladas (`config:cache`, `event:cache`, `route:cache`, `view:cache`) para que cada petición no reconstruya el bootstrap.

@@ -194,9 +194,9 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 
 **Objetivo:** demostrar que todas las acciones del plan están implementadas, documentadas y reproducibles desde cero.
 
-- [ ] `9.1` Verificación completa en Docker: `migrate:fresh --seed`, suite, `composer analyse`, `pint --test`, `composer audit`, `composer docs:export` + Redocly, `schedule:list`, `docker compose config` de desarrollo y producción, build de producción y build de la imagen PaaS.
-- [ ] `9.2` Smoke HTTP real de los P0/P1: login, `429` anónimo, login rotando emails, IP real tras proxy, auditoría de catálogos, venta con `exchange_rate=0`, venta con sucursal incoherente, estado `sold` manual, coche borrado en venta histórica y `/up`. Cada hallazgo debe tener una comprobación observable.
-- [ ] `9.3` Documentación y cierre: marcar las tareas en `ROADMAP.md`, actualizar `AGENTS.md` (límites, proxies, TLS, scheduler, worker, auditoría de catálogos, reglas de venta y estados, prefijo de token, healthcheck), `README.md` (operación, backups, TLS, respuestas `429`) y `MEMORY.md` (entradas fechadas, máximo 100 líneas).
+- [x] `9.1` Verificación completa en Docker: `migrate:fresh --seed`, suite, `composer analyse`, `pint --test`, `composer audit`, `composer docs:export` + Redocly, `schedule:list`, `docker compose config` de desarrollo y producción, build de producción y build de la imagen PaaS.
+- [x] `9.2` Smoke HTTP real de los P0/P1: login, `429` anónimo, login rotando emails, IP real tras proxy, auditoría de catálogos, venta con `exchange_rate=0`, venta con sucursal incoherente, estado `sold` manual, coche borrado en venta histórica y `/up`. Cada hallazgo debe tener una comprobación observable.
+- [x] `9.3` Documentación y cierre: marcar las tareas en `ROADMAP.md`, actualizar `AGENTS.md` (límites, proxies, TLS, scheduler, worker, auditoría de catálogos, reglas de venta y estados, prefijo de token, healthcheck), `README.md` (operación, backups, TLS, respuestas `429`) y `MEMORY.md` (entradas fechadas, máximo 100 líneas).
 
 **Criterio de cierre:** suite verde, PHPStan en el nivel acordado, Pint limpio, `composer audit` sin avisos, OpenAPI válido, ambos stacks levantan, scheduler y worker activos y los seis P0 verificados con pruebas dinámicas.
 
