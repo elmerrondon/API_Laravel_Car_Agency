@@ -754,7 +754,7 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 cp .env.production.example .env.production
 ```
 
-Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real (`https://api.example.com`) y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
+Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real (`https://api.example.com`) y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción: el arranque HTTP falla con un `500` explicativo si está vacío o contiene el comodín). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
 
 Para TLS deja `TRUSTED_PROXIES=172.28.0.0/16` (la red de Compose), `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. `HSTS_INCLUDE_SUBDOMAINS` solo debe activarse si **todos** los subdominios del dominio sirven HTTPS. Los detalles y las dos vías de terminación TLS están en el paso 5.
 

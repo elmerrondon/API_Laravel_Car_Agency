@@ -139,7 +139,7 @@ El repo no versiona `vendor/`, `.env` ni `node_modules/`. `.env.example` ya est�
 
 La app está organizada por dominio de negocio, no por las carpetas estándar de Laravel:
 
-`app/{Enums,DTOs,Models,Services,Http/Controllers,Http/Requests,Http/Resources}/{Cars,Locations,Sales,Users}`; los reportes viven en `app/{Services,Http/Controllers,Http/Requests}/Reports`, la auditoría en `app/{Services,Http/Controllers,Http/Requests}/Audit`, las políticas transversales en `app/Support` (por ejemplo `PasswordPolicy`), las vistas en `resources/views/reports` y los metadatos de OpenAPI en `app/OpenApi`.
+`app/{Enums,DTOs,Models,Services,Http/Controllers,Http/Requests,Http/Resources}/{Cars,Locations,Sales,Users}`; los reportes viven en `app/{Services,Http/Controllers,Http/Requests}/Reports`, la auditoría en `app/{Services,Http/Controllers,Http/Requests}/Audit`, las políticas transversales en `app/Support` (por ejemplo `PasswordPolicy` y `CorsPolicy`), las vistas en `resources/views/reports` y los metadatos de OpenAPI en `app/OpenApi`.
 
 Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -> `DTOs/.../*Data::fromRequest()` -> servicio en `app/Services` -> `Http/Resources/...`.
 
@@ -187,6 +187,12 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - La política de contraseñas es 100 % local (`App\Support\PasswordPolicy`): producción exige 8 caracteres con mayúsculas, minúsculas, números y símbolos; local/testing usa mínimo 6. **Nunca** añadas `->uncompromised()` ni otra regla que haga HTTP saliente. `PasswordPolicyTest` fija la regla fuerte y comprueba que `uncompromised` está desactivado.
 - `POST /users/{user}/reset-password` (permiso `manage_users`) asigna una clave temporal, marca `must_change_password` y revoca todos los tokens del objetivo.
 - `UserService` protege al último administrador activo: desactivarlo, borrarlo o quitarle el rol `admin` responde `409` (`LastAdminException`). Solo cuentan administradores activos y no borrados lógicamente.
+
+### CORS
+
+- `config/cors.php` normaliza `CORS_ALLOWED_ORIGINS` (lista separada por comas; vacío equivale a `*`). En `local`/`testing` el comodín es válido y es el valor por defecto.
+- En producción el arranque HTTP lanza `InsecureCorsConfigurationException` (500) si la lista está vacía o contiene `*`. Los comandos artisan omiten la comprobación para que `package:discover` y `optimize` funcionen durante el build, donde aún no existe `.env.production`.
+- `CorsPolicy` (`app/Support`) concentra la regla y `CorsConfigTest` la cubre. `.env.production.example` trae un origen explícito (`https://app.example.com`).
 
 ### Auditoría
 

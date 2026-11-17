@@ -21,6 +21,7 @@ use App\Models\Sales\Tax;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\OpenApi\ApiDocumentation;
+use App\Support\CorsPolicy;
 use App\Support\PasswordPolicy;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -47,6 +48,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // En producción, un CORS comodín (o vacío) abriría la API a cualquier
+        // web. El arranque HTTP falla con un mensaje operativo; los comandos
+        // artisan lo omiten porque durante el build aún no hay .env.production.
+        if (! app()->runningInConsole()) {
+            CorsPolicy::assertAllowedOrigins(
+                app()->environment(),
+                (array) config('cors.allowed_origins'),
+            );
+        }
+
         // Alias legibles para `audit_logs.auditable_type`: el log guarda el
         // alias (`user`, `car`, `brand`, `city`…), no el FQCN del modelo.
         Relation::morphMap([
