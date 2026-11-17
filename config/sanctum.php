@@ -71,6 +71,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Last Used At
+    |--------------------------------------------------------------------------
+    |
+    | Sanctum actualiza `personal_access_tokens.last_used_at` en cada petición
+    | autenticada, lo que añade un UPDATE por request. Desactivado por defecto:
+    | la API no necesita esa marca para nada y el ahorro pesa más que el dato.
+    | Actívalo con SANCTUM_LAST_USED_AT=true si algún día hace falta auditar el
+    | uso por token (por ejemplo, para revocar tokens inactivos).
+    |
+    */
+
+    'last_used_at' => (bool) env('SANCTUM_LAST_USED_AT', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Sanctum Middleware
     |--------------------------------------------------------------------------
     |

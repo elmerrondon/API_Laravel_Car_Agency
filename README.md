@@ -259,7 +259,7 @@ El login devuelve un token bearer. En cada petición protegida envía:
 Authorization: Bearer <token>
 ```
 
-Los tokens expiran a los **120 minutos**. `POST /api/auth/logout` invalida el token actual y `POST /api/auth/refresh` emite uno nuevo.
+Los tokens expiran a los **120 minutos**. `POST /api/auth/logout` invalida el token actual y `POST /api/auth/refresh` emite uno nuevo. Por rendimiento, la API no actualiza `last_used_at` en cada petición (`SANCTUM_LAST_USED_AT=false`); actívalo solo si necesitas auditar el uso por token.
 
 ### Autoservicio de identidad
 

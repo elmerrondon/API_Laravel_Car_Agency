@@ -240,6 +240,7 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - PDF: `REPORTS_MAX_ROWS=500` corta antes de hidratar y responde `422` (`ReportTooLargeException`); `docker/php/php.ini` fija `memory_limit=512M`. 500 filas consumen ~216 MB y ~8 s; 1 000 filas ~508 MB, así que sube ambas cosas a la vez.
 - `SaleReportService` usa comparaciones sargables (`>= from 00:00`, `< to + 1 día`) para aprovechar el índice `(branch_id, sale_date)`; `whereDate()` compila a `date(col)` y lo anula.
 - Los permisos del usuario se cachean `PERMISSIONS_CACHE_TTL` segundos (300 por defecto) para no repetir el join en cada petición.
+- `SANCTUM_LAST_USED_AT=false` por defecto: Sanctum deja de escribir `personal_access_tokens.last_used_at` en cada petición autenticada (un UPDATE menos por request). La API no usa esa marca; actívalo solo si necesitas auditar el uso por token.
 - La exportación de auditoría usa `cursor()` y escritura directa a `php://output`: no hidrata toda la tabla ni compite con el límite de memoria de los PDF.
 
 ## Memoria del proyecto

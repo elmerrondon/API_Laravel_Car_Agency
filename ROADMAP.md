@@ -167,7 +167,7 @@ Plan derivado de la revisión integral del 2026-11-07 (informe externo no versio
 
 **Objetivo:** reducir coste por petición, endurecer cabeceras y superficies expuestas, y elevar el listón de calidad sin cambiar el contrato funcional.
 
-- [ ] `8.1` Evitar la escritura de `last_used_at` en cada petición (`P-01`): `config/sanctum.php` con `last_used_at => env('SANCTUM_LAST_USED_AT', false)` y documentación del trade-off.
+- [x] `8.1` Evitar la escritura de `last_used_at` en cada petición (`P-01`): `config/sanctum.php` con `last_used_at => env('SANCTUM_LAST_USED_AT', false)` y documentación del trade-off.
 - [ ] `8.2` Ajustar el pool de PHP-FPM (`P-02`): `docker/php/www.conf` con `pm.max_children` calculado por RAM, `pm.max_requests=500` y `request_terminate_timeout`; documentar la fórmula y el reinicio tras despliegue.
 - [ ] `8.3` Activar OPcache de producción (`P-03`): `opcache.validate_timestamps=0`, `memory_consumption=128`, `max_accelerated_files=10000` y JIT desactivado para este perfil.
 - [ ] `8.4` Comprimir respuestas (`P-04`): `gzip on` en Nginx con `application/json`, `text/csv` y `text/plain`; nunca comprimir PDF.
