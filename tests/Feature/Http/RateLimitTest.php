@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Enums\Users\RoleEnum;
+use Illuminate\Cache\RateLimiting\Unlimited;
+use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Support\Facades\RateLimiter;
 
 it('limita las peticiones generales del API por usuario', function () {
     config(['rate_limits.api' => 2]);
@@ -49,6 +52,19 @@ it('no consume el cupo anónimo cuando el token es válido', function () {
     $this->getJson('/api/cars')->assertOk();
 
     $this->getJson('/api/cars')->assertStatus(429);
+});
+
+it('no cuenta como anónimo un token válido antes de que la petición tenga user resolver', function () {
+    // Reproduce el orden real: `ThrottleAnonymousApi` es middleware global y
+    // corre antes de que el kernel reenlace la petición y le instale el user
+    // resolver, así que `$request->user()` es null aunque el guard de Sanctum
+    // ya haya resuelto el token. El limitador debe mirar el guard, no la
+    // petición; si no, el tráfico autenticado cae en el cupo anónimo.
+    actingAsRole(RoleEnum::ADMIN);
+
+    $request = HttpRequest::create('/api/cars', 'GET');
+
+    expect(RateLimiter::limiter('api-anon')($request))->toBeInstanceOf(Unlimited::class);
 });
 
 it('aplica un límite más estricto a los reportes', function () {

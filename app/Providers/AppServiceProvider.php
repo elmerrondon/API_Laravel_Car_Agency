@@ -28,6 +28,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -99,10 +100,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Freno del tráfico anónimo. Lo aplica el middleware global
-        // `ThrottleAnonymousApi` antes de `auth:sanctum`; un token válido pasa
-        // sin consumir este cupo y conserva el límite `api` por usuario.
+        // `ThrottleAnonymousApi` antes de `auth:sanctum`, así que aquí no sirve
+        // `$request->user()`: el kernel aún no ha reenlazado la petición y su
+        // user resolver devuelve null. El guard de Sanctum sí resuelve el token
+        // bearer en este punto; sin esta comprobación el tráfico autenticado
+        // consumiría el cupo anónimo (30/min) en vez del suyo (120/min).
         RateLimiter::for('api-anon', function (Request $request) {
-            if ($request->user('sanctum') !== null) {
+            if (Auth::guard('sanctum')->user() !== null) {
                 return Limit::none();
             }
 
