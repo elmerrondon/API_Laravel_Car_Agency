@@ -8,6 +8,7 @@ use App\DTOs\Users\UserData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Users\User;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class UserService
@@ -22,7 +23,8 @@ class UserService
         private readonly UserAdminGuard $guard,
     ) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, User> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return User::with(self::RELATIONS)
             ->orderBy('id')

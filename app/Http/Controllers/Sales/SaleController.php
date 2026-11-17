@@ -12,12 +12,13 @@ use App\Http\Requests\Sales\Sale\StoreSaleRequest;
 use App\Http\Resources\Sales\SaleResource;
 use App\Models\Sales\Sale;
 use App\Services\Sales\SaleService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class SaleController extends Controller
 {
     public function __construct(private readonly SaleService $service) {}
 
-    public function index(IndexSaleRequest $request)
+    public function index(IndexSaleRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
         $sales = $this->service->getAllPaginatedSales($perPage);
@@ -25,19 +26,19 @@ class SaleController extends Controller
         return SaleResource::collection($sales);
     }
 
-    public function show(Sale $sale)
+    public function show(Sale $sale): SaleResource
     {
         return new SaleResource($this->service->getSale($sale));
     }
 
-    public function store(StoreSaleRequest $request)
+    public function store(StoreSaleRequest $request): SaleResource
     {
         $dto = SaleData::fromRequest($request);
 
         return new SaleResource($this->service->createSale($dto));
     }
 
-    public function cancelSale(Sale $sale, CancelSaleRequest $request)
+    public function cancelSale(Sale $sale, CancelSaleRequest $request): SaleResource
     {
         $notes = (string) $request->validated('notes');
         $canceledSale = $this->service->cancelSale($sale, $notes);

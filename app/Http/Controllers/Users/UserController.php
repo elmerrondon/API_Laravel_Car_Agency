@@ -14,6 +14,9 @@ use App\Http\Resources\Users\UserResource;
 use App\Models\Users\User;
 use App\Services\Users\UserPasswordService;
 use App\Services\Users\UserService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class UserController extends Controller
 {
@@ -22,7 +25,7 @@ class UserController extends Controller
         private readonly UserPasswordService $passwordService,
     ) {}
 
-    public function index(IndexUserRequest $request)
+    public function index(IndexUserRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
 
@@ -31,12 +34,12 @@ class UserController extends Controller
         return UserResource::collection($users);
     }
 
-    public function show(User $user)
+    public function show(User $user): UserResource
     {
         return new UserResource($this->service->getUser($user));
     }
 
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request): UserResource
     {
         $dto = UserData::fromRequest($request);
 
@@ -45,7 +48,7 @@ class UserController extends Controller
         return new UserResource($user);
     }
 
-    public function update(User $user, UpdateUserRequest $request)
+    public function update(User $user, UpdateUserRequest $request): UserResource
     {
         $dto = UserData::fromRequest($request);
 
@@ -54,7 +57,7 @@ class UserController extends Controller
         return new UserResource($user);
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user): Response
     {
 
         $this->service->deleteUser($user);
@@ -62,7 +65,7 @@ class UserController extends Controller
         return response()->noContent();
     }
 
-    public function resetPassword(User $user, ResetUserPasswordRequest $request)
+    public function resetPassword(User $user, ResetUserPasswordRequest $request): JsonResponse
     {
         $this->passwordService->resetPassword($user, (string) $request->validated('password'));
 

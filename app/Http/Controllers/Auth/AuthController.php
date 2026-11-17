@@ -10,13 +10,14 @@ use App\Http\Requests\Auth\LoginAuthRequest;
 use App\Http\Resources\Users\AuthenticatedUserResource;
 use App\Models\Users\User;
 use App\Services\Auth\AuthService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
     public function __construct(private readonly AuthService $service) {}
 
-    public function login(LoginAuthRequest $request)
+    public function login(LoginAuthRequest $request): JsonResponse
     {
         $email = (string) $request->validated('email');
         $password = (string) $request->validated('password');
@@ -30,7 +31,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request)
+    public function me(Request $request): AuthenticatedUserResource
     {
         $user = $request->user();
 
@@ -41,7 +42,7 @@ class AuthController extends Controller
         return new AuthenticatedUserResource($this->service->profile($user));
     }
 
-    public function changePassword(ChangePasswordRequest $request)
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
         $user = $request->user();
 
@@ -58,7 +59,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Password Updated']);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -67,7 +68,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logout Success']);
     }
 
-    public function refresh(Request $request)
+    public function refresh(Request $request): JsonResponse
     {
         $user = $request->user();
 

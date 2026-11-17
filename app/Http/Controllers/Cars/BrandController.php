@@ -12,12 +12,14 @@ use App\Http\Requests\Cars\Brand\UpdateBrandRequest;
 use App\Http\Resources\Cars\BrandResource;
 use App\Models\Cars\Brand;
 use App\Services\Cars\BrandService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class BrandController extends Controller
 {
     public function __construct(private readonly BrandService $service) {}
 
-    public function index(IndexBrandRequest $indexBrand)
+    public function index(IndexBrandRequest $indexBrand): AnonymousResourceCollection
     {
         $perPage = $this->perPage($indexBrand);
 
@@ -26,12 +28,12 @@ class BrandController extends Controller
         return BrandResource::collection($brands);
     }
 
-    public function show(Brand $brand)
+    public function show(Brand $brand): BrandResource
     {
         return new BrandResource($brand);
     }
 
-    public function store(StoreBrandRequest $request)
+    public function store(StoreBrandRequest $request): BrandResource
     {
         $dto = BrandData::fromRequest($request);
 
@@ -40,7 +42,7 @@ class BrandController extends Controller
         return new BrandResource($brand);
     }
 
-    public function update(Brand $brand, UpdateBrandRequest $request)
+    public function update(Brand $brand, UpdateBrandRequest $request): BrandResource
     {
         $dto = BrandData::fromRequest($request);
 
@@ -49,7 +51,7 @@ class BrandController extends Controller
         return new BrandResource($brand);
     }
 
-    public function destroy(Brand $brand)
+    public function destroy(Brand $brand): Response
     {
         $this->service->deleteBrand($brand);
 

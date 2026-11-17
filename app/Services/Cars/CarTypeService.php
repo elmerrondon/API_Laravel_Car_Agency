@@ -8,12 +8,14 @@ use App\DTOs\Cars\CarTypeData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Cars\CarType;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class CarTypeService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, CarType> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return CarType::select(['id', 'name', 'description', 'is_active'])
             ->orderBy('id')

@@ -12,12 +12,14 @@ use App\Http\Requests\Sales\PaymentMethod\UpdatePaymentMethodRequest;
 use App\Http\Resources\Sales\PaymentMethodResource;
 use App\Models\Sales\PaymentMethod;
 use App\Services\Sales\PaymentMethodService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class PaymentMethodController extends Controller
 {
     public function __construct(private readonly PaymentMethodService $service) {}
 
-    public function index(IndexPaymentMethodRequest $request)
+    public function index(IndexPaymentMethodRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
 
@@ -26,12 +28,12 @@ class PaymentMethodController extends Controller
         return PaymentMethodResource::collection($paymentMethods);
     }
 
-    public function show(PaymentMethod $paymentMethod)
+    public function show(PaymentMethod $paymentMethod): PaymentMethodResource
     {
         return new PaymentMethodResource($paymentMethod);
     }
 
-    public function store(StorePaymentMethodRequest $request)
+    public function store(StorePaymentMethodRequest $request): PaymentMethodResource
     {
         $dto = PaymentMethodData::fromRequest($request);
 
@@ -40,7 +42,7 @@ class PaymentMethodController extends Controller
         return new PaymentMethodResource($paymentMethod);
     }
 
-    public function update(PaymentMethod $paymentMethod, UpdatePaymentMethodRequest $request)
+    public function update(PaymentMethod $paymentMethod, UpdatePaymentMethodRequest $request): PaymentMethodResource
     {
         $dto = PaymentMethodData::fromRequest($request);
 
@@ -49,7 +51,7 @@ class PaymentMethodController extends Controller
         return new PaymentMethodResource($paymentMethod);
     }
 
-    public function destroy(PaymentMethod $paymentMethod)
+    public function destroy(PaymentMethod $paymentMethod): Response
     {
         $this->service->deletePaymentMethod($paymentMethod);
 

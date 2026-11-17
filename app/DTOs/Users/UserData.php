@@ -11,6 +11,10 @@ readonly class UserData
 {
     use NormalizesRequestValues;
 
+    /**
+     * @param  array<array-key, mixed>  $roles
+     * @param  array<array-key, mixed>  $branches
+     */
     public function __construct(public ?string $name = null, public ?string $lastName = null, public ?string $documentNumber = null, public ?string $code = null, public ?string $email = null, public ?string $password = null, public ?array $roles = null, public ?array $branches = null, public ?bool $isActive = null, public ?bool $mustChangePassword = null) {}
 
     public static function fromRequest(FormRequest $request): self

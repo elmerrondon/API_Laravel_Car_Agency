@@ -18,6 +18,7 @@ use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class SaleService
@@ -43,7 +44,8 @@ class SaleService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginatedSales(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Sale> */
+    public function getAllPaginatedSales(?int $perPage = null): LengthAwarePaginator
     {
         return Sale::with(self::RELATIONS)
             ->orderBy('id')
@@ -56,7 +58,7 @@ class SaleService
         return $sale->load(self::RELATIONS);
     }
 
-    public function createSale(SaleData $data)
+    public function createSale(SaleData $data): Sale
     {
 
         $sale = DB::transaction(function () use ($data) {

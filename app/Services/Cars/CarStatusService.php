@@ -8,6 +8,9 @@ use App\Enums\Cars\CarStatus;
 
 class CarStatusService
 {
+    /**
+     * @return list<array{status: string}>
+     */
     public function getAllStatuses(): array
     {
         return array_map(function ($status) {

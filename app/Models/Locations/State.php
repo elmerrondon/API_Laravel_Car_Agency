@@ -13,6 +13,7 @@ class State extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
+    /** @return BelongsTo<Country, $this> */
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);

@@ -12,13 +12,16 @@ use App\Http\Requests\Sales\Currency\UpdateCurrencyRequest;
 use App\Http\Resources\Sales\CurrencyResource;
 use App\Models\Sales\Currency;
 use App\Services\Sales\CurrencyService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use LogicException;
 
 class CurrencyController extends Controller
 {
     public function __construct(private readonly CurrencyService $service) {}
 
-    public function index(IndexCurrencyRequest $request)
+    public function index(IndexCurrencyRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
 
@@ -27,12 +30,12 @@ class CurrencyController extends Controller
         return CurrencyResource::collection($currencies);
     }
 
-    public function show(Currency $currency)
+    public function show(Currency $currency): CurrencyResource
     {
         return new CurrencyResource($currency);
     }
 
-    public function store(StoreCurrencyRequest $request)
+    public function store(StoreCurrencyRequest $request): CurrencyResource|JsonResponse
     {
         try {
             $dto = CurrencyData::fromRequest($request);
@@ -45,7 +48,7 @@ class CurrencyController extends Controller
         }
     }
 
-    public function update(Currency $currency, UpdateCurrencyRequest $request)
+    public function update(Currency $currency, UpdateCurrencyRequest $request): CurrencyResource|JsonResponse
     {
         try {
             $dto = CurrencyData::fromRequest($request);
@@ -59,7 +62,7 @@ class CurrencyController extends Controller
         }
     }
 
-    public function destroy(Currency $currency)
+    public function destroy(Currency $currency): Response|JsonResponse
     {
         try {
             $this->service->deleteCurrency($currency);

@@ -12,12 +12,14 @@ use App\Http\Requests\Cars\Color\UpdateColorRequest;
 use App\Http\Resources\Cars\ColorResource;
 use App\Models\Cars\Color;
 use App\Services\Cars\ColorService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class ColorController extends Controller
 {
     public function __construct(private readonly ColorService $service) {}
 
-    public function index(IndexColorRequest $request)
+    public function index(IndexColorRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
 
@@ -26,12 +28,12 @@ class ColorController extends Controller
         return ColorResource::collection($colors);
     }
 
-    public function show(Color $color)
+    public function show(Color $color): ColorResource
     {
         return new ColorResource($color);
     }
 
-    public function store(StoreColorRequest $request)
+    public function store(StoreColorRequest $request): ColorResource
     {
         $dto = ColorData::fromRequest($request);
 
@@ -40,7 +42,7 @@ class ColorController extends Controller
         return new ColorResource($color);
     }
 
-    public function update(Color $color, UpdateColorRequest $request)
+    public function update(Color $color, UpdateColorRequest $request): ColorResource
     {
         $dto = ColorData::fromRequest($request);
 
@@ -49,7 +51,7 @@ class ColorController extends Controller
         return new ColorResource($color);
     }
 
-    public function destroy(Color $color)
+    public function destroy(Color $color): Response
     {
         $this->service->deleteColor($color);
 

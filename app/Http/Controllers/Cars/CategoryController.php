@@ -12,12 +12,14 @@ use App\Http\Requests\Cars\Category\UpdateCategoryRequest;
 use App\Http\Resources\Cars\CategoryResource;
 use App\Models\Cars\Category;
 use App\Services\Cars\CategoryService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class CategoryController extends Controller
 {
     public function __construct(private readonly CategoryService $service) {}
 
-    public function index(IndexCategoryRequest $request)
+    public function index(IndexCategoryRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
         $categories = $this->service->getAllPaginated($perPage);
@@ -25,12 +27,12 @@ class CategoryController extends Controller
         return CategoryResource::collection($categories);
     }
 
-    public function show(Category $category)
+    public function show(Category $category): CategoryResource
     {
         return new CategoryResource($category);
     }
 
-    public function store(StoreCategoryRequest $request)
+    public function store(StoreCategoryRequest $request): CategoryResource
     {
         $dto = CategoryData::fromRequest($request);
 
@@ -39,7 +41,7 @@ class CategoryController extends Controller
         return new CategoryResource($category);
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category)
+    public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
     {
         $dto = CategoryData::fromRequest($request);
 
@@ -48,7 +50,7 @@ class CategoryController extends Controller
         return new CategoryResource($category);
     }
 
-    public function destroy(Category $category)
+    public function destroy(Category $category): Response
     {
         $this->service->deleteCategory($category);
 

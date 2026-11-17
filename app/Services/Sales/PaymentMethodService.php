@@ -8,12 +8,14 @@ use App\DTOs\Sales\PaymentMethodData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Sales\PaymentMethod;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class PaymentMethodService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginatedPaymentMethods(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, PaymentMethod> */
+    public function getAllPaginatedPaymentMethods(?int $perPage = null): LengthAwarePaginator
     {
         return PaymentMethod::select(['id', 'name', 'is_active'])
             ->orderBy('id')

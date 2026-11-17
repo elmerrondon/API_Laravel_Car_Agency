@@ -8,12 +8,14 @@ use App\DTOs\Cars\BrandData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Cars\Brand;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class BrandService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Brand> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return Brand::select(['id', 'name', 'description', 'country_id', 'is_active'])
             ->orderBy('id')

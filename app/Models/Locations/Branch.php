@@ -13,6 +13,7 @@ class Branch extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
+    /** @return BelongsTo<City, $this> */
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);

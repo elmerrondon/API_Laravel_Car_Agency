@@ -8,12 +8,14 @@ use App\DTOs\Cars\ColorData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Cars\Color;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ColorService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Color> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return Color::select(['id', 'name', 'is_active'])
             ->orderBy('id')

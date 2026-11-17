@@ -9,13 +9,15 @@ use App\Enums\Audit\AuditAction;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use LogicException;
 
 class CurrencyService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginatedCurrecies(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Currency> */
+    public function getAllPaginatedCurrecies(?int $perPage = null): LengthAwarePaginator
     {
         return Currency::select(['id', 'name', 'code', 'is_base', 'is_active'])
             ->orderBy('id')

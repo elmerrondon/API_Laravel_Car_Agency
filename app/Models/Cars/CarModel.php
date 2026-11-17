@@ -13,6 +13,7 @@ class CarModel extends Model
 
     protected $hidden = ['created_at', 'updated_at'];
 
+    /** @return BelongsTo<Brand, $this> */
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);

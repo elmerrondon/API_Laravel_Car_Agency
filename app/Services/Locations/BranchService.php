@@ -8,6 +8,7 @@ use App\DTOs\Locations\BranchData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Locations\Branch;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class BranchService
 {
@@ -19,7 +20,8 @@ class BranchService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Branch> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return Branch::with(self::RELATIONS)
             ->select(['id', 'name', 'code', 'address', 'description', 'zip_code', 'is_active', 'city_id'])

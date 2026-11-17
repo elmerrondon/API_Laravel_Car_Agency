@@ -9,13 +9,14 @@ use App\Http\Requests\Reports\SaleReportRequest;
 use App\Services\Reports\SaleReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Dedoc\Scramble\Attributes\Response;
+use Illuminate\Http\Response as HttpResponse;
 
 class SaleReportController extends Controller
 {
     public function __construct(private readonly SaleReportService $service) {}
 
     #[Response(200, description: 'Documento PDF del reporte', mediaType: 'application/pdf', format: 'binary')]
-    public function pdf(SaleReportRequest $request)
+    public function pdf(SaleReportRequest $request): HttpResponse
     {
         $report = $this->service->build($request->validated());
 

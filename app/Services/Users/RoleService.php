@@ -11,6 +11,7 @@ use App\Exceptions\Users\RoleInUseException;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use LogicException;
@@ -19,7 +20,8 @@ class RoleService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginatedRoles(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Role> */
+    public function getAllPaginatedRoles(?int $perPage = null): LengthAwarePaginator
     {
         return Role::with('permissions')
             ->orderBy('id')
@@ -27,7 +29,7 @@ class RoleService
             ->withQueryString();
     }
 
-    public function createRole(RoleData $data)
+    public function createRole(RoleData $data): Role
     {
 
         $role = DB::transaction(function () use ($data) {
@@ -55,7 +57,7 @@ class RoleService
         return $role;
     }
 
-    public function updateRole(Role $role, RoleData $data)
+    public function updateRole(Role $role, RoleData $data): Role
     {
         $oldValues = $this->roleAuditValues($role);
 

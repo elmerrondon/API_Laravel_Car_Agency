@@ -12,12 +12,14 @@ use App\Http\Requests\Cars\CarModel\UpdateCarModelRequest;
 use App\Http\Resources\Cars\CarModelResource;
 use App\Models\Cars\CarModel;
 use App\Services\Cars\CarModelService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class CarModelController extends Controller
 {
     public function __construct(private readonly CarModelService $service) {}
 
-    public function index(IndexCarModelRequest $request)
+    public function index(IndexCarModelRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
 
@@ -26,12 +28,12 @@ class CarModelController extends Controller
         return CarModelResource::collection($carModels);
     }
 
-    public function show(CarModel $carModel)
+    public function show(CarModel $carModel): CarModelResource
     {
         return new CarModelResource($this->service->getCarModel($carModel));
     }
 
-    public function store(StoreCarModelRequest $request)
+    public function store(StoreCarModelRequest $request): CarModelResource
     {
         $dto = CarModelData::fromRequest($request);
 
@@ -40,7 +42,7 @@ class CarModelController extends Controller
         return new CarModelResource($carModel);
     }
 
-    public function update(CarModel $carModel, UpdateCarModelRequest $request)
+    public function update(CarModel $carModel, UpdateCarModelRequest $request): CarModelResource
     {
         $dto = CarModelData::fromRequest($request);
 
@@ -49,7 +51,7 @@ class CarModelController extends Controller
         return new CarModelResource($carModel);
     }
 
-    public function destroy(CarModel $carModel)
+    public function destroy(CarModel $carModel): Response
     {
         $this->service->deleteCarModel($carModel);
 

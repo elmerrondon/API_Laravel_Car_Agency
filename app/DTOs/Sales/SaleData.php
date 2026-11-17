@@ -15,6 +15,9 @@ readonly class SaleData
 {
     use NormalizesRequestValues;
 
+    /**
+     * @param  array<array-key, mixed>  $taxes
+     */
     public function __construct(public float $exchangeRate, public array $taxes, public string $saleDate, public int $carId, public int $userId, public int $branchId, public int $paymentCurrencyId, public int $paymentMethodId, public float $discountPercentage, public ?string $notes = null) {}
 
     public static function fromRequest(FormRequest $request): self

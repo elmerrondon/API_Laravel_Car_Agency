@@ -12,13 +12,14 @@ use App\Http\Resources\Audit\AuditLogResource;
 use App\Models\Audit\AuditLog;
 use App\Services\Audit\AuditQueryService;
 use Dedoc\Scramble\Attributes\Response;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuditLogController extends Controller
 {
     public function __construct(private readonly AuditQueryService $service) {}
 
-    public function index(IndexAuditLogRequest $request)
+    public function index(IndexAuditLogRequest $request): AnonymousResourceCollection
     {
         $logs = $this->service->getAllPaginated(
             $this->filters($request),
@@ -34,7 +35,7 @@ class AuditLogController extends Controller
         return $this->service->exportCsv($this->filters($request));
     }
 
-    public function show(AuditLog $audit_log)
+    public function show(AuditLog $audit_log): AuditLogResource
     {
         return new AuditLogResource($this->service->getAuditLog($audit_log));
     }

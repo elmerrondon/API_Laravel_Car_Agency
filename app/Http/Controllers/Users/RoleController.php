@@ -12,13 +12,16 @@ use App\Http\Requests\Users\Role\UpdateRoleRequest;
 use App\Http\Resources\Users\RoleResource;
 use App\Models\Users\Role;
 use App\Services\Users\RoleService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use LogicException;
 
 class RoleController extends Controller
 {
     public function __construct(private readonly RoleService $service) {}
 
-    public function index(IndexRoleRequest $request)
+    public function index(IndexRoleRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
         $roles = $this->service->getAllPaginatedRoles($perPage);
@@ -26,14 +29,14 @@ class RoleController extends Controller
         return RoleResource::collection($roles);
     }
 
-    public function show(Role $role)
+    public function show(Role $role): RoleResource
     {
         $role->load('permissions');
 
         return new RoleResource($role);
     }
 
-    public function store(StoreRoleRequest $request)
+    public function store(StoreRoleRequest $request): RoleResource|JsonResponse
     {
         try {
             $dto = RoleData::fromRequest($request);
@@ -48,7 +51,7 @@ class RoleController extends Controller
 
     }
 
-    public function update(Role $role, UpdateRoleRequest $request)
+    public function update(Role $role, UpdateRoleRequest $request): RoleResource|JsonResponse
     {
         try {
             $dto = RoleData::fromRequest($request);
@@ -63,7 +66,7 @@ class RoleController extends Controller
 
     }
 
-    public function destroy(Role $role)
+    public function destroy(Role $role): Response|JsonResponse
     {
         try {
             $response = $this->service->deleteRole($role);

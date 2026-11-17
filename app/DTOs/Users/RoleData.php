@@ -11,6 +11,9 @@ readonly class RoleData
 {
     use NormalizesRequestValues;
 
+    /**
+     * @param  array<array-key, mixed>  $permissions
+     */
     public function __construct(public ?string $name = null, public ?string $description = null, public ?array $permissions = null) {}
 
     public static function fromRequest(FormRequest $request): self

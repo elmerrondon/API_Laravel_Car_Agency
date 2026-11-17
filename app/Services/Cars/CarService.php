@@ -12,6 +12,7 @@ use App\Exceptions\Cars\CarStatusTransitionException;
 use App\Models\Cars\Car;
 use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class CarService
 {
@@ -30,7 +31,8 @@ class CarService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, Car> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return Car::with(self::RELATIONS)
             ->orderBy('id')

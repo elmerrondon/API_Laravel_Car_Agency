@@ -12,12 +12,14 @@ use App\Http\Requests\Locations\Branch\UpdateBranchRequest;
 use App\Http\Resources\Locations\BranchResource;
 use App\Models\Locations\Branch;
 use App\Services\Locations\BranchService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class BranchController extends Controller
 {
     public function __construct(private readonly BranchService $service) {}
 
-    public function index(IndexBranchRequest $request)
+    public function index(IndexBranchRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
         $branches = $this->service->getAllPaginated($perPage);
@@ -25,12 +27,12 @@ class BranchController extends Controller
         return BranchResource::collection($branches);
     }
 
-    public function show(Branch $branch)
+    public function show(Branch $branch): BranchResource
     {
         return new BranchResource($this->service->getBranch($branch));
     }
 
-    public function store(StoreBranchRequest $request)
+    public function store(StoreBranchRequest $request): BranchResource
     {
         $dto = BranchData::fromRequest($request);
 
@@ -39,7 +41,7 @@ class BranchController extends Controller
         return new BranchResource($branch);
     }
 
-    public function update(Branch $branch, UpdateBranchRequest $request)
+    public function update(Branch $branch, UpdateBranchRequest $request): BranchResource
     {
         $dto = BranchData::fromRequest($request);
 
@@ -48,7 +50,7 @@ class BranchController extends Controller
         return new BranchResource($branch);
     }
 
-    public function destroy(Branch $branch)
+    public function destroy(Branch $branch): Response
     {
         $this->service->deleteBranch($branch);
 

@@ -8,6 +8,7 @@ use App\DTOs\Locations\CityData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Locations\City;
 use App\Services\Audit\AuditService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class CityService
 {
@@ -18,7 +19,8 @@ class CityService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    public function getAllPaginated(?int $perPage = null)
+    /** @return LengthAwarePaginator<int, City> */
+    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
     {
         return City::with(self::RELATIONS)
             ->select(['id', 'name', 'state_id', 'is_active'])

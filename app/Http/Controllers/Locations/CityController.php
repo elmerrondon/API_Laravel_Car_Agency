@@ -12,12 +12,14 @@ use App\Http\Requests\Locations\City\UpdateCityRequest;
 use App\Http\Resources\Locations\CityResource;
 use App\Models\Locations\City;
 use App\Services\Locations\CityService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class CityController extends Controller
 {
     public function __construct(private readonly CityService $service) {}
 
-    public function index(IndexCityRequest $request)
+    public function index(IndexCityRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
         $cities = $this->service->getAllPaginated($perPage);
@@ -25,12 +27,12 @@ class CityController extends Controller
         return CityResource::collection($cities);
     }
 
-    public function show(City $city)
+    public function show(City $city): CityResource
     {
         return new CityResource($this->service->getCity($city));
     }
 
-    public function store(StoreCityRequest $request)
+    public function store(StoreCityRequest $request): CityResource
     {
         $dto = CityData::fromRequest($request);
 
@@ -39,7 +41,7 @@ class CityController extends Controller
         return new CityResource($city);
     }
 
-    public function update(UpdateCityRequest $request, City $city)
+    public function update(UpdateCityRequest $request, City $city): CityResource
     {
         $dto = CityData::fromRequest($request);
 
@@ -48,7 +50,7 @@ class CityController extends Controller
         return new CityResource($UpdatedCity);
     }
 
-    public function destroy(City $city)
+    public function destroy(City $city): Response
     {
         $this->service->deleteCity($city);
 

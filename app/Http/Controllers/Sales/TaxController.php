@@ -12,12 +12,14 @@ use App\Http\Requests\Sales\Tax\UpdateTaxRequest;
 use App\Http\Resources\Sales\TaxResource;
 use App\Models\Sales\Tax;
 use App\Services\Sales\TaxService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class TaxController extends Controller
 {
     public function __construct(private readonly TaxService $service) {}
 
-    public function index(IndexTaxRequest $request)
+    public function index(IndexTaxRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
 
@@ -26,12 +28,12 @@ class TaxController extends Controller
         return TaxResource::collection($taxes);
     }
 
-    public function show(Tax $tax)
+    public function show(Tax $tax): TaxResource
     {
         return new TaxResource($tax);
     }
 
-    public function store(StoreTaxRequest $request)
+    public function store(StoreTaxRequest $request): TaxResource
     {
         $dto = TaxData::fromRequest($request);
 
@@ -40,7 +42,7 @@ class TaxController extends Controller
         return new TaxResource($tax);
     }
 
-    public function update(Tax $tax, UpdateTaxRequest $request)
+    public function update(Tax $tax, UpdateTaxRequest $request): TaxResource
     {
         $dto = TaxData::fromRequest($request);
 
@@ -49,7 +51,7 @@ class TaxController extends Controller
         return new TaxResource($taxUpdated);
     }
 
-    public function destroy(Tax $tax)
+    public function destroy(Tax $tax): Response
     {
         $this->service->deleteTax($tax);
 

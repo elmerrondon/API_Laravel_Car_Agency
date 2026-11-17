@@ -639,14 +639,14 @@ docker compose exec -T app ./vendor/bin/pint
 # Comprobar formato sin modificar archivos
 docker compose exec -T app ./vendor/bin/pint --test
 
-# Análisis estático (PHPStan/Larastan nivel 5, incluye `--memory-limit=1G`)
+# Análisis estático (PHPStan/Larastan nivel 6, incluye `--memory-limit=1G`)
 docker compose exec -T app composer analyse
 
 # Vulnerabilidades conocidas en dependencias PHP
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-06): **319 tests / 2461 aserciones**, **PHPStan 0 errores**, **Pint limpio (325 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-16): **375 tests / 2716 aserciones**, **PHPStan 0 errores**, **Pint limpio (360 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 
@@ -1176,7 +1176,7 @@ docker compose exec -T app php artisan migrate --seed
 - El plan de trabajo y las tareas pendientes viven en `ROADMAP.md`.
 - Las reglas para agentes y el contexto técnico del repositorio están en `AGENTS.md`.
 - `phpunit.xml` fuerza SQLite `:memory:` para los tests.
-- PHPStan/Larastan corre en **nivel 5 sin baseline**: si añades código, `composer analyse` debe seguir en 0 errores.
+- PHPStan/Larastan corre en **nivel 6 sin baseline**: si añades código, `composer analyse` debe seguir en 0 errores.
 - La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
 - Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local y para tareas administrativas; la aplicación usa el usuario `car_agency` y el puerto solo escucha en `127.0.0.1`.
 - El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, MySQL sin puerto público, sesiones en `app-storage` y caché/colas en MySQL). Usa `.env.production.example` como plantilla del entorno productivo.

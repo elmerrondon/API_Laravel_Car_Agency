@@ -6,6 +6,7 @@ namespace App\Models\Users;
 
 use App\Enums\Users\PermissionEnum;
 use App\Models\Locations\Branch;
+use Database\Factories\Users\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     private const PERMISSION_CACHE_PREFIX = 'permissions:user:';
@@ -40,11 +42,13 @@ class User extends Authenticatable
         'deleted_at',
     ];
 
+    /** @return BelongsToMany<Role, $this> */
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
     }
 
+    /** @return BelongsToMany<Branch, $this> */
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class);
