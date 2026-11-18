@@ -12,6 +12,7 @@ RUN apk add --no-cache \
         git \
         libjpeg-turbo \
         libpng \
+        libpq \
         libxml2 \
         libzip \
         oniguruma \
@@ -25,6 +26,7 @@ RUN apk add --no-cache \
         libxml2-dev \
         libzip-dev \
         oniguruma-dev \
+        postgresql-dev \
         sqlite-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
@@ -35,7 +37,7 @@ RUN apk add --no-cache \
         mbstring \
         opcache \
         pcntl \
-        pdo_mysql \
+        pdo_pgsql \
         pdo_sqlite \
         zip \
     && apk del .build-deps \
