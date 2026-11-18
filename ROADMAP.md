@@ -8,10 +8,10 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-07.
-- **Etapa en curso:** Fase 6 — P0 de blindaje (plan derivado de la revisión integral del 2026-11-07). Fases 1-5 cerradas y Fase 6 completa (`6.1`–`6.6`). Siguiente: Fase 7.
-- **Plan vigente:** Fases 6-9 de este documento. Las fases 6-8 son de ejecución y la 9 es de cierre y verificación integral.
-- **Verificación vigente:** 344 tests / 2 531 aserciones, PHPStan 0 errores, Pint limpio en 345 archivos.
+- **Actualizado:** 2026-11-17.
+- **Estado:** plan cerrado. Fases 1-9 completas, **0 tareas pendientes**.
+- **Verificación vigente:** 378 tests / 2 724 aserciones, PHPStan nivel 7 con 0 errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
+- **Pendiente externo:** confirmar la matriz CI de PHP 8.2/8.3/8.4 en GitHub Actions; no se puede ejecutar en local y el agente no hace `push`.
 - **Permisos:** 15 sembrados (`admin` 15, `manager` 11, `vendedor` 5).
 - **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y sin ventas tras `migrate:fresh --seed`.
 
