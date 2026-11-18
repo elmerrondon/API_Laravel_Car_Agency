@@ -15,6 +15,9 @@
 /.phpunit.cache
 /.vscode
 /.zed
+# Skills de agentes instaladas localmente. El lockfile (skills-lock.json) sí se
+# versiona: `npx skills install` las restaura en un clon nuevo.
+/.agents
 /auth.json
 /node_modules
 /public/build

@@ -253,6 +253,13 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - `SANCTUM_LAST_USED_AT=false` por defecto: Sanctum deja de escribir `personal_access_tokens.last_used_at` en cada petición autenticada (un UPDATE menos por request). La API no usa esa marca; actívalo solo si necesitas auditar el uso por token.
 - La exportación de auditoría usa `cursor()` y escritura directa a `php://output`: no hidrata toda la tabla ni compite con el límite de memoria de los PDF.
 
+## Skills de agentes
+
+- `.agents/` contiene las skills instaladas localmente (hoy, `security-audit`) y está ignorado por Git y por `.dockerignore`: no es código de la aplicación ni se hornea en las imágenes.
+- `skills-lock.json` **sí se versiona**. Fija el origen (`cloudflare/security-audit-skill`), la ruta del `SKILL.md` y un hash SHA-256, para que cualquiera reproduzca la misma instalación.
+- Restaurar en un clon nuevo: `npx skills install` (alias de `experimental_install`; lee el lockfile y no lo modifica). Actualizar: `npx skills update`, revisando el diff antes de commitear el nuevo hash.
+- Las skills son instrucciones que ejecutan agentes: trátalas como una dependencia de desarrollo y revisa cualquier cambio antes de aceptarlo.
+
 ## Memoria del proyecto
 
 **Consulta [`MEMORY.md`](MEMORY.md) antes de empezar cualquier tarea** y actualízalo al terminarla: es la fuente única de decisiones técnicas, bugs resueltos y hallazgos no obvios. Cada entrada va fechada (`YYYY-MM-DD`) y el archivo **no puede superar las 100 líneas**; verifica con `wc -l MEMORY.md` antes de añadir contenido y, si se acerca al límite, condensa entradas o archiva las antiguas en `MEMORY-ARCHIVE.md`. Aquí no se copian las lecciones; solo se referencia el archivo y su regla.
