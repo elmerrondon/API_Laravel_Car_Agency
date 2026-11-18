@@ -1,4 +1,4 @@
-# Stack de producción: Nginx (estáticos + FastCGI), PHP-FPM y MySQL.
+# Stack de producción: Nginx (estáticos + FastCGI), PHP-FPM y PostgreSQL.
 # Uso (la imagen de Nginx parte de car-agency-laravel-api:prod, por eso se construye
 # primero la app):
 #   cp .env.production.example .env.production   # completar CHANGE_ME_*
@@ -8,7 +8,7 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.production exec -T app php artisan optimize
 #
 # El compose de desarrollo (docker-compose.yml) no se toca. Este archivo publica
-# solo el puerto 80; MySQL queda aislado en la red interna.
+# solo el puerto 80; PostgreSQL queda aislado en la red interna.
 
 services:
   app:
@@ -31,7 +31,7 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     networks:
       - car-agency-prod
@@ -61,22 +61,34 @@ services:
     networks:
       - car-agency-prod
 
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:17-alpine
     restart: unless-stopped
+    shm_size: 256mb
     env_file:
       - .env.production
-    # Buffer pool = 25-50 % de la RAM del servidor (MYSQL_INNODB_BUFFER_POOL_SIZE).
-    # El log lento va a la tabla `mysql.slow_log` (consultable con SQL).
+    environment:
+      # Locale C.UTF-8: el orden de texto va por bytes (sin ICU). El encoding
+      # debe ser UTF8 para los acentos de los datos en español.
+      POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS:---locale=C.UTF-8 --encoding=UTF8}
+    # Ajuste del servidor: shared_buffers ≈ 25 % de la RAM del servidor (512 MB
+    # por defecto) y log de consultas lentas a partir de 1 s (en `docker compose
+    # logs postgres`). En un servidor de 2 GB usa 512MB/1GB; con 4 GB, 1GB/2GB.
     command:
-      - --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE:-512M}
-      - --slow-query-log=ON
-      - --long-query-time=${MYSQL_LONG_QUERY_TIME:-1}
-      - --log-output=TABLE
+      - postgres
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-512MB}
+      - -c
+      - effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-1536MB}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-8MB}
+      - -c
+      - log_min_duration_statement=${POSTGRES_LOG_MIN_DURATION_STATEMENT:-1000}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - pg-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -105,7 +117,7 @@ services:
 
 volumes:
   app-storage:
-  mysql-data:
+  pg-data:
 
 networks:
   car-agency-prod:
