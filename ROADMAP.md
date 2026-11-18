@@ -1,250 +1,235 @@
 # ROADMAP
 
-> **Propósito:** único plan de trabajo y registro de avance del proyecto. Aquí viven objetivos, tareas, criterios de cierre y estado. La guía operativa está en `AGENTS.md`, las lecciones en `MEMORY.md` y el uso en `README.md`; no dupliques esos contenidos aquí.
+> **Propósito:** único plan de trabajo y registro de avance del proyecto. Aquí viven objetivos, tareas y criterios de cierre. La guía operativa está en `AGENTS.md`, las lecciones en `MEMORY.md` y el uso en `README.md`; no dupliques esos contenidos aquí.
 >
-> **Regla de arquitectura de esta etapa:** todo se implementa dentro de esta API Laravel 12 y su MySQL 8.0. Prohibido usar servicios externos (SMTP/correo, OAuth/Google, analítica externa) o librerías pesadas de terceros. La auditoría y las estadísticas se resuelven con tablas, servicios y consultas propias.
+> **Regla de arquitectura de esta etapa:** la API es Laravel 12 sobre **PostgreSQL 17** (locale `C.UTF-8`). MySQL queda fuera del proyecto: no hay imágenes, servicios, conexiones, scripts ni documentación operativa de MySQL. Prohibido usar servicios externos (SMTP/correo, OAuth/Google, analítica externa) o librerías pesadas de terceros. La auditoría y las estadísticas se resuelven con tablas, servicios y consultas propias.
 
 ---
 
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-17.
-- **Estado:** plan cerrado. Fases 1-9 completas, **0 tareas pendientes**.
-- **Verificación vigente:** 378 tests / 2 724 aserciones, PHPStan nivel 7 con 0 errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
-- **Pendiente externo:** confirmar la matriz CI de PHP 8.2/8.3/8.4 en GitHub Actions; no se puede ejecutar en local y el agente no hace `push`.
-- **Permisos:** 15 sembrados (`admin` 15, `manager` 11, `vendedor` 5).
-- **Datos locales:** 8 sucursales, 14 ciudades, 52 coches, 3 usuarios y sin ventas tras `migrate:fresh --seed`.
+- **Estado:** migración MySQL → PostgreSQL planificada. **0 tareas completadas**.
+- **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
+- **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
+- **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
 
 ---
 
-## ✅ Hitos completados
-
-### Iteración 1 — Base funcional (fases 0-6)
-
-- Stack Docker (PHP 8.3-FPM, Nginx, MySQL 8.0) y tests con SQLite `:memory:` + `RefreshDatabase`.
-- Dominio por carpetas (`Cars`, `Locations`, `Sales`, `Users`, `Reports`) con DTOs `readonly` y servicios.
-- Ventas transaccionales (impuestos, descuentos, tipo de cambio, redondeo a 2 decimales) y cancelación que libera el coche.
-- RBAC de 13 permisos con roles `admin`, `manager`, `vendedor`; Sanctum con tokens bearer.
-- Reportes de ventas e inventario en JSON/PDF con Dompdf; soft deletes en usuarios y coches.
-
-### Iteración 2 — Calidad y documentación (fases 7-13)
-
-- PHPStan/Larastan nivel 5 sin baseline en 0 errores, `strict_types=1` y Pint limpio.
-- Tests de arquitectura, paginación estable, conteo de consultas, rate limits, CORS y errores transversales.
-- Caché de permisos con invalidación explícita y `preventLazyLoading` fuera de producción.
-- OpenAPI 3.1.2 con Scramble (`/docs/api`, 41 paths, grupos en español e importación a Postman).
-- Límite `REPORTS_MAX_ROWS=500` y `memory_limit=512M` justificados con benchmark de Dompdf.
-
-### Mantenimiento y despliegue (M1-M3)
-
-- Paginación determinista (`orderBy('id')` + `withQueryString()`) en los 16 listados.
-- Stack VPS de producción (`docker-compose.prod.yml`, Nginx, MySQL privado, volúmenes y healthchecks).
-- Vía PaaS con FrankenPHP y workflow de Docker Hub.
-- Seeders seguros para producción (`ProductionAdminSeeder` sin Faker, idempotente y con `ADMIN_*`).
-
-### Fase 1 — Identidad y autoservicio ✅
-
-- `users.code` inmutable y roles que no pueden quedar sin permisos.
-- Guarda del último administrador activo (`LastAdminException` → `409`).
-- Middleware `active` que rechaza tokens de cuentas desactivadas.
-- `GET /api/auth/me`, `PUT /api/auth/password` y `POST /api/users/{user}/reset-password`.
-- Flag `must_change_password` expuesto en login y `/auth/me`.
-- **Cierre:** ningún administrador puede dejar el sistema sin administración activa; un usuario desactivado no opera con token viejo; el autoservicio funciona sin correo.
-- Detalle y verificación: entrada del 2026-11-03 en `MEMORY.md`.
-
-### Fase 2 — Auditoría nativa ✅
-
-- Tabla append-only `audit_logs` y `AuditService` con redacción de secretos y escritura tras commit.
-- Auditoría de login éxito/fallo/throttled, logout, refresh, usuarios, roles, contraseñas, coches, sucursales y ventas.
-- Permiso `view_audit_logs` (solo `admin`) y endpoints `GET /api/audit-logs` + show con filtros y paginación.
-- **Cierre:** cada acceso y operación crítica deja un registro consultable con actor, IP, User-Agent, valores y fecha, sin romper la operación si la auditoría falla.
-- Detalle y verificación: entrada del 2026-11-04 en `MEMORY.md`.
-
-### Fase 3 — Estadísticas y rankings ✅
-
-- Permiso `view_statistics` (`admin` 15, `manager` 11, `vendedor` 5).
-- Ocho endpoints bajo `/api/stats`: `summary`, `top-users`, `top-branches`, `top-cities`, `top-brands`, `top-models`, `inventory` y `sales/trend`.
-- Solo ventas `completed` y `total_base_amount`; filtros `start_date`/`end_date` inclusivos y `branch_id`; rankings con `limit` 1-100 (10 por defecto) y menos filas si no alcanzan.
-- Histórico con soft deletes en usuarios y coches; inventario actual sin soft deletes; tendencia mensual con los huecos en cero.
-- Índices `sales(branch_id, status, sale_date)` y `cars(branch_id, status)` elegidos con `EXPLAIN` sobre 3 000 ventas/coches.
-- **Cierre:** 297 tests / 2 377 aserciones, PHPStan 0, Pint limpio, `migrate:fresh --seed` y smoke HTTP de summary, top-users y trend.
-- Detalle y verificación: entrada del 2026-11-04 en `MEMORY.md`.
-
----
-
-## Fase 4 — Testing, Calidad y Documentación
-
-**Objetivo:** cerrar la etapa con la suite, el análisis estático y la documentación al día, sin regresiones.
-
-- [x] `4.1` Repasar la cobertura Feature de todas las novedades y completar huecos: guarda del último admin, inmutabilidad de `code`, roles sin permisos, usuario inactivo, autoservicio de contraseña, reset administrativo, auditoría de logins/logouts/acciones, rankings con límite dinámico y menos datos que el límite.
-- [x] `4.2` `composer analyse` en **0 errores** (PHPStan/Larastan nivel 5, sin baseline) y `pint --test` limpio en todos los archivos nuevos y modificados.
-- [x] `4.3` Actualizar `AGENTS.md`: nuevos permisos y matriz 15/11/5, middleware `active`, flujo `must_change_password`, guarda del último administrador, esquema y convenciones de `audit_logs` (acciones, redacción, escritura tras commit), convenciones de estadísticas (solo `completed`, moneda base, fechas inclusivas, `limit` 10/100) y la regla de no usar servicios externos.
-- [x] `4.4` Actualizar `README.md`: credenciales iniciales, `/auth/me`, cambio y reset de contraseña, tabla de rutas y permisos, sección de auditoría con filtros, sección de estadísticas con ejemplos `curl`, estados de la suite y troubleshooting de los nuevos `401/403/409/422`.
-- [x] `4.5` Verificación integral en Docker: `migrate:fresh --seed` (sin ventas), suite completa, `composer analyse`, `pint --test`, `composer audit` y exportación OpenAPI (`composer docs:export` + validación con Redocly).
-- [x] `4.6` Smoke HTTP real: login del administrador, `/auth/me`, cambio de clave, reset administrativo, consulta de auditoría de login/logout, `stats/summary`, `top-users?limit=5`, `top-branches`, `top-cities`, `top-brands`, `inventory` y `sales/trend`; comprobar `403` de un vendedor en auditoría/estadísticas y `401` de un usuario desactivado.
-- [x] `4.7` Marcar todas las casillas de esta etapa en `ROADMAP.md`, registrar la memoria técnica en `MEMORY.md` y dejar un commit atómico por micro-tarea completada.
-
-**Criterio de cierre:** suite verde, PHPStan 0, Pint limpio, documentación actualizada y smoke HTTP completo contra Nginx/MySQL.
-
----
-
-## Fase 5 — Endurecimiento operativo, seguridad y CI
-
-**Objetivo:** cerrar la etapa evolutiva sin dependencias externas en tiempo de ejecución, con retención de auditoría, exportación CSV, enforcement opcional de contraseña temporal, cabeceras de seguridad y CI de calidad.
-
-- [x] `5.1` Extraer `App\Support\PasswordPolicy` y eliminar `->uncompromised()`: producción usa 8 caracteres, mayúsculas, minúsculas, números y símbolos; local/testing mantiene la regla relajada. Test explícito de la regla fuerte y de la ausencia de la comprobación externa.
-- [x] `5.2` Añadir `config/audit.php` (`AUDIT_RETENTION_DAYS=90`), el comando `audit:prune {--days=}` y la programación diaria en `routes/console.php`; test de borrado de antiguos y conservación de recientes.
-- [x] `5.3` Añadir `GET /api/audit-logs/export` con `StreamedResponse` nativo, reutilizando los filtros del listado y escapando celdas de CSV; documentación OpenAPI como `text/csv` binario.
-- [x] `5.4` Añadir el middleware `password.changed` controlado por `ENFORCE_PASSWORD_CHANGE` (desactivado por defecto): solo permite `/auth/me`, `PUT /auth/password` y `POST /auth/logout` cuando el flag está activo; test de las rutas permitidas y bloqueadas.
-- [x] `5.5` Añadir cabeceras `X-Content-Type-Options`, `X-Frame-Options` y `Referrer-Policy` en Nginx y Caddy.
-- [x] `5.6` Crear `.github/workflows/ci.yml` con PHP 8.3, SQLite en memoria, `composer test`, `composer analyse`, `pint --test` y `composer audit`, independiente del workflow de Docker Hub.
-- [x] `5.7` Integrar el smoke test en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`), dejar la base local determinista con `migrate:fresh --seed` y verificar la suite completa.
-- [x] `5.8` Actualizar `ROADMAP.md`, `AGENTS.md`, `MEMORY.md` y `README.md`, y exportar el OpenAPI actualizado (`composer docs:export` + Redocly).
-
-**Criterio de cierre:** suite verde, PHPStan 0, Pint limpio, `composer audit` sin avisos, OpenAPI válido y sin llamadas HTTP salientes en tiempo de ejecución.
-
----
-
-## Decisiones adoptadas para las fases 6-9
-
-Plan derivado de la revisión integral del 2026-11-07 (informe externo no versionado). Cada tarea cita el hallazgo que resuelve: `S-*` seguridad, `L-*` lógica de negocio, `P-*` rendimiento, `Q-*` calidad y `I-*` infraestructura.
+## 🎯 Decisiones adoptadas
 
 | Tema | Decisión |
-|---|---|
-| TLS en producción (`S-02`) | Terminación en proxy externo (Nginx/Traefik/Caddy del host o balanceador) y Nginx del stack publicado solo en loopback. Se documenta además un overlay opcional con TLS propio para stacks autónomos. |
-| Sucursal de la venta (`L-02`) | `branch_id` se deriva siempre de `car.branch_id`; si el payload envía otra sucursal, `422`. |
-| Estados del coche (`L-03`) | Alta solo como `available`; actualización manual solo `available ↔ reserved`; `sold` lo pone únicamente `SaleService`. |
-| Coche con soft delete en ventas (`L-04`) | `Sale::car()` usa `withTrashed()` para conservar el histórico. |
-| Auditoría de catálogos (`S-06`) | Crear y borrar siempre; actualizar solo si cambian campos relevantes. Los servicios de solo lectura quedan fuera. |
-| Colas (`I-04`) | Servicio `worker` con `queue:work` en el stack de producción. |
-| Matriz CI (`Q-06`) | PHP 8.2/8.3/8.4 + Dependabot. ARM64 se documenta; el build multiarch queda como opción explícita. |
-| Healthcheck (`I-05`) | `/up` comprueba base de datos y caché sin filtrar detalles; los healthchecks de Docker usan un comando dedicado. |
-| Nivel PHPStan (`Q-02`) | Subida progresiva 5 → 6 → 7, sin baseline salvo justificación registrada en `MEMORY.md`. |
+| :--- | :--- |
+| Datos | No hay datos reales que migrar. La base se recrea con `migrate:fresh --seed`. Sin importador, sin `pgloader` y sin conexión `legacy`. |
+| Alcance MySQL | Switch completo: se elimina de imágenes, compose, `config/database.php`, CI, scripts y documentación operativa. |
+| Versión | `postgres:17-alpine` con locale `C.UTF-8`. Se evita `postgres:18` por el cambio de `PGDATA`. |
+| Case sensitivity | Normalización en el borde (email en minúsculas; `document_number`, `code` y `vin` en mayúsculas) + índices únicos parciales `lower(...) WHERE deleted_at IS NULL` en usuarios y `lower(...)` en catálogos. |
+| CI | Se mantiene la matriz PHP 8.2/8.3/8.4 con SQLite y se añade un job dedicado que corre `migrate:fresh --seed` y la suite completa contra PostgreSQL. |
+| Rol de BD | Usuario de aplicación no superusuario `car_agency`, dueño de la base y del schema, creado por un script de inicialización. |
+| Zona horaria | Sesión de PostgreSQL en UTC mediante `DB_TIMEZONE=UTC`. |
+| JSON | Se mantiene el tipo `json` de Laravel (`sales.taxes`, `audit_logs.old_values/new_values`). La app no consulta dentro del JSON, así que `jsonb` queda como mejora futura. |
+| Orden de texto | Se acepta el orden por bytes de `C.UTF-8`. ICU `es-ES` queda como mejora futura porque exige un volumen nuevo. |
 
-**Regla de ejecución:** cada micro-tarea equivale a un commit atómico y solo se cierra tras verificar en Docker `composer test`, `composer analyse`, `pint --test` y `composer audit`. Si la tarea cambia el contrato de la API, se añade `composer docs:export` y validación con Redocly. Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
+**Riesgos aceptados**
 
----
+- **Orden alfabético:** con `C.UTF-8`, `ORDER BY name` ordena por bytes (mayúsculas antes que minúsculas y acentos después de `z`). Los reportes y rankings pueden cambiar de orden respecto a MySQL.
+- **Enteros sin signo:** `jobs.reserved_at/available_at/created_at` y `cache.expiration` pasan a `integer` con signo. El límite baja de 2106 a 2038; sin impacto práctico para la app.
+- **`mediumText` → `text`:** sin cambio funcional.
+- **Índices de FK:** PostgreSQL no crea índices implícitos para `foreignId()->constrained()`. Se cubren en la Fase 2.
+- **Histórico:** `MEMORY.md` y `MEMORY-ARCHIVE.md` conservan menciones a MySQL como registro histórico; no se reescriben.
 
-## Fase 6 — P0: blindaje antes de exponer a Internet
-
-**Objetivo:** que ningún despliegue hecho con la plantilla de producción nazca con credenciales por defecto, HTTP plano, límites eludibles o retención inactiva.
-
-- [x] `6.1` Exigir un administrador seguro en producción (`S-01`): añadir `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_LAST_NAME`, `ADMIN_CODE` y `ADMIN_DOCUMENT_NUMBER` a `.env.production.example`; eliminar el fallback `secret1234` en `ProductionAdminSeeder`; abortar con mensaje claro si la clave falta, es el valor por defecto, empieza por `CHANGE_ME_` o no cumple la política de producción. Conservar el fallback solo en local/testing. Tests: el seeder falla con clave insegura y crea el administrador con una clave fuerte.
-- [x] `6.2` Terminar TLS en producción y dejar de servir HTTP plano (`S-02`): documentar el proxy externo, publicar el Nginx del stack solo en `127.0.0.1:80` y redirigir `80 → 443` en el proxy; añadir `TRUSTED_PROXIES` y HSTS cuando la petición llegue por HTTPS. Incluir una vía alternativa con TLS propio en el compose. Documentar certificados, renovación y cutover. Añadir a `.env.production.example` y al runbook las variables y pasos.
-- [x] `6.3` Configurar proxies de confianza (`S-05`): registrar `trustProxies` en `bootstrap/app.php` leyendo `TRUSTED_PROXIES` (lista o `*`) y las cabeceras `X-Forwarded-*`; añadir la variable a `.env.example` y `.env.production.example`. Test con `X-Forwarded-For` que compruebe que `$request->ip()` y la auditoría usan la IP real.
-- [x] `6.4` Limitar el tráfico anónimo antes de `auth:sanctum` (`S-03`): middleware que aplique un límite por IP a peticiones sin token válido (`RATE_LIMIT_API_ANON`, 30/min por defecto) y mantenga el límite por usuario después de autenticar; los tokens inválidos también se limitan por IP. Tests: sin token y con el límite en 1 la segunda petición da `429`; el límite por usuario sigue funcionando.
-- [x] `6.5` Acotar el *password spraying* y la amplificación de auditoría (`S-04`): limitador de login con dos ventanas (email+IP 5/min y por IP 20/min) y auditoría de fallos agrupada por ventana para no insertar una fila por intento ni por cada `429`. Tests: rotar emails desde una IP acaba en `429` y el número de filas de auditoría de un ataque está acotado.
-- [x] `6.6` Ejecutar el scheduler y programar la purga de tokens (`S-07`): añadir el servicio `scheduler` (`php artisan schedule:work`) a `docker-compose.yml` y `docker-compose.prod.yml`; programar `sanctum:prune-expired --hours=24` junto a `audit:prune` en `routes/console.php`; documentar el cron equivalente para PaaS. `php artisan schedule:list` debe mostrar ambas tareas.
-
-**Criterio de cierre:** los seis P0 verificados con pruebas dinámicas (429 anónimo, 429 por rotación de emails, IP real detrás de proxy, seeder que falla con clave insegura, scheduler activo y TLS/HSTS en producción), suite verde, PHPStan 0, Pint limpio y `composer audit` sin avisos.
+**Regla de ejecución:** cada micro-tarea equivale a un commit atómico y solo se cierra tras verificar en Docker. Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
 ---
 
-## Fase 7 — P1: invariantes de negocio y operación
+## Fase 1 — Infraestructura Docker y entorno
 
-**Objetivo:** cerrar los huecos de auditoría, las inconsistencias financieras y los fallos operativos que no bloquean el despliegue pero degradan la trazabilidad y la fiabilidad.
+**Objetivo:** que el stack completo arranque sobre PostgreSQL 17 sin ninguna dependencia ni variable de MySQL.
 
-- [x] `7.1` Infraestructura de auditoría de catálogos (`S-06`): nuevos casos en `AuditAction` (`catalog.*`, `location.*`) y alias en el morph map para `Brand`, `CarModel`, `CarType`, `Category`, `Color`, `Currency`, `PaymentMethod`, `Tax`, `Country`, `State` y `City`. Test de arquitectura que detecte servicios con `create`/`update`/`delete` que no usen `AuditService`, con lista blanca explícita para servicios de solo lectura.
-- [x] `7.2` Auditar catálogos (`S-06`): `BrandService`, `CarModelService`, `CarTypeService`, `CategoryService`, `ColorService`, `CurrencyService`, `PaymentMethodService` y `TaxService`. Crear y borrar siempre; actualizar solo si cambian campos relevantes. Tests de `Brand` y `Tax` que verifiquen actor, IP, valores antiguos/nuevos y alias correcto.
-- [x] `7.3` Auditar ubicaciones (`S-06`): `CountryService`, `StateService` y `CityService` con el mismo patrón que `BranchService`. Tests de CRUD auditado.
-- [x] `7.4` Rechazar tipos de cambio no positivos (`L-01`): `exchange_rate` con `gt:0` además de `decimal:0,2`; test que rechace `0` y negativos y documente que la moneda base usa tasa `1`.
-- [x] `7.5` Alinear la sucursal de la venta con la del coche (`L-02`): derivar `branch_id` de `$car->branch_id` dentro de la transacción; si el payload envía otra, `422` con excepción de dominio; ajustar `SaleData`, `StoreSaleRequest`, tests y documentación. Los reportes por sucursal deben seguir siendo coherentes.
-- [x] `7.6` Restringir las transiciones de estado del coche (`L-03`): alta solo como `available`; actualización manual solo `available ↔ reserved`; `sold` reservado a `SaleService`; bloqueo de cambios sobre coches con venta `completed`; excepción de transición con `422`. Tests de la matriz de estados y de que la cancelación sigue liberando el coche.
-- [x] `7.7` Conservar coches con soft delete en el histórico de ventas (`L-04`): `Sale::car()` con `withTrashed()` y revisión de `SaleReportService` y recursos que cargan `car`. Test: venta + soft delete del coche → detalle y reporte siguen mostrando marca y modelo.
-- [x] `7.8` Manejar la ausencia de moneda base (`L-05`): validar `Currency::firstWhere('is_base', true)` y lanzar una excepción de dominio (`422`/`409`) antes de crear la venta. Test con base de datos sin moneda base: la ruta financiera no produce `500`.
-- [x] `7.9` Acotar `sale_date` (`L-06`): `before_or_equal:now` y una cota inferior razonable y configurable. Tests de fecha futura y demasiado antigua.
-- [x] `7.10` Obligar a cambiar la clave fijada por un administrador (`S-08`): en `UserService::updateUser`, si llega `password`, marcar `must_change_password = true`; el autoservicio `PUT /auth/password` lo limpia. Actualizar auditoría y tests.
-- [x] `7.11` Descubrir paquetes en tiempo de build (`I-01`): ejecutar `php artisan package:discover` en la etapa de build de producción para no hacerlo en cada arranque.
-- [x] `7.12` Unificar el tamaño máximo de cuerpo (`I-02`): alinear `client_max_body_size` de Nginx con `post_max_size`/`upload_max_filesize` de PHP (`8m`) y documentarlo.
-- [x] `7.13` Runbook de backups y restauración (`I-03`): procedimiento `mysqldump`, retención, programación con cron/systemd, restauración probada y alternativa gestionada en PaaS. Añadir script de ejemplo y verificar una restauración en staging.
-- [x] `7.14` Procesar colas en producción (`I-04`): añadir el servicio `worker` (`php artisan queue:work`) al compose de producción, con reinicio y límites; documentar el equivalente en PaaS. Si se opta por no encolar, fijar `QUEUE_CONNECTION=sync` y justificarlo.
+- [ ] `1.1` `docker/php/Dockerfile`: reemplazar `pdo_mysql` por `pdo_pgsql`, añadir `libpq` al runtime y `postgresql-dev` a `.build-deps`; conservar `pdo_sqlite` porque la suite rápida lo usa.
+- [ ] `1.2` `docker/render/Dockerfile.render`: cambiar `pdo_mysql` por `pdo_pgsql` en `install-php-extensions` y actualizar los comentarios de cabecera (`DB_CONNECTION=pgsql`).
+- [ ] `1.3` `docker-compose.yml`: sustituir el servicio `mysql` por `postgres:17-alpine` con volumen `pg-data:/var/lib/postgresql/data`, `shm_size: 256mb`, puerto `127.0.0.1:5432:5432`, healthcheck `pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"` y `app.depends_on.postgres: condition: service_healthy`.
+- [ ] `1.4` `docker-compose.yml`: definir `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD`; ajustar `DB_HOST=postgres`, `DB_PORT=5432`, `DB_USERNAME=car_agency` y `DB_PASSWORD` de `app` y `scheduler` (y de `worker` en producción).
+- [ ] `1.5` `docker-compose.yml`: sustituir el slow log de MySQL por `command: [postgres, -c, shared_buffers=..., -c, effective_cache_size=..., -c, work_mem=..., -c, log_min_duration_statement=...]` con variables `POSTGRES_*`.
+- [ ] `1.6` `docker/postgres/init/01-app-role.sh` (nuevo): crear el rol `car_agency` (`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`), hacerlo dueño de la base y del schema `public`, y crear la base `testing` cuando `POSTGRES_CREATE_TESTING_DB=true` (solo desarrollo).
+- [ ] `1.7` `docker-compose.prod.yml`: replicar el servicio `postgres` con `env_file: .env.production`, sin puertos publicados, `shared_buffers=512MB`, volumen `pg-data`, `shm_size`, healthcheck y el mismo script de inicialización.
+- [ ] `1.8` `.env.example`: `DB_CONNECTION=pgsql`, `DB_HOST=postgres`, `DB_PORT=5432`, `DB_SSLMODE=prefer`, `DB_TIMEZONE=UTC`, `DB_URL=` y `POSTGRES_*`; eliminar `MYSQL_*`.
+- [ ] `1.9` `.env.production.example`: `DB_SSLMODE=require`, `POSTGRES_*` con marcadores `CHANGE_ME_*`, `DB_TIMEZONE=UTC` y nota de que `POSTGRES_APP_PASSWORD` debe coincidir con `DB_PASSWORD`; eliminar `MYSQL_*`.
+- [ ] `1.10` Actualizar a mano el `.env` local (ignorado por Git) a `pgsql` y comentarios de `docker/php/opcache-prod.ini` y `.gitignore` que citan MySQL.
+- [ ] `1.11` `grep -rni "mysql\|mariadb\|pdo_mysql" docker .env.example .env.production.example`: sin resultados operativos.
 
-**Criterio de cierre:** todo servicio de escritura audita, la ruta de ventas rechaza datos incoherentes sin `500`, el histórico sobrevive a soft deletes, el build no descubre paquetes en runtime y el stack de producción ejecuta scheduler y worker.
+**Criterio de cierre:** `docker compose config` válido en desarrollo y producción; `docker compose up -d --build` levanta `postgres` healthy y `app` conecta; `migrate:fresh --seed` crea el esquema; `/up` responde `200`.
 
 ---
 
-## Fase 8 — P2: rendimiento, hardening y calidad
+## Fase 2 — Esquema, índices y conexión
 
-**Objetivo:** reducir coste por petición, endurecer cabeceras y superficies expuestas, y elevar el listón de calidad sin cambiar el contrato funcional.
+**Objetivo:** que el esquema sea equivalente al de MySQL y que las consultas conserven su rendimiento **sin** los índices implícitos de las claves foráneas.
 
-- [x] `8.1` Evitar la escritura de `last_used_at` en cada petición (`P-01`): `config/sanctum.php` con `last_used_at => env('SANCTUM_LAST_USED_AT', false)` y documentación del trade-off.
-- [x] `8.2` Ajustar el pool de PHP-FPM (`P-02`): `docker/php/www.conf` con `pm.max_children` calculado por RAM, `pm.max_requests=500` y `request_terminate_timeout`; documentar la fórmula y el reinicio tras despliegue.
-- [x] `8.3` Activar OPcache de producción (`P-03`): `opcache.validate_timestamps=0`, `memory_consumption=128`, `max_accelerated_files=10000` y JIT desactivado para este perfil.
-- [x] `8.4` Comprimir respuestas (`P-04`): `gzip on` en Nginx con `application/json`, `text/csv` y `text/plain`; nunca comprimir PDF.
-- [x] `8.5` Ajustar MySQL (`P-05`): `innodb_buffer_pool_size` configurable por entorno (25-50 % de la RAM), `slow_query_log` y `long_query_time`; documentar el cálculo.
-- [x] `8.6` Limitar la generación de PDF por separado (`P-06`): limitador `reports-pdf` (5/min) manteniendo `reports` en 30/min para JSON; configuración y tests.
-- [x] `8.7` Completar cabeceras de seguridad (`S-11`): `server_tokens off`, `Permissions-Policy`, CSP para `/docs/api` y HSTS solo bajo HTTPS; replicar en Caddy y verificar que se aplican también en errores.
-- [x] `8.8` Cerrar el MySQL de desarrollo (`S-09`): publicar solo en `127.0.0.1:3306`, eliminar `MYSQL_ROOT_HOST: "%"` y crear un usuario de aplicación no root.
-- [x] `8.9` Rechazar CORS comodín en producción (`S-10`): fallar el arranque si `CORS_ALLOWED_ORIGINS` es `*` o está vacío en producción; mantener `*` en local/testing y añadir test de configuración.
-- [x] `8.10` Prefijar los tokens de Sanctum (`S-12`): `SANCTUM_TOKEN_PREFIX=car_` por defecto en `.env.example` y `.env.production.example`, test de token nuevo con prefijo y nota de impacto para clientes.
-- [x] `8.11` Profundizar el healthcheck (`I-05`): `/up` con comprobación de base de datos y caché sin filtrar detalles y comando `health:check` para los healthchecks de Docker; actualizar app, Nginx y PaaS. `/up` responde `503` si la base falla.
-- [x] `8.12` Eliminar los tests de ejemplo (`Q-01`): borrar `tests/Feature/ExampleTest.php` y `tests/Unit/ExampleTest.php` conservando el smoke test real.
-- [x] `8.13` Subir PHPStan a nivel 6 (`Q-02`): corregir los errores y actualizar `phpstan.neon`; `composer analyse` en 0 errores.
-- [x] `8.14` Subir PHPStan a nivel 7 (`Q-02`): corregir los errores o justificar un baseline mínimo documentado en `MEMORY.md`. Nivel 8 queda como objetivo posterior.
-- [x] `8.15` Mover la carga de relaciones de rol al servicio (`Q-03`): `RoleController::show` deja de hacer `$role->load('permissions')` y pasa a `RoleService::getRole()`.
-- [x] `8.16` Corregir el typo de monedas (`Q-04`): renombrar `getAllPaginatedCurrecies` a `getAllPaginatedCurrencies` y actualizar llamadas y tests.
-- [x] `8.17` Unificar el nombre del token (`Q-05`): constante `TOKEN_NAME` en `AuthService` usada por login y refresh, con test.
-- [x] `8.18` Ampliar CI y dependencias (`Q-06`): matriz PHP 8.2/8.3/8.4 en `ci.yml`, `.github/dependabot.yml` para Composer y GitHub Actions, y decisión documentada sobre `linux/arm64` en la imagen PaaS.
+- [ ] `2.1` `config/database.php`: añadir `'timezone' => env('DB_TIMEZONE', 'UTC')` al bloque `pgsql`; eliminar los bloques `mysql`/`mariadb` y el `use Pdo\Mysql;`.
+- [ ] `2.2` Migración `..._add_foreign_key_indexes.php` (nueva) con los índices que PostgreSQL no genera:
 
-**Criterio de cierre:** JSON y CSV comprimidos, FPM y OPcache con valores explícitos, PDF acotado por su propio límite, cabeceras completas, CORS cerrado en producción, healthcheck que detecta caída de base de datos, PHPStan nivel 7 en 0 errores y CI verde en las tres versiones de PHP.
+  | Tabla | Columnas |
+  | :--- | :--- |
+  | `states` | `country_id` |
+  | `cities` | `state_id` |
+  | `branches` | `city_id` |
+  | `brands` | `country_id` |
+  | `car_models` | `brand_id` |
+  | `cars` | `color_id`, `car_model_id`, `car_type_id`, `category_id` |
+  | `role_user` | `user_id` |
+  | `permission_role` | `role_id` |
+  | `branch_user` | `user_id` |
+  | `sales` | `car_id`, `user_id`, `payment_method_id`, `payment_currency_id`, `base_currency_id` |
+
+  Ya cubiertos por índices compuestos existentes: `cars.branch_id` por `(branch_id, status)`, `sales.branch_id` por `(branch_id, sale_date)`, `audit_logs.user_id` por `(user_id, created_at)` y los lados izquierdos de `role_user`, `permission_role` y `branch_user`.
+
+- [ ] `2.3` Migración `..._add_case_insensitive_unique_indexes.php` (nueva): sustituir los `unique()` de texto por índices de expresión y añadir los parciales de usuarios.
+
+  ```sql
+  -- Usuarios: el índice (columna, deleted_at) no protege filas activas en PostgreSQL
+  -- porque los NULL de deleted_at son distintos entre sí.
+  CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(email)) WHERE deleted_at IS NULL;
+  CREATE UNIQUE INDEX users_document_number_lower_unique ON users (lower(document_number)) WHERE deleted_at IS NULL;
+
+  -- Catálogos: nombres con unicidad case-insensitive
+  CREATE UNIQUE INDEX countries_name_lower_unique ON countries (lower(name));
+  CREATE UNIQUE INDEX states_name_country_lower_unique ON states (lower(name), country_id);
+  CREATE UNIQUE INDEX cities_name_state_lower_unique ON cities (lower(name), state_id);
+  CREATE UNIQUE INDEX branches_name_lower_unique ON branches (lower(name));
+  CREATE UNIQUE INDEX brands_name_lower_unique ON brands (lower(name));
+  CREATE UNIQUE INDEX car_models_name_lower_unique ON car_models (lower(name));
+  CREATE UNIQUE INDEX car_types_name_lower_unique ON car_types (lower(name));
+  CREATE UNIQUE INDEX categories_name_lower_unique ON categories (lower(name));
+  CREATE UNIQUE INDEX colors_name_lower_unique ON colors (lower(name));
+  CREATE UNIQUE INDEX payment_methods_name_lower_unique ON payment_methods (lower(name));
+  CREATE UNIQUE INDEX currencies_name_lower_unique ON currencies (lower(name));
+  CREATE UNIQUE INDEX taxes_name_lower_unique ON taxes (lower(name));
+  CREATE UNIQUE INDEX roles_name_lower_unique ON roles (lower(name));
+  CREATE UNIQUE INDEX permissions_name_lower_unique ON permissions (lower(name));
+  ```
+
+  Cada `CREATE` va precedido del `dropUnique` de la restricción plana equivalente (incluidos `users_email_deleted_at_unique` y `users_document_number_deleted_at_unique`) para no duplicar estructura. `currencies.code`, `taxes.code`, `branches.code`, `users.code` y `cars.vin` mantienen su índice plano: se normalizan en el borde.
+
+- [ ] `2.4` `tests/Feature/Database/IndexesTest.php`: añadir aserciones por nombre para los índices de FK y para los índices case-insensitive; conservar las que garantizan que `cars` no tiene índices duplicados.
+- [ ] `2.5` Actualizar comentarios que afirman que las FK ya indexan: `database/migrations/2026_10_20_000001_add_performance_indexes.php`, `app/Services/Reports/SaleReportService.php` y `tests/Feature/Stats/InventoryStatsTest.php` (menciona MySQL).
+- [ ] `2.6` `migrate:fresh --seed` limpio en PostgreSQL y comprobación de `Schema::hasIndex` en un `tinker` puntual.
+- [ ] `2.7` Validar con dataset realista (3 000 ventas/coches) y `EXPLAIN (ANALYZE, BUFFERS)` que se usan `sales(branch_id, status, sale_date)`, `cars(branch_id, status)` y los nuevos índices de FK; sin `Seq Scan` en reportes y estadísticas. Con el seed pequeño el planner elige `Seq Scan` y no prueba nada.
+
+**Criterio de cierre:** `migrate:fresh --seed` sin errores, `IndexesTest` verde y los `EXPLAIN` muestran los índices previstos.
 
 ---
 
-## Fase 9 — Cierre y verificación integral
+## Fase 3 — Compatibilidad de código y semántica case-sensitive
 
-**Objetivo:** demostrar que todas las acciones del plan están implementadas, documentadas y reproducibles desde cero.
+**Objetivo:** eliminar la única función SQL específica de MySQL y recuperar la semántica case-insensitive que aportaba `utf8mb4_unicode_ci`.
 
-- [x] `9.1` Verificación completa en Docker: `migrate:fresh --seed`, suite, `composer analyse`, `pint --test`, `composer audit`, `composer docs:export` + Redocly, `schedule:list`, `docker compose config` de desarrollo y producción, build de producción y build de la imagen PaaS.
-- [x] `9.2` Smoke HTTP real de los P0/P1: login, `429` anónimo, login rotando emails, IP real tras proxy, auditoría de catálogos, venta con `exchange_rate=0`, venta con sucursal incoherente, estado `sold` manual, coche borrado en venta histórica y `/up`. Cada hallazgo debe tener una comprobación observable.
-- [x] `9.3` Documentación y cierre: marcar las tareas en `ROADMAP.md`, actualizar `AGENTS.md` (límites, proxies, TLS, scheduler, worker, auditoría de catálogos, reglas de venta y estados, prefijo de token, healthcheck), `README.md` (operación, backups, TLS, respuestas `429`) y `MEMORY.md` (entradas fechadas, máximo 100 líneas).
+- [ ] `3.1` `app/Services/Stats/StatsQuery.php`: añadir `pgsql => "to_char(sale_date, 'YYYY-MM')"` a `periodExpression()`; conservar SQLite y eliminar la rama MySQL.
+- [ ] `3.2` `app/Rules/CaseInsensitiveUnique.php` (nuevo): regla invocable reutilizable con tabla, columna, `ignoreId`, condiciones extra (para `states`/`cities`) y `withoutTrashed`; compara con `whereRaw('lower(columna) = ?', [mb_strtolower($valor)])` y falla con el mensaje de `validation.unique`.
+- [ ] `3.3` `StoreUserRequest`/`UpdateUserRequest`: normalizar `email` a minúsculas y `document_number` a mayúsculas en `prepareForValidation()`; aplicar `CaseInsensitiveUnique` con `withoutTrashed()` (y `ignore()` en update). `users.code` se normaliza a mayúsculas y conserva la regla de inmutabilidad.
+- [ ] `3.4` `LoginAuthRequest`: normalizar `email` a minúsculas para que `Auth::attempt` encuentre la fila guardada.
+- [ ] `3.5` `StoreCarRequest`/`UpdateCarRequest`: normalizar `vin` a mayúsculas antes de validar y guardar. Añadir un mutador `vin` en `Car` (mayúsculas y `trim`) como defensa para factories, seeders y escrituras fuera de los FormRequest.
+- [ ] `3.6` Catálogos de coches: `Brand`, `CarModel`, `CarType`, `Category` y `Color` usan `CaseInsensitiveUnique` sobre `name` en Store/Update (el alta de duplicados con otra capitalización responde `422`).
+- [ ] `3.7` Catálogos de ventas: `Currency` (`name` y `code`), `Tax` (`name` y `code`) y `PaymentMethod` (`name`); normalizar `code` a mayúsculas y usar la regla en `name`.
+- [ ] `3.8` Ubicaciones y usuarios: `Country`, `Branch` y `Role` por `name`; `State` por `name` + `country_id` y `City` por `name` + `state_id` con condiciones extra.
+- [ ] `3.9` Tests: login con email en mayúsculas, alta duplicada con distinta capitalización (catálogo, usuario y `role`), VIN/códigos normalizados y `422` en los duplicados.
+- [ ] `3.10` Revisar seeders, factories y `ProductionAdminSeeder`: `CarFactory` genera VIN con `bothify('???##?##?######??')` y puede producir minúsculas, así que debe pasar por el mutador del modelo. Añadir mutadores equivalentes para `User.email` (minúsculas) y `User.code`/`document_number` (mayúsculas).
 
-**Criterio de cierre:** suite verde, PHPStan en el nivel acordado, Pint limpio, `composer audit` sin avisos, OpenAPI válido, ambos stacks levantan, scheduler y worker activos y los seis P0 verificados con pruebas dinámicas.
+**Criterio de cierre:** suite SQLite verde, `migrate:fresh --seed` en PostgreSQL y los tests de case sensitivity pasan; la tendencia mensual de estadísticas funciona en PostgreSQL.
 
-### Trazabilidad de hallazgos
+---
 
-| Hallazgo | Tarea | Hallazgo | Tarea |
-|---|---|---|---|
-| S-01 | 6.1 | L-01 | 7.4 |
-| S-02 | 6.2 | L-02 | 7.5 |
-| S-03 | 6.4 | L-03 | 7.6 |
-| S-04 | 6.5 | L-04 | 7.7 |
-| S-05 | 6.3 | L-05 | 7.8 |
-| S-06 | 7.1-7.3 | L-06 | 7.9 |
-| S-07 | 6.6 | L-07 | Sin acción: alcance multi-sucursal intencional |
-| S-08 | 7.10 | P-01 | 8.1 |
-| S-09 | 8.8 | P-02 | 8.2 |
-| S-10 | 8.9 | P-03 | 8.3 |
-| S-11 | 8.7 | P-04 | 8.4 |
-| S-12 | 8.10 | P-05 | 8.5 |
-| I-01 | 7.11 | P-06 | 8.6 |
-| I-02 | 7.12 | P-07 | Sin acción: conservar lo que ya funciona |
-| I-03 | 7.13 | Q-01 | 8.12 |
-| I-04 | 7.14 | Q-02 | 8.13-8.14 |
-| I-05 | 8.11 | Q-03 | 8.15 |
-| I-06 | Sin acción: mantener `LOG_CHANNEL=stderr` | Q-04 | 8.16 |
-|  |  | Q-05 | 8.17 |
-|  |  | Q-06 | 8.18 |
-|  |  | Q-07 | Verificación recurrente en 9.1 |
+## Fase 4 — Tests y CI
+
+**Objetivo:** que PostgreSQL se valide de verdad en cada push, no solo con la suite rápida de SQLite.
+
+- [ ] `4.1` `phpunit-postgres.xml` (nuevo): copia de `phpunit.xml` con `DB_CONNECTION=pgsql`, `DB_DATABASE=testing` y `DB_URL=""`; `DB_HOST`, `DB_PORT`, `DB_USERNAME` y `DB_PASSWORD` se toman del entorno (`.env` en Docker, variables del job en Actions).
+- [ ] `4.2` `composer.json`: script `test:postgres` que limpie configuración y ejecute `php artisan test --configuration=phpunit-postgres.xml`.
+- [ ] `4.3` `tests/TestCase.php`: confirmar que `PHPUNIT_ENV_KEYS` basta (ya incluye `DB_CONNECTION`, `DB_DATABASE` y `DB_URL`); no añadir `DB_HOST` salvo que la ejecución en Docker lo exija.
+- [ ] `4.4` `.github/workflows/ci.yml`: añadir `pdo_pgsql` a `setup-php`, retirar `pdo_mysql` y crear el job `postgres` (PHP 8.3) con `services.postgres` (`postgres:17-alpine`, base `testing`, healthcheck `pg_isready`), `DB_HOST=127.0.0.1`, `migrate:fresh --seed`, `composer test:postgres`, `composer analyse`, `pint --test` y `composer audit`.
+- [ ] `4.5` Actualizar el comentario de cabecera de `ci.yml`: ya no es un workflow "sin servicios externos".
+- [ ] `4.6` Ejecutar en Docker `composer test` (SQLite) y `composer test:postgres` contra la base `testing`; corregir divergencias (tipos `numeric` devueltos como string, diferencias de redondeo, `RefreshDatabase`).
+- [ ] `4.7` Revisar `deploy-dockerhub.yml`: no cambia de lógica, pero el build debe incluir `pdo_pgsql`; validar la imagen PaaS con un `docker build` local.
+
+**Criterio de cierre:** suite verde en SQLite y en PostgreSQL, `composer analyse`, `pint --test` y `composer audit` limpios; el YAML del CI es válido.
+
+---
+
+## Fase 5 — Operación: backup y restauración
+
+**Objetivo:** sustituir el runbook de MySQL por uno de PostgreSQL probado de ida y vuelta.
+
+- [ ] `5.1` `docker/scripts/backup-postgres.sh` (nuevo): `pg_dump -Fc` dentro del contenedor `postgres` con `PGPASSWORD` desde `POSTGRES_PASSWORD`, retención por `BACKUP_RETENTION_DAYS` y `COMPOSE_FILE`/`ENV_FILE` configurables.
+- [ ] `5.2` `docker/scripts/restore-postgres.sh` (nuevo): parar `app`, `worker` y `scheduler`, `dropdb --if-exists --force`, `createdb -O car_agency`, `pg_restore --no-owner --no-privileges --exit-on-error`, reiniciar y exigir `--confirm`.
+- [ ] `5.3` Eliminar `docker/scripts/backup-mysql.sh` y `restore-mysql.sh`, y actualizar el `.gitignore` si el comentario de `/backups` cita MySQL.
+- [ ] `5.4` Probar el ciclo completo en desarrollo: dump → fila marcadora → restore → marcador ausente y conteos intactos.
+- [ ] `5.5` Verificar que `log_min_duration_statement` escribe en `docker compose logs postgres` con una consulta lenta provocada.
+
+**Criterio de cierre:** backup y restauración probados; las consultas lentas son visibles en los logs del contenedor.
+
+---
+
+## Fase 6 — Documentación
+
+**Objetivo:** que ninguna guía operativa mencione MySQL ni comandos que ya no existen.
+
+- [ ] `6.1` `README.md`: badge y stack, inicio rápido (la base la crea `POSTGRES_DB`), puertos y healthchecks, comandos `psql`, tests (SQLite + PostgreSQL), despliegue, "Ajuste de PostgreSQL" (sustituye "Ajuste de MySQL"), backups, PaaS con PostgreSQL gestionado y `DB_SSLMODE`, troubleshooting (`SQLSTATE[08006]`, `28P01`, `42P01`, `remaining connection slots`, `permission denied for schema public`) y notas finales.
+- [ ] `6.2` `AGENTS.md`: entorno sin MySQL local, extensiones `pdo_pgsql`, servicios `postgres` en ambos compose, script de rol de app, scripts de backup/restore, CI con job PostgreSQL, `to_char` en estadísticas, autosuficiencia "API + PostgreSQL", índices de FK y semántica case-sensitive.
+- [ ] `6.3` `ROADMAP.md`: marcar las tareas al cerrarlas y dejar el estado actualizado.
+- [ ] `6.4` `MEMORY.md`: entrada fechada con las decisiones no obvias (FK sin índice, `C.UTF-8`, índices parciales, rol dueño del schema, `to_char`); verificar `wc -l MEMORY.md` ≤ 100.
+- [ ] `6.5` `grep -rni "mysql\|mariadb" --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=storage --exclude-dir=.git --exclude-dir=.agents .`: solo pueden quedar `MEMORY.md`/`MEMORY-ARCHIVE.md` como histórico.
+
+**Criterio de cierre:** documentación operativa 100 % PostgreSQL y sin referencias obsoletas.
+
+---
+
+## Fase 7 — Verificación integral y cierre
+
+**Objetivo:** demostrar que la migración es reproducible desde cero y que el contrato de la API no cambió.
+
+- [ ] `7.1` Verificación completa en Docker (ver bloque de comandos).
+- [ ] `7.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up` y login.
+- [ ] `7.3` Imagen PaaS: `docker build -f docker/render/Dockerfile.render` y arranque contra PostgreSQL (o SQLite si no hay instancia accesible).
+- [ ] `7.4` Smoke HTTP: login, `/auth/me`, estadísticas, reportes JSON/PDF, export CSV, auditoría y `/up`.
+- [ ] `7.5` `composer docs:export` + Redocly: el contrato OpenAPI sigue siendo válido (la migración no cambia rutas ni respuestas).
+- [ ] `7.6` Cierre: tareas marcadas, `MEMORY.md` actualizado y un commit atómico por micro-tarea.
+
+**Criterio de cierre:** suite verde en SQLite y PostgreSQL, `migrate:fresh --seed` limpio, índices usados en `EXPLAIN`, backup/restore probado, ambos compose válidos, builds `prod` y PaaS correctos, `/up` 200, login 200, reportes/CSV/PDF funcionando y documentación actualizada.
 
 ---
 
 ## Verificación
 
 ```bash
-docker compose ps
+# Desarrollo
+docker compose config
+docker compose up -d --build
 docker compose exec -T app php artisan migrate:fresh --seed
 docker compose exec -T app composer test
+docker compose exec -T app composer test:postgres
 docker compose exec -T app composer analyse
 docker compose exec -T app ./vendor/bin/pint --test
 docker compose exec -T app composer audit
-docker compose exec -T app composer docs:export
-docker compose exec -T app php artisan schedule:list
 docker compose exec -T app php artisan health:check
-docker compose config
+docker compose exec -T app php artisan schedule:list
+docker compose exec -T postgres psql -U car_agency -d api_laravel_car_agency -c '\dt'
+curl -i http://localhost:8000/up
+
+# Operación
+./docker/scripts/backup-postgres.sh backups
+./docker/scripts/restore-postgres.sh backups/<archivo>.dump --confirm
+docker compose logs postgres
+
+# Producción y PaaS
 docker compose -f docker-compose.prod.yml --env-file .env.production config
+docker compose -f docker-compose.prod.yml --env-file .env.production build app
+docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
+
+# Contrato
+docker compose exec -T app composer docs:export
 npx @redocly/cli lint storage/app/openapi.json
 ```
 
-> La suite usa SQLite `:memory:`; MySQL solo se toca en `migrate:fresh --seed` y en los smoke tests HTTP.
+> La suite rápida sigue usando SQLite `:memory:`; PostgreSQL se valida con `test:postgres`, con `migrate:fresh --seed` y con los smoke tests HTTP.
 >
-> Los comandos `docker compose config`, el build de producción y el build PaaS se ejecutan en el host porque son de Docker; el resto va dentro de `app` con `-T`.
+> Los comandos `docker compose config`, los builds y `npx` se ejecutan en el host porque son de Docker o Node; el resto va dentro de `app` con `-T`.
