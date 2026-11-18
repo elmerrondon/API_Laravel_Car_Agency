@@ -29,7 +29,7 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     networks:
       - car-agency
@@ -53,30 +53,29 @@ services:
     networks:
       - car-agency
 
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:17-alpine
     restart: unless-stopped
+    shm_size: 256mb
     ports:
       # Solo loopback: la base de desarrollo no se expone a la red local.
-      - "127.0.0.1:3306:3306"
-    # Buffer pool = 25-50 % de la RAM del host (256M por defecto para desarrollo).
-    # El log lento va a la tabla `mysql.slow_log` (consultable con SQL).
-    command:
-      - --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE:-256M}
-      - --slow-query-log=ON
-      - --long-query-time=${MYSQL_LONG_QUERY_TIME:-1}
-      - --log-output=TABLE
+      - "127.0.0.1:5432:5432"
     environment:
-      MYSQL_DATABASE: api_laravel_car_agency
-      # Usuario de aplicación sin privilegios de administración. La app nunca
-      # conecta como root.
-      MYSQL_USER: car_agency
-      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: secret
+      POSTGRES_DB: ${POSTGRES_DB:-api_laravel_car_agency}
+      # Superusuario del contenedor: solo lo usa la inicialización y los backups.
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      # Rol de aplicación sin privilegios de administración (lo crea
+      # docker/postgres/init/01-app-role.sh en el primer arranque).
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:-car_agency}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-secret}
+      # En desarrollo se crea además la base `testing` que usa phpunit-postgres.xml.
+      POSTGRES_CREATE_TESTING_DB: ${POSTGRES_CREATE_TESTING_DB:-true}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - pg-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -psecret --silent"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -92,7 +91,7 @@ services:
 
 volumes:
   vendor:
-  mysql-data:
+  pg-data:
 
 networks:
   car-agency:
