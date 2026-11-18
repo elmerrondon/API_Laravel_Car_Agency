@@ -54,7 +54,7 @@
 - [ ] `1.6` `docker/postgres/init/01-app-role.sh` (nuevo): crear el rol `car_agency` (`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`), hacerlo dueño de la base y del schema `public`, y crear la base `testing` cuando `POSTGRES_CREATE_TESTING_DB=true` (solo desarrollo).
 - [ ] `1.7` `docker-compose.prod.yml`: replicar el servicio `postgres` con `env_file: .env.production`, sin puertos publicados, `shared_buffers=512MB`, volumen `pg-data`, `shm_size`, healthcheck y el mismo script de inicialización.
 - [ ] `1.8` `.env.example`: `DB_CONNECTION=pgsql`, `DB_HOST=postgres`, `DB_PORT=5432`, `DB_SSLMODE=prefer`, `DB_TIMEZONE=UTC`, `DB_URL=` y `POSTGRES_*`; eliminar `MYSQL_*`.
-- [ ] `1.9` `.env.production.example`: `DB_SSLMODE=require`, `POSTGRES_*` con marcadores `CHANGE_ME_*`, `DB_TIMEZONE=UTC` y nota de que `POSTGRES_APP_PASSWORD` debe coincidir con `DB_PASSWORD`; eliminar `MYSQL_*`.
+- [ ] `1.9` `.env.production.example`: `DB_SSLMODE=prefer` (el `postgres` del compose no habilita TLS; con un PostgreSQL gestionado se sube a `require`/`verify-full`), `POSTGRES_*` con marcadores `CHANGE_ME_*`, `DB_TIMEZONE=UTC` y nota de que `POSTGRES_APP_PASSWORD` debe coincidir con `DB_PASSWORD`; eliminar `MYSQL_*`.
 - [ ] `1.10` Actualizar a mano el `.env` local (ignorado por Git) a `pgsql` y comentarios de `docker/php/opcache-prod.ini` y `.gitignore` que citan MySQL.
 - [ ] `1.11` `grep -rni "mysql\|mariadb\|pdo_mysql" docker .env.example .env.production.example`: sin resultados operativos.
 
