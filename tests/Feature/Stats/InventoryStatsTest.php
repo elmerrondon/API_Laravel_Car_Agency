@@ -38,7 +38,7 @@ it('resume el inventario actual por estado y excluye soft deletes', function () 
     $byStatus = collect($response->json('by_status'))->keyBy('status');
 
     expect($response->json('total_cars'))->toBe(51)
-        // MySQL y SQLite difieren en el último decimal al sumar precios.
+        // La suma de `numeric` varía en el último decimal según el motor.
         ->and($response->json('total_value'))->toEqualWithDelta(round((float) Car::query()->sum('price'), 2), 0.01)
         ->and($byStatus['available']['count'])->toBe(49)
         ->and($byStatus['available']['label'])->toBe('Disponible')

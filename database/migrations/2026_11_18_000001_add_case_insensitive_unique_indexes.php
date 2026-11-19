@@ -12,16 +12,15 @@ return new class extends Migration
     /**
      * Unicidad case-insensitive de los catálogos y de los usuarios.
      *
-     * MySQL comparaba los `utf8mb4_unicode_ci` sin distinguir mayúsculas; en
-     * PostgreSQL el cotejo `C` es binario, así que `Sedán` y `sedán` serían
+     * El cotejo `C` de PostgreSQL es binario, así que `Sedán` y `sedán` serían
      * dos filas distintas. La unicidad se mueve de la restricción plana a un
      * índice de expresión sobre `lower(...)`, que además es el índice que
      * aprovechan las búsquedas case-insensitive (`whereRaw('lower(name) = ?')`).
      *
      * Los índices de los usuarios son parciales (`WHERE deleted_at IS NULL`)
-     * porque el par `(email, deleted_at)` solo protege las filas activas en
-     * MySQL: en PostgreSQL los `NULL` de `deleted_at` son distintos entre sí y
-     * dos usuarios activos podrían compartir email o documento.
+     * porque el par `(email, deleted_at)` no protege la unicidad entre filas
+     * activas: los `NULL` de `deleted_at` son distintos entre sí y dos usuarios
+     * activos podrían compartir email o documento.
      *
      * `currencies.code`, `taxes.code`, `branches.code`, `users.code` y
      * `cars.vin` conservan su índice plano: son códigos que la API normaliza

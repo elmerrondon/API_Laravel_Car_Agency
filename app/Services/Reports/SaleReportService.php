@@ -47,7 +47,7 @@ class SaleReportService
         $branchId = isset($filters['branch_id']) ? (int) $filters['branch_id'] : null;
 
         // Se compara contra la columna desnuda, sin DATE(sale_date), para que
-        // MySQL pueda usar el índice de sale_date; el límite superior es
+        // PostgreSQL pueda usar el índice de sale_date; el límite superior es
         // exclusivo (día siguiente) para no perder las ventas de la última hora.
         $fromDate = $from !== null ? Carbon::parse($from)->startOfDay() : null;
         $toDate = $to !== null ? Carbon::parse($to)->startOfDay()->addDay() : null;

@@ -16,7 +16,8 @@ return new class extends Migration
         Schema::table('cars', function (Blueprint $table) {
             $table->index('status');
 
-            // branch_id y car_model_id ya están indexados por sus claves foráneas.
+            // branch_id queda cubierto por el índice (branch_id, status) y
+            // car_model_id por el de claves foráneas; aquí no se repiten.
             // El índice único "deleted_at" sobre vin duplica cars_vin_unique:
             // vin conserva unicidad global, así que no aporta nada.
             $table->dropUnique('deleted_at');
@@ -26,7 +27,7 @@ return new class extends Migration
             $table->index('sale_date');
             $table->index(['status', 'sale_date']);
 
-            // user_id ya está indexado por su clave foránea.
+            // user_id tiene su propio índice (migración de claves foráneas).
         });
 
         Schema::table('users', function (Blueprint $table) {

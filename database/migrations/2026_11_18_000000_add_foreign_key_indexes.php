@@ -11,11 +11,11 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * MySQL crea un índice por cada clave foránea; PostgreSQL no. Sin estos
-     * índices cada `DELETE`/`UPDATE` sobre la tabla padre recorre la hija
-     * completa y los listados que filtran por la FK hacen `Seq Scan`. No se
-     * repiten las columnas que ya van al frente de un índice compuesto o
-     * único: `cars.branch_id` (`branch_id, status`), `sales.branch_id`
+     * PostgreSQL no crea un índice por cada clave foránea; sin estos índices
+     * cada `DELETE`/`UPDATE` sobre la tabla padre recorre la hija completa y
+     * los listados que filtran por la FK hacen `Seq Scan`. No se repiten las
+     * columnas que ya van al frente de un índice compuesto o único:
+     * `cars.branch_id` (`branch_id, status`), `sales.branch_id`
      * (`branch_id, sale_date`), `audit_logs.user_id` (`user_id, created_at`),
      * `role_user.role_id`, `permission_role.permission_id` y
      * `branch_user.branch_id`.
