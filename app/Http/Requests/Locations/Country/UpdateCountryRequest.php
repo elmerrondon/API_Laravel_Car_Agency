@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Locations\Country;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateCountryRequest extends FormRequest
 {
@@ -26,7 +26,7 @@ class UpdateCountryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', Rule::unique('countries', 'name')->ignore($this->country->id)],
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', new CaseInsensitiveUnique('countries', 'name', $this->country->id)],
             'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }

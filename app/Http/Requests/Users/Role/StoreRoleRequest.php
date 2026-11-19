@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Users\Role;
 
 use App\Enums\Users\RoleEnum;
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,7 +28,7 @@ class StoreRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:2', 'max:50', Rule::notIn(RoleEnum::cases()), 'unique:roles,name'],
+            'name' => ['required', 'string', 'min:2', 'max:50', Rule::notIn(RoleEnum::cases()), (new CaseInsensitiveUnique('roles', 'name'))],
             'description' => ['required', 'string', 'min:3', 'max:500'],
             'permissions' => ['required', 'array', 'min:1'],
             'permissions.*' => ['required', 'integer', 'distinct', 'min:1', 'exists:permissions,id'],

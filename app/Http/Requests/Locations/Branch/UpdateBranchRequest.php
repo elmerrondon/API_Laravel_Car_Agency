@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Locations\Branch;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateBranchRequest extends FormRequest
 {
@@ -26,7 +26,7 @@ class UpdateBranchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', Rule::unique('branches', 'name')->ignore($this->branch->id)],
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', new CaseInsensitiveUnique('branches', 'name', $this->branch->id)],
             'address' => ['sometimes', 'required', 'string', 'min:3', 'max:255'],
             'description' => ['sometimes', 'required', 'string', 'max:300'],
             'zip_code' => ['sometimes', 'required', 'string', 'max:20', 'alpha_dash'],

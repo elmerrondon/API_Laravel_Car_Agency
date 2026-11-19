@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Locations\City;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreCityRequest extends FormRequest
 {
@@ -26,7 +26,7 @@ class StoreCityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:3', 'max:50', Rule::unique('cities', 'name')->where('state_id', $this->state_id)],
+            'name' => ['required', 'string', 'min:3', 'max:50', (new CaseInsensitiveUnique('cities', 'name'))->where('state_id', $this->state_id)],
             'state_id' => ['required', 'integer', 'exists:states,id'],
             'is_active' => ['sometimes', 'required', 'boolean'],
         ];
