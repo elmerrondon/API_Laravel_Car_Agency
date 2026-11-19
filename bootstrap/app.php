@@ -100,7 +100,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             $message = mb_strtolower($e->getMessage());
-            $isForeignKeyViolation = (string) $e->getCode() === '23000'
+            // `23000` es el SQLSTATE genérico de MySQL/SQLite y `23503` el de
+            // PostgreSQL para una violación de clave foránea.
+            $isForeignKeyViolation = in_array((string) $e->getCode(), ['23000', '23503'], true)
                 && (str_contains($message, 'foreign key') || str_contains($message, '1451'));
 
             return $isForeignKeyViolation

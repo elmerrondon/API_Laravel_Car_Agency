@@ -148,7 +148,7 @@
 - [x] `4.3` `tests/TestCase.php`: confirmar que `PHPUNIT_ENV_KEYS` basta (ya incluye `DB_CONNECTION`, `DB_DATABASE` y `DB_URL`); no añadir `DB_HOST` salvo que la ejecución en Docker lo exija.
 - [x] `4.4` `.github/workflows/ci.yml`: añadir `pdo_pgsql` a `setup-php`, retirar `pdo_mysql` y crear el job `postgres` (PHP 8.3) con `services.postgres` (`postgres:17-alpine`, base `testing`, healthcheck `pg_isready`), `DB_HOST=127.0.0.1`, `migrate:fresh --seed`, `composer test:postgres`, `composer analyse`, `pint --test` y `composer audit`.
 - [x] `4.5` Actualizar el comentario de cabecera de `ci.yml`: ya no es un workflow "sin servicios externos".
-- [ ] `4.6` Ejecutar en Docker `composer test` (SQLite) y `composer test:postgres` contra la base `testing`; corregir divergencias (tipos `numeric` devueltos como string, diferencias de redondeo, `RefreshDatabase`).
+- [x] `4.6` Ejecutar en Docker `composer test` (SQLite) y `composer test:postgres` contra la base `testing`; corregir divergencias (tipos `numeric` devueltos como string, diferencias de redondeo, `RefreshDatabase`).
 - [ ] `4.7` Revisar `deploy-dockerhub.yml`: no cambia de lógica, pero el build debe incluir `pdo_pgsql`; validar la imagen PaaS con un `docker build` local.
 
 **Criterio de cierre:** suite verde en SQLite y en PostgreSQL, `composer analyse`, `pint --test` y `composer audit` limpios; el YAML del CI es válido.
