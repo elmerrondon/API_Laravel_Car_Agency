@@ -9,7 +9,7 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-18.
-- **Estado:** fase 2 completada (esquema, índices de FK e índices case-insensitive). Siguiente: fase 3 (compatibilidad de código y semántica case-sensitive).
+- **Estado:** fase 3 completada (compatibilidad de código y semántica case-insensitive). Siguiente: fase 4 (tests y CI).
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
 - **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
