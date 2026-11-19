@@ -124,7 +124,7 @@
 
 **Objetivo:** eliminar la única función SQL específica de MySQL y recuperar la semántica case-insensitive que aportaba `utf8mb4_unicode_ci`.
 
-- [ ] `3.1` `app/Services/Stats/StatsQuery.php`: añadir `pgsql => "to_char(sale_date, 'YYYY-MM')"` a `periodExpression()`; conservar SQLite y eliminar la rama MySQL.
+- [x] `3.1` `app/Services/Stats/StatsQuery.php`: añadir `pgsql => "to_char(sale_date, 'YYYY-MM')"` a `periodExpression()`; conservar SQLite y eliminar la rama MySQL.
 - [ ] `3.2` `app/Rules/CaseInsensitiveUnique.php` (nuevo): regla invocable reutilizable con tabla, columna, `ignoreId`, condiciones extra (para `states`/`cities`) y `withoutTrashed`; compara con `whereRaw('lower(columna) = ?', [mb_strtolower($valor)])` y falla con el mensaje de `validation.unique`.
 - [ ] `3.3` `StoreUserRequest`/`UpdateUserRequest`: normalizar `email` a minúsculas y `document_number` a mayúsculas en `prepareForValidation()`; aplicar `CaseInsensitiveUnique` con `withoutTrashed()` (y `ignore()` en update). `users.code` se normaliza a mayúsculas y conserva la regla de inmutabilidad.
 - [ ] `3.4` `LoginAuthRequest`: normalizar `email` a minúsculas para que `Auth::attempt` encuentre la fila guardada.

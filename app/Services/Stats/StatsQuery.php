@@ -84,7 +84,7 @@ final class StatsQuery
     {
         return match (DB::connection()->getDriverName()) {
             'sqlite' => "strftime('%Y-%m', sale_date)",
-            default => "DATE_FORMAT(sale_date, '%Y-%m')",
+            default => "to_char(sale_date, 'YYYY-MM')",
         };
     }
 }
