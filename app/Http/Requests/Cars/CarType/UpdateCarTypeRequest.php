@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Cars\CarType;
 
+use App\Models\Cars\CarType;
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateCarTypeRequest extends FormRequest
 {
@@ -28,7 +29,7 @@ class UpdateCarTypeRequest extends FormRequest
         $carType = $this->route('car_type');
 
         return [
-            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', Rule::unique('car_types', 'name')->ignore($carType)],
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', new CaseInsensitiveUnique('car_types', 'name', $carType instanceof CarType ? $carType->id : null)],
             'description' => ['sometimes', 'required', 'string', 'min:2', 'max:500'],
             'is_active' => ['sometimes', 'required', 'boolean'],
         ];

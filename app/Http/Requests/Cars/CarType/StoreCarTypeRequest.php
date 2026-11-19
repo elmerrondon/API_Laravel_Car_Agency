@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Cars\CarType;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -25,7 +26,7 @@ class StoreCarTypeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:3', 'max:50', 'unique:car_types,name'],
+            'name' => ['required', 'string', 'min:3', 'max:50', (new CaseInsensitiveUnique('car_types', 'name'))],
             'description' => ['required', 'string', 'min:2', 'max:500'],
             'is_active' => ['sometimes', 'required', 'boolean'],
         ];

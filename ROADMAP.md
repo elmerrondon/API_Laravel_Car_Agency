@@ -129,7 +129,7 @@
 - [x] `3.3` `StoreUserRequest`/`UpdateUserRequest`: normalizar `email` a minúsculas y `document_number` a mayúsculas en `prepareForValidation()`; aplicar `CaseInsensitiveUnique` con `withoutTrashed()` (y `ignore()` en update). `users.code` se normaliza a mayúsculas y conserva la regla de inmutabilidad.
 - [x] `3.4` `LoginAuthRequest`: normalizar `email` a minúsculas para que `Auth::attempt` encuentre la fila guardada.
 - [x] `3.5` `StoreCarRequest`/`UpdateCarRequest`: normalizar `vin` a mayúsculas antes de validar y guardar. Añadir un mutador `vin` en `Car` (mayúsculas y `trim`) como defensa para factories, seeders y escrituras fuera de los FormRequest.
-- [ ] `3.6` Catálogos de coches: `Brand`, `CarModel`, `CarType`, `Category` y `Color` usan `CaseInsensitiveUnique` sobre `name` en Store/Update (el alta de duplicados con otra capitalización responde `422`).
+- [x] `3.6` Catálogos de coches: `Brand`, `CarModel`, `CarType`, `Category` y `Color` usan `CaseInsensitiveUnique` sobre `name` en Store/Update (el alta de duplicados con otra capitalización responde `422`).
 - [ ] `3.7` Catálogos de ventas: `Currency` (`name` y `code`), `Tax` (`name` y `code`) y `PaymentMethod` (`name`); normalizar `code` a mayúsculas y usar la regla en `name`.
 - [ ] `3.8` Ubicaciones y usuarios: `Country`, `Branch` y `Role` por `name`; `State` por `name` + `country_id` y `City` por `name` + `state_id` con condiciones extra.
 - [ ] `3.9` Tests: login con email en mayúsculas, alta duplicada con distinta capitalización (catálogo, usuario y `role`), VIN/códigos normalizados y `422` en los duplicados.

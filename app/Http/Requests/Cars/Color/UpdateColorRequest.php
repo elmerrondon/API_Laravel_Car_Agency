@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Cars\Color;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -25,7 +26,7 @@ class UpdateColorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50'],
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', new CaseInsensitiveUnique('colors', 'name', $this->color->id)],
             'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
