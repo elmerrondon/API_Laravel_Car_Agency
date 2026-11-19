@@ -67,7 +67,7 @@
 **Objetivo:** que el esquema sea equivalente al de MySQL y que las consultas conserven su rendimiento **sin** los índices implícitos de las claves foráneas.
 
 - [x] `2.1` `config/database.php`: añadir `'timezone' => env('DB_TIMEZONE', 'UTC')` al bloque `pgsql`; eliminar los bloques `mysql`/`mariadb` y el `use Pdo\Mysql;`.
-- [ ] `2.2` Migración `..._add_foreign_key_indexes.php` (nueva) con los índices que PostgreSQL no genera:
+- [x] `2.2` Migración `..._add_foreign_key_indexes.php` (nueva) con los índices que PostgreSQL no genera:
 
   | Tabla | Columnas |
   | :--- | :--- |
