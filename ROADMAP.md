@@ -111,7 +111,7 @@
 
   Cada `CREATE` va precedido del `dropUnique` de la restricción plana equivalente (incluidos `users_email_deleted_at_unique` y `users_document_number_deleted_at_unique`) para no duplicar estructura. `currencies.code`, `taxes.code`, `branches.code`, `users.code` y `cars.vin` mantienen su índice plano: se normalizan en el borde.
 
-- [ ] `2.4` `tests/Feature/Database/IndexesTest.php`: añadir aserciones por nombre para los índices de FK y para los índices case-insensitive; conservar las que garantizan que `cars` no tiene índices duplicados.
+- [x] `2.4` `tests/Feature/Database/IndexesTest.php`: añadir aserciones por nombre para los índices de FK y para los índices case-insensitive; conservar las que garantizan que `cars` no tiene índices duplicados.
 - [ ] `2.5` Actualizar comentarios que afirman que las FK ya indexan: `database/migrations/2026_10_20_000001_add_performance_indexes.php`, `app/Services/Reports/SaleReportService.php` y `tests/Feature/Stats/InventoryStatsTest.php` (menciona MySQL).
 - [ ] `2.6` `migrate:fresh --seed` limpio en PostgreSQL y comprobación de `Schema::hasIndex` en un `tinker` puntual.
 - [ ] `2.7` Validar con dataset realista (3 000 ventas/coches) y `EXPLAIN (ANALYZE, BUFFERS)` que se usan `sales(branch_id, status, sale_date)`, `cars(branch_id, status)` y los nuevos índices de FK; sin `Seq Scan` en reportes y estadísticas. Con el seed pequeño el planner elige `Seq Scan` y no prueba nada.
