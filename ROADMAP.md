@@ -130,7 +130,7 @@
 - [x] `3.4` `LoginAuthRequest`: normalizar `email` a minúsculas para que `Auth::attempt` encuentre la fila guardada.
 - [x] `3.5` `StoreCarRequest`/`UpdateCarRequest`: normalizar `vin` a mayúsculas antes de validar y guardar. Añadir un mutador `vin` en `Car` (mayúsculas y `trim`) como defensa para factories, seeders y escrituras fuera de los FormRequest.
 - [x] `3.6` Catálogos de coches: `Brand`, `CarModel`, `CarType`, `Category` y `Color` usan `CaseInsensitiveUnique` sobre `name` en Store/Update (el alta de duplicados con otra capitalización responde `422`).
-- [ ] `3.7` Catálogos de ventas: `Currency` (`name` y `code`), `Tax` (`name` y `code`) y `PaymentMethod` (`name`); normalizar `code` a mayúsculas y usar la regla en `name`.
+- [x] `3.7` Catálogos de ventas: `Currency` (`name` y `code`), `Tax` (`name` y `code`) y `PaymentMethod` (`name`); normalizar `code` a mayúsculas y usar la regla en `name`.
 - [ ] `3.8` Ubicaciones y usuarios: `Country`, `Branch` y `Role` por `name`; `State` por `name` + `country_id` y `City` por `name` + `state_id` con condiciones extra.
 - [ ] `3.9` Tests: login con email en mayúsculas, alta duplicada con distinta capitalización (catálogo, usuario y `role`), VIN/códigos normalizados y `422` en los duplicados.
 - [ ] `3.10` Revisar seeders, factories y `ProductionAdminSeeder`: `CarFactory` genera VIN con `bothify('???##?##?######??')` y puede producir minúsculas, así que debe pasar por el mutador del modelo. Añadir mutadores equivalentes para `User.email` (minúsculas) y `User.code`/`document_number` (mayúsculas).
