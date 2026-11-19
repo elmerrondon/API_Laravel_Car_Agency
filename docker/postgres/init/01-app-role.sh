@@ -4,8 +4,7 @@
 #
 # La imagen oficial ejecuta los scripts de /docker-entrypoint-initdb.d una sola
 # vez, cuando el volumen de datos está vacío. Aquí se crea el rol de aplicación
-# y se le entrega la propiedad de la base, porque PostgreSQL no crea índices
-# implícitos ni permisos al estilo de MySQL:
+# y se le entrega la propiedad de la base y del schema:
 #
 #   - El superusuario (POSTGRES_USER) solo se usa para la inicialización y los
 #     backups; la API nunca conecta con él.
