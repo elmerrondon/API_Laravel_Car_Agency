@@ -16,6 +16,7 @@ use Database\Seeders\Users\RoleSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 /**
  * Datos fundacionales de producción.
@@ -67,9 +68,10 @@ class ProductionAdminSeeder extends Seeder
         // `code` es la identidad estable del registro: permite cambiar el email
         // entre despliegues sin crear un administrador duplicado. `withTrashed`
         // evita chocar con la unicidad global de `users.code` si el usuario fue
-        // borrado lógicamente.
+        // borrado lógicamente. La clave se normaliza aquí porque el mutador del
+        // modelo no interviene en el `where` de `updateOrCreate`.
         $user = User::withTrashed()->updateOrCreate(
-            ['code' => (string) config('seeders.admin_code')],
+            ['code' => Str::upper(trim((string) config('seeders.admin_code')))],
             [
                 'name' => (string) config('seeders.admin_name'),
                 'last_name' => (string) config('seeders.admin_last_name'),

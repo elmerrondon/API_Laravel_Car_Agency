@@ -8,6 +8,7 @@ use App\Enums\Users\PermissionEnum;
 use App\Models\Locations\Branch;
 use Database\Factories\Users\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -142,5 +144,35 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    /**
+     * La identidad se guarda normalizada: email en minúsculas y documento y
+     * código en mayúsculas. Los FormRequest lo hacen antes de validar; estos
+     * mutadores protegen factories, seeders y escrituras directas.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => Str::lower(trim($value)),
+        );
+    }
+
+    /** @return Attribute<string, string> */
+    protected function documentNumber(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => Str::upper(trim($value)),
+        );
+    }
+
+    /** @return Attribute<string, string> */
+    protected function code(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => Str::upper(trim($value)),
+        );
     }
 }
