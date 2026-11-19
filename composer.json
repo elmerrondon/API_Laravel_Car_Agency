@@ -56,6 +56,10 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:postgres": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --configuration=phpunit-postgres.xml"
+        ],
         "analyse": [
             "@php vendor/bin/phpstan analyse --no-progress --memory-limit=1G"
         ],
