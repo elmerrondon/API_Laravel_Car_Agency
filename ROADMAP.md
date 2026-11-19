@@ -8,8 +8,8 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-17.
-- **Estado:** migración MySQL → PostgreSQL planificada. **0 tareas completadas**.
+- **Actualizado:** 2026-11-18.
+- **Estado:** fase 1 completada (infraestructura Docker sobre PostgreSQL 17). Siguiente: fase 2 (esquema e índices).
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
 - **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
@@ -46,17 +46,17 @@
 
 **Objetivo:** que el stack completo arranque sobre PostgreSQL 17 sin ninguna dependencia ni variable de MySQL.
 
-- [ ] `1.1` `docker/php/Dockerfile`: reemplazar `pdo_mysql` por `pdo_pgsql`, añadir `libpq` al runtime y `postgresql-dev` a `.build-deps`; conservar `pdo_sqlite` porque la suite rápida lo usa.
-- [ ] `1.2` `docker/render/Dockerfile.render`: cambiar `pdo_mysql` por `pdo_pgsql` en `install-php-extensions` y actualizar los comentarios de cabecera (`DB_CONNECTION=pgsql`).
-- [ ] `1.3` `docker-compose.yml`: sustituir el servicio `mysql` por `postgres:17-alpine` con volumen `pg-data:/var/lib/postgresql/data`, `shm_size: 256mb`, puerto `127.0.0.1:5432:5432`, healthcheck `pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"` y `app.depends_on.postgres: condition: service_healthy`.
-- [ ] `1.4` `docker-compose.yml`: definir `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD`; ajustar `DB_HOST=postgres`, `DB_PORT=5432`, `DB_USERNAME=car_agency` y `DB_PASSWORD` de `app` y `scheduler` (y de `worker` en producción).
-- [ ] `1.5` `docker-compose.yml`: sustituir el slow log de MySQL por `command: [postgres, -c, shared_buffers=..., -c, effective_cache_size=..., -c, work_mem=..., -c, log_min_duration_statement=...]` con variables `POSTGRES_*`.
-- [ ] `1.6` `docker/postgres/init/01-app-role.sh` (nuevo): crear el rol `car_agency` (`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`), hacerlo dueño de la base y del schema `public`, y crear la base `testing` cuando `POSTGRES_CREATE_TESTING_DB=true` (solo desarrollo).
-- [ ] `1.7` `docker-compose.prod.yml`: replicar el servicio `postgres` con `env_file: .env.production`, sin puertos publicados, `shared_buffers=512MB`, volumen `pg-data`, `shm_size`, healthcheck y el mismo script de inicialización.
-- [ ] `1.8` `.env.example`: `DB_CONNECTION=pgsql`, `DB_HOST=postgres`, `DB_PORT=5432`, `DB_SSLMODE=prefer`, `DB_TIMEZONE=UTC`, `DB_URL=` y `POSTGRES_*`; eliminar `MYSQL_*`.
-- [ ] `1.9` `.env.production.example`: `DB_SSLMODE=prefer` (el `postgres` del compose no habilita TLS; con un PostgreSQL gestionado se sube a `require`/`verify-full`), `POSTGRES_*` con marcadores `CHANGE_ME_*`, `DB_TIMEZONE=UTC` y nota de que `POSTGRES_APP_PASSWORD` debe coincidir con `DB_PASSWORD`; eliminar `MYSQL_*`.
-- [ ] `1.10` Actualizar a mano el `.env` local (ignorado por Git) a `pgsql` y comentarios de `docker/php/opcache-prod.ini` y `.gitignore` que citan MySQL.
-- [ ] `1.11` `grep -rni "mysql\|mariadb\|pdo_mysql" docker .env.example .env.production.example`: sin resultados operativos.
+- [x] `1.1` `docker/php/Dockerfile`: reemplazar `pdo_mysql` por `pdo_pgsql`, añadir `libpq` al runtime y `postgresql-dev` a `.build-deps`; conservar `pdo_sqlite` porque la suite rápida lo usa.
+- [x] `1.2` `docker/render/Dockerfile.render`: cambiar `pdo_mysql` por `pdo_pgsql` en `install-php-extensions` y actualizar los comentarios de cabecera (`DB_CONNECTION=pgsql`).
+- [x] `1.3` `docker-compose.yml`: sustituir el servicio `mysql` por `postgres:17-alpine` con volumen `pg-data:/var/lib/postgresql/data`, `shm_size: 256mb`, puerto `127.0.0.1:5432:5432`, healthcheck `pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"` y `app.depends_on.postgres: condition: service_healthy`.
+- [x] `1.4` `docker-compose.yml`: definir `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD`; ajustar `DB_HOST=postgres`, `DB_PORT=5432`, `DB_USERNAME=car_agency` y `DB_PASSWORD` de `app` y `scheduler` (y de `worker` en producción).
+- [x] `1.5` `docker-compose.yml`: sustituir el slow log de MySQL por `command: [postgres, -c, shared_buffers=..., -c, effective_cache_size=..., -c, work_mem=..., -c, log_min_duration_statement=...]` con variables `POSTGRES_*`.
+- [x] `1.6` `docker/postgres/init/01-app-role.sh` (nuevo): crear el rol `car_agency` (`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`), hacerlo dueño de la base y del schema `public`, y crear la base `testing` cuando `POSTGRES_CREATE_TESTING_DB=true` (solo desarrollo).
+- [x] `1.7` `docker-compose.prod.yml`: replicar el servicio `postgres` con `env_file: .env.production`, sin puertos publicados, `shared_buffers=512MB`, volumen `pg-data`, `shm_size`, healthcheck y el mismo script de inicialización.
+- [x] `1.8` `.env.example`: `DB_CONNECTION=pgsql`, `DB_HOST=postgres`, `DB_PORT=5432`, `DB_SSLMODE=prefer`, `DB_TIMEZONE=UTC`, `DB_URL=` y `POSTGRES_*`; eliminar `MYSQL_*`.
+- [x] `1.9` `.env.production.example`: `DB_SSLMODE=prefer` (el `postgres` del compose no habilita TLS; con un PostgreSQL gestionado se sube a `require`/`verify-full`), `POSTGRES_*` con marcadores `CHANGE_ME_*`, `DB_TIMEZONE=UTC` y nota de que `POSTGRES_APP_PASSWORD` debe coincidir con `DB_PASSWORD`; eliminar `MYSQL_*`.
+- [x] `1.10` Actualizar a mano el `.env` local (ignorado por Git) a `pgsql` y comentarios de `docker/php/opcache-prod.ini` y `.gitignore` que citan MySQL.
+- [x] `1.11` `grep -rni "mysql\|mariadb\|pdo_mysql" docker .env.example .env.production.example`: sin resultados operativos.
 
 **Criterio de cierre:** `docker compose config` válido en desarrollo y producción; `docker compose up -d --build` levanta `postgres` healthy y `app` conecta; `migrate:fresh --seed` crea el esquema; `/up` responde `200`.
 
