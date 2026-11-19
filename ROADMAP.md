@@ -84,7 +84,7 @@
 
   Ya cubiertos por índices compuestos existentes: `cars.branch_id` por `(branch_id, status)`, `sales.branch_id` por `(branch_id, sale_date)`, `audit_logs.user_id` por `(user_id, created_at)` y los lados izquierdos de `role_user`, `permission_role` y `branch_user`.
 
-- [ ] `2.3` Migración `..._add_case_insensitive_unique_indexes.php` (nueva): sustituir los `unique()` de texto por índices de expresión y añadir los parciales de usuarios.
+- [x] `2.3` Migración `..._add_case_insensitive_unique_indexes.php` (nueva): sustituir los `unique()` de texto por índices de expresión y añadir los parciales de usuarios.
 
   ```sql
   -- Usuarios: el índice (columna, deleted_at) no protege filas activas en PostgreSQL
