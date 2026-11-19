@@ -7,6 +7,7 @@ namespace App\Http\Requests\Cars\Car;
 use App\Enums\Cars\CarStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UpdateCarRequest extends FormRequest
@@ -17,6 +18,16 @@ class UpdateCarRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * El VIN se guarda en mayúsculas.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('vin')) {
+            $this->merge(['vin' => Str::upper((string) $this->input('vin'))]);
+        }
     }
 
     /**

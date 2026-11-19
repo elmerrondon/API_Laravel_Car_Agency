@@ -7,10 +7,12 @@ namespace App\Models\Cars;
 use App\Enums\Cars\CarStatus;
 use App\Models\Locations\Branch;
 use Database\Factories\Cars\CarFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Car extends Model
 {
@@ -58,5 +60,19 @@ class Car extends Model
             'year' => 'integer',
             'status' => CarStatus::class,
         ];
+    }
+
+    /**
+     * El VIN se guarda siempre en mayúsculas, sin espacios sobrantes. La
+     * normalización del FormRequest cubre la API; el mutador protege
+     * factories, seeders y cualquier escritura directa al modelo.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function vin(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => Str::upper(trim($value)),
+        );
     }
 }
