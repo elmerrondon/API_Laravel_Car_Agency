@@ -9,7 +9,7 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-18.
-- **Estado:** fase 1 completada (infraestructura Docker sobre PostgreSQL 17). Siguiente: fase 2 (esquema e índices).
+- **Estado:** fase 2 completada (esquema, índices de FK e índices case-insensitive). Siguiente: fase 3 (compatibilidad de código y semántica case-sensitive).
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
 - **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
@@ -113,8 +113,8 @@
 
 - [x] `2.4` `tests/Feature/Database/IndexesTest.php`: añadir aserciones por nombre para los índices de FK y para los índices case-insensitive; conservar las que garantizan que `cars` no tiene índices duplicados.
 - [x] `2.5` Actualizar comentarios que afirman que las FK ya indexan: `database/migrations/2026_10_20_000001_add_performance_indexes.php`, `app/Services/Reports/SaleReportService.php` y `tests/Feature/Stats/InventoryStatsTest.php` (menciona MySQL).
-- [ ] `2.6` `migrate:fresh --seed` limpio en PostgreSQL y comprobación de `Schema::hasIndex` en un `tinker` puntual.
-- [ ] `2.7` Validar con dataset realista (3 000 ventas/coches) y `EXPLAIN (ANALYZE, BUFFERS)` que se usan `sales(branch_id, status, sale_date)`, `cars(branch_id, status)` y los nuevos índices de FK; sin `Seq Scan` en reportes y estadísticas. Con el seed pequeño el planner elige `Seq Scan` y no prueba nada.
+- [x] `2.6` `migrate:fresh --seed` limpio en PostgreSQL y comprobación de `Schema::hasIndex` en un `tinker` puntual.
+- [x] `2.7` Validar con dataset realista (3 000 ventas/coches) y `EXPLAIN (ANALYZE, BUFFERS)` que se usan `sales(branch_id, status, sale_date)`, `cars(branch_id, status)` y los nuevos índices de FK; sin `Seq Scan` en reportes y estadísticas. Con el seed pequeño el planner elige `Seq Scan` y no prueba nada.
 
 **Criterio de cierre:** `migrate:fresh --seed` sin errores, `IndexesTest` verde y los `EXPLAIN` muestran los índices previstos.
 
