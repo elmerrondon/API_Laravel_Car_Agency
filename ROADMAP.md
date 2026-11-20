@@ -8,10 +8,10 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-19.
-- **Estado:** fase 5 completada (backup y restauración de PostgreSQL). Siguiente: fase 6 (documentación).
+- **Actualizado:** 2026-11-20.
+- **Estado:** fase 6 completada (documentación). Siguiente: fase 7 (verificación integral y cierre).
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
-- **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
+- **Verificación de referencia:** 443 tests / 2 823 aserciones en SQLite y PostgreSQL, PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
 
 ---
@@ -173,11 +173,13 @@
 
 **Objetivo:** que ninguna guía operativa mencione MySQL ni comandos que ya no existen.
 
-- [ ] `6.1` `README.md`: badge y stack, inicio rápido (la base la crea `POSTGRES_DB`), puertos y healthchecks, comandos `psql`, tests (SQLite + PostgreSQL), despliegue, "Ajuste de PostgreSQL" (sustituye "Ajuste de MySQL"), backups, PaaS con PostgreSQL gestionado y `DB_SSLMODE`, troubleshooting (`SQLSTATE[08006]`, `28P01`, `42P01`, `remaining connection slots`, `permission denied for schema public`) y notas finales.
-- [ ] `6.2` `AGENTS.md`: entorno sin MySQL local, extensiones `pdo_pgsql`, servicios `postgres` en ambos compose, script de rol de app, scripts de backup/restore, CI con job PostgreSQL, `to_char` en estadísticas, autosuficiencia "API + PostgreSQL", índices de FK y semántica case-sensitive.
-- [ ] `6.3` `ROADMAP.md`: marcar las tareas al cerrarlas y dejar el estado actualizado.
-- [ ] `6.4` `MEMORY.md`: entrada fechada con las decisiones no obvias (FK sin índice, `C.UTF-8`, índices parciales, rol dueño del schema, `to_char`); verificar `wc -l MEMORY.md` ≤ 100.
-- [ ] `6.5` `grep -rni "mysql\|mariadb" --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=storage --exclude-dir=.git --exclude-dir=.agents .`: solo pueden quedar `MEMORY.md`/`MEMORY-ARCHIVE.md` como histórico.
+- [x] `6.1` `README.md`: badge y stack, inicio rápido (la base la crea `POSTGRES_DB`), puertos y healthchecks, comandos `psql`, tests (SQLite + PostgreSQL), despliegue, "Ajuste de PostgreSQL" (sustituye "Ajuste de MySQL"), backups, PaaS con PostgreSQL gestionado y `DB_SSLMODE`, troubleshooting (`SQLSTATE[08006]`, `28P01`, `42P01`, `remaining connection slots`, `permission denied for schema public`) y notas finales.
+- [x] `6.2` `AGENTS.md`: entorno sin MySQL local, extensiones `pdo_pgsql`, servicios `postgres` en ambos compose, script de rol de app, scripts de backup/restore, CI con job PostgreSQL, `to_char` en estadísticas, autosuficiencia "API + PostgreSQL", índices de FK y semántica case-sensitive.
+- [x] `6.3` `ROADMAP.md`: marcar las tareas al cerrarlas y dejar el estado actualizado.
+- [x] `6.4` `MEMORY.md`: entrada fechada con las decisiones no obvias (FK sin índice, `C.UTF-8`, índices parciales, rol dueño del schema, `to_char`); verificar `wc -l MEMORY.md` ≤ 100.
+- [x] `6.5` `grep -rni "mysql\|mariadb" --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=storage --exclude-dir=.git --exclude-dir=.agents .`: solo pueden quedar `MEMORY.md`/`MEMORY-ARCHIVE.md` como histórico.
+
+> **Resultado de 6.5:** `README.md`, `AGENTS.md`, `docker/`, `config/`, `.github/` y los scripts quedan limpios. Permanecen menciones en `MEMORY.md`/`MEMORY-ARCHIVE.md` (histórico), en `ROADMAP.md` (describe la propia migración) y en `composer.lock` (descripción de una dependencia de terceros); ninguna es documentación operativa.
 
 **Criterio de cierre:** documentación operativa 100 % PostgreSQL y sin referencias obsoletas.
 
