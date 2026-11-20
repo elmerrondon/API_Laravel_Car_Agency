@@ -162,7 +162,7 @@
 - [x] `5.1` `docker/scripts/backup-postgres.sh` (nuevo): `pg_dump -Fc` dentro del contenedor `postgres` con `PGPASSWORD` desde `POSTGRES_PASSWORD`, retención por `BACKUP_RETENTION_DAYS` y `COMPOSE_FILE`/`ENV_FILE` configurables.
 - [x] `5.2` `docker/scripts/restore-postgres.sh` (nuevo): parar `app`, `worker` y `scheduler`, `dropdb --if-exists --force`, `createdb -O car_agency`, `pg_restore --no-owner --no-privileges --exit-on-error`, reiniciar y exigir `--confirm`.
 - [x] `5.3` Eliminar `docker/scripts/backup-mysql.sh` y `restore-mysql.sh`, y actualizar el `.gitignore` si el comentario de `/backups` cita MySQL.
-- [ ] `5.4` Probar el ciclo completo en desarrollo: dump → fila marcadora → restore → marcador ausente y conteos intactos.
+- [x] `5.4` Probar el ciclo completo en desarrollo: dump → fila marcadora → restore → marcador ausente y conteos intactos.
 - [ ] `5.5` Verificar que `log_min_duration_statement` escribe en `docker compose logs postgres` con una consulta lenta provocada.
 
 **Criterio de cierre:** backup y restauración probados; las consultas lentas son visibles en los logs del contenedor.
