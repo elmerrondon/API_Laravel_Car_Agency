@@ -9,7 +9,7 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-19.
-- **Estado:** fase 4 completada (tests y CI contra PostgreSQL). Siguiente: fase 5 (backup y restauración).
+- **Estado:** fase 5 completada (backup y restauración de PostgreSQL). Siguiente: fase 6 (documentación).
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
 - **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
@@ -163,7 +163,7 @@
 - [x] `5.2` `docker/scripts/restore-postgres.sh` (nuevo): parar `app`, `worker` y `scheduler`, `dropdb --if-exists --force`, `createdb -O car_agency`, `pg_restore --no-owner --no-privileges --exit-on-error`, reiniciar y exigir `--confirm`.
 - [x] `5.3` Eliminar `docker/scripts/backup-mysql.sh` y `restore-mysql.sh`, y actualizar el `.gitignore` si el comentario de `/backups` cita MySQL.
 - [x] `5.4` Probar el ciclo completo en desarrollo: dump → fila marcadora → restore → marcador ausente y conteos intactos.
-- [ ] `5.5` Verificar que `log_min_duration_statement` escribe en `docker compose logs postgres` con una consulta lenta provocada.
+- [x] `5.5` Verificar que `log_min_duration_statement` escribe en `docker compose logs postgres` con una consulta lenta provocada.
 
 **Criterio de cierre:** backup y restauración probados; las consultas lentas son visibles en los logs del contenedor.
 
