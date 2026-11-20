@@ -8,8 +8,8 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-18.
-- **Estado:** fase 3 completada (compatibilidad de código y semántica case-insensitive). Siguiente: fase 4 (tests y CI).
+- **Actualizado:** 2026-11-19.
+- **Estado:** fase 4 completada (tests y CI contra PostgreSQL). Siguiente: fase 5 (backup y restauración).
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
 - **Verificación de referencia:** 378 tests / 2 724 aserciones en SQLite, PHPStan nivel 7 sin errores, Pint limpio en 362 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
@@ -149,7 +149,7 @@
 - [x] `4.4` `.github/workflows/ci.yml`: añadir `pdo_pgsql` a `setup-php`, retirar `pdo_mysql` y crear el job `postgres` (PHP 8.3) con `services.postgres` (`postgres:17-alpine`, base `testing`, healthcheck `pg_isready`), `DB_HOST=127.0.0.1`, `migrate:fresh --seed`, `composer test:postgres`, `composer analyse`, `pint --test` y `composer audit`.
 - [x] `4.5` Actualizar el comentario de cabecera de `ci.yml`: ya no es un workflow "sin servicios externos".
 - [x] `4.6` Ejecutar en Docker `composer test` (SQLite) y `composer test:postgres` contra la base `testing`; corregir divergencias (tipos `numeric` devueltos como string, diferencias de redondeo, `RefreshDatabase`).
-- [ ] `4.7` Revisar `deploy-dockerhub.yml`: no cambia de lógica, pero el build debe incluir `pdo_pgsql`; validar la imagen PaaS con un `docker build` local.
+- [x] `4.7` Revisar `deploy-dockerhub.yml`: no cambia de lógica, pero el build debe incluir `pdo_pgsql`; validar la imagen PaaS con un `docker build` local.
 
 **Criterio de cierre:** suite verde en SQLite y en PostgreSQL, `composer analyse`, `pint --test` y `composer audit` limpios; el YAML del CI es válido.
 
