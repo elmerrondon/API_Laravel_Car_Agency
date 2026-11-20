@@ -2,12 +2,12 @@
 
 ![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-00000F?style=for-the-badge&logo=mysql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 API RESTful en **Laravel 12** para la gestión integral de una agencia de vehículos: inventario, sucursales, usuarios, roles, ventas transaccionales y reportes PDF.
 
-El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas instalar PHP, Composer ni MySQL en el host.
+El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas instalar PHP, Composer ni PostgreSQL en el host.
 
 ---
 
@@ -17,7 +17,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 | :--- | :--- | :--- |
 | Framework | Laravel 12 | Enrutamiento, ORM Eloquent, validación y lógica HTTP. |
 | Lenguaje | PHP 8.3 | Enums nativos, tipado estricto y DTOs `readonly`. |
-| Base de datos | MySQL 8.0 | Inventario, ubicaciones, usuarios y transacciones. |
+| Base de datos | PostgreSQL 17 | Inventario, ubicaciones, usuarios y transacciones. |
 | Servidor web | Nginx + PHP-FPM | Stack de desarrollo dentro de Docker. |
 | Autenticación | Laravel Sanctum | Tokens bearer opacos con expiración. |
 | Reportes | Dompdf | Generación de reportes PDF de ventas e inventario. |
@@ -45,7 +45,7 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 - **Reportes PDF:** ventas e inventario, con filtros por fecha y sucursal.
 - **Documentación OpenAPI 3.1.2:** `/docs/api` y `/docs/api.json`, con grupos, resúmenes y errores por dominio; importable en Postman.
 - **Cabeceras de seguridad:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer-when-downgrade`, `Permissions-Policy` restrictiva y `server_tokens off` en Nginx; CSP solo en `/docs/api` y HSTS únicamente sobre HTTPS.
-- **CI de calidad:** `.github/workflows/ci.yml` ejecuta tests, PHPStan, Pint y `composer audit` en una matriz PHP 8.2/8.3/8.4 con SQLite en memoria.
+- **CI de calidad:** `.github/workflows/ci.yml` ejecuta tests, PHPStan, Pint y `composer audit` en una matriz PHP 8.2/8.3/8.4 con SQLite en memoria y añade un job contra PostgreSQL 17 real con `composer test:postgres`.
 - **Datos demo en español:** 8 sucursales, 52 coches y 3 usuarios con roles `admin`, `manager` y `vendedor`.
 
 ---
@@ -55,8 +55,8 @@ El proyecto está preparado para ejecutarse con **Docker Compose**. No necesitas
 ### Requisitos
 
 - Docker Engine o Docker Desktop con **Compose v2**.
-- Puertos **8000** y **3306** libres en el host.
-- No hace falta PHP, Composer, MySQL ni Node.js.
+- Puertos **8000** y **5432** libres en el host.
+- No hace falta PHP, Composer, PostgreSQL ni Node.js.
 
 ### 1. Clonar el repositorio y crear el `.env`
 
@@ -69,10 +69,11 @@ cp .env.example .env
 
 El archivo `.env.example` ya viene alineado con Docker Compose:
 
-- `DB_HOST=mysql`
+- `DB_HOST=postgres`
 - `DB_DATABASE=api_laravel_car_agency`
 - `DB_USERNAME=car_agency`
 - `DB_PASSWORD=secret`
+- `DB_SSLMODE=prefer` (sin TLS dentro de la red de Compose)
 - `SESSION_DRIVER=file`
 - `APP_URL=http://localhost:8000`
 - `AUDIT_RETENTION_DAYS=90` (retención de `audit:prune`)
@@ -94,10 +95,10 @@ Servicios que se levantan:
 | :--- | :--- | :--- |
 | `nginx` | `8000` | Sirve la API en `http://localhost:8000`. |
 | `app` | Interno `9000` | PHP 8.3-FPM. |
-| `mysql` | `127.0.0.1:3306` | MySQL 8.0 con la base `api_laravel_car_agency` (solo loopback). |
+| `postgres` | `127.0.0.1:5432` | PostgreSQL 17 con la base `api_laravel_car_agency` (solo loopback). |
 | `scheduler` | — | `php artisan schedule:work`: ejecuta la purga de auditoría y de tokens. |
 
-MySQL tiene un healthcheck; el contenedor `app` espera a que esté listo antes de arrancar y publica su propio estado con `php artisan health:check` (base de datos + caché). `nginx` comprueba `/up` por HTTP. `scheduler` reutiliza la imagen, el entorno y los volúmenes de `app`; no publica puertos y no necesita recibir tráfico. El puerto de MySQL se publica solo en `127.0.0.1` y la aplicación conecta con el usuario `car_agency` (sin privilegios de administración); los comandos `mysql -uroot` de esta guía son tareas administrativas puntuales, nunca las credenciales de la app.
+PostgreSQL tiene un healthcheck (`pg_isready`); el contenedor `app` espera a que esté listo antes de arrancar y publica su propio estado con `php artisan health:check` (base de datos + caché). `nginx` comprueba `/up` por HTTP. `scheduler` reutiliza la imagen, el entorno y los volúmenes de `app`; no publica puertos y no necesita recibir tráfico. El puerto de PostgreSQL se publica solo en `127.0.0.1` y la aplicación conecta con el usuario `car_agency` (rol sin privilegios de administración, dueño de la base y del schema `public`); el superusuario `postgres` solo lo usan el script de inicialización y los backups.
 
 ### 3. Instalar dependencias y generar la clave
 
@@ -112,19 +113,19 @@ docker compose exec -T app php artisan key:generate
 
 ### 4. Crear o preparar la base de datos
 
-En el primer arranque, MySQL crea automáticamente la base definida en `docker-compose.yml` (`MYSQL_DATABASE=api_laravel_car_agency`). Normalmente **no necesitas crearla a mano**.
+En el primer arranque, la imagen de PostgreSQL crea la base definida en `docker-compose.yml` (`POSTGRES_DB=api_laravel_car_agency`) y `docker/postgres/init/01-app-role.sh` crea el rol `car_agency`, le entrega la propiedad de la base y del schema `public` y, solo en desarrollo, crea la base `testing` que usa la suite contra PostgreSQL. Normalmente **no necesitas crear nada a mano**.
 
-Si quieres crearla o verificar que existe:
+Si quieres comprobar que existen:
 
 ```bash
-# Crear la base si no existe
-docker compose exec -T mysql mysql -uroot -psecret -e \
-  "CREATE DATABASE IF NOT EXISTS api_laravel_car_agency CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+# Bases de datos del contenedor
+docker compose exec -T postgres psql -U car_agency -d postgres -c '\l'
 
-# Verificar que existe
-docker compose exec -T mysql mysql -uroot -psecret -e \
-  "SHOW DATABASES LIKE 'api_laravel_car_agency';"
+# Rol de la aplicación
+docker compose exec -T postgres psql -U car_agency -d postgres -c '\du car_agency'
 ```
+
+> El script de inicialización solo corre con el volumen `pg-data` vacío. Si el volumen se creó antes de este cambio, recréalo (`docker compose down -v`) o aplica el SQL a mano.
 
 Aplica las migraciones y carga los datos demo:
 
@@ -145,8 +146,8 @@ docker compose exec -T app php artisan migrate:fresh --seed
 Verifica el resultado:
 
 ```bash
-docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency -e \
-  "SELECT COUNT(*) AS branches FROM branches; SELECT COUNT(*) AS cars FROM cars; SELECT COUNT(*) AS users FROM users;"
+docker compose exec -T postgres psql -U car_agency -d api_laravel_car_agency -c \
+  "SELECT 'branches' AS tabla, count(*) FROM branches UNION ALL SELECT 'cars', count(*) FROM cars UNION ALL SELECT 'users', count(*) FROM users;"
 ```
 
 Tras un seed limpio deberías ver **8 sucursales**, **52 coches** y **3 usuarios**.
@@ -620,10 +621,10 @@ Puntos importantes:
 
 ## 🧪 Tests y calidad
 
-Los tests usan Pest con `RefreshDatabase` y **SQLite en memoria**, por lo que no tocan la base MySQL de desarrollo.
+Los tests usan Pest con `RefreshDatabase` y **SQLite en memoria**, por lo que no tocan la base PostgreSQL de desarrollo.
 
 ```bash
-# Suite completa
+# Suite completa (SQLite en memoria)
 docker compose exec -T app ./vendor/bin/pest
 
 # Un archivo o directorio
@@ -634,6 +635,9 @@ docker compose exec -T app ./vendor/bin/pest --filter='login'
 
 # Comando del proyecto (limpia configuración y ejecuta la suite)
 docker compose exec -T app composer test
+
+# La misma suite contra PostgreSQL (base `testing` del compose)
+docker compose exec -T app composer test:postgres
 
 # Formatear con Pint
 docker compose exec -T app ./vendor/bin/pint
@@ -648,17 +652,18 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-17): **378 tests / 2724 aserciones**, **PHPStan nivel 7 con 0 errores**, **Pint limpio (362 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:`, así que los tests no tocan MySQL.
+Estado verificado de la suite (2026-11-19): **443 tests / 2823 aserciones** en SQLite y en PostgreSQL, **PHPStan nivel 7 con 0 errores**, **Pint limpio (366 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 
 ### Verificación integral
 
-Antes de cerrar una entrega se repite esta batería. La suite usa SQLite en memoria, pero `migrate:fresh --seed` y los smoke tests sí tocan MySQL:
+Antes de cerrar una entrega se repite esta batería. La suite usa SQLite en memoria, pero `migrate:fresh --seed` y los smoke tests sí tocan PostgreSQL:
 
 ```bash
 docker compose exec -T app php artisan migrate:fresh --seed
 docker compose exec -T app composer test
+docker compose exec -T app composer test:postgres
 docker compose exec -T app composer analyse
 docker compose exec -T app ./vendor/bin/pint --test
 docker compose exec -T app composer audit
@@ -678,7 +683,7 @@ El smoke HTTP real (2026-11-17) comprobó login con prefijo `car_`, `429` anóni
 
 ### CI de calidad
 
-`.github/workflows/ci.yml` se ejecuta en cada `push` y `pull_request` con una matriz de PHP **8.2, 8.3 y 8.4** (el rango que declara `composer.json`) y SQLite en memoria. Instala dependencias, genera `APP_KEY` y corre `composer test`, `composer analyse`, `pint --test` y `composer audit` en cada versión. La imagen de desarrollo sigue usando PHP 8.3. Es independiente del workflow de Docker Hub, que solo publica la imagen PaaS.
+`.github/workflows/ci.yml` se ejecuta en cada `push` y `pull_request` con dos jobs. El job `quality` usa una matriz de PHP **8.2, 8.3 y 8.4** (el rango que declara `composer.json`) sobre SQLite en memoria. El job `postgres` corre en PHP 8.3 contra un servicio `postgres:17-alpine` con locale `C.UTF-8`, ejecuta `migrate:fresh --seed --force` y después `composer test:postgres`, `composer analyse`, `pint --test` y `composer audit`. La imagen de desarrollo sigue usando PHP 8.3. Es independiente del workflow de Docker Hub, que solo publica la imagen PaaS.
 
 ### Reglas que fijan los tests
 
@@ -700,7 +705,7 @@ docker compose ps
 # Logs
 docker compose logs -f app
 docker compose logs -f nginx
-docker compose logs -f mysql
+docker compose logs -f postgres
 
 # Shell dentro del contenedor PHP
 docker compose exec -T app sh
@@ -720,13 +725,13 @@ docker compose exec -T app php artisan sanctum:prune-expired --hours=24
 docker compose exec -T app php artisan schedule:list
 docker compose logs -f scheduler
 
-# Cliente MySQL
-docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency
+# Cliente psql (rol de la aplicación)
+docker compose exec -T postgres psql -U car_agency -d api_laravel_car_agency
 
 # Apagar contenedores (conserva la base de datos)
 docker compose down
 
-# Apagar y borrar volúmenes: elimina MySQL y también vendor/
+# Apagar y borrar volúmenes: elimina PostgreSQL y también vendor/
 docker compose down -v
 ```
 
@@ -754,9 +759,9 @@ nginx:
   ports:
     - "8080:80"
 
-mysql:
+postgres:
   ports:
-    - "3307:3306"
+    - "5433:5432"
 ```
 
 Luego actualiza `APP_URL` en `.env` si cambias el puerto de Nginx.
@@ -769,7 +774,7 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 
 | Archivo | Propósito |
 | :--- | :--- |
-| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en `127.0.0.1:80` (solo loopback, espera un proxy TLS), MySQL 8.0 sin puerto público, `worker` (`queue:work`) y `scheduler` (`schedule:work`). Caché y colas en MySQL; sesiones en el volumen `app-storage`. |
+| `docker-compose.prod.yml` | PHP-FPM (`target: prod`), Nginx en `127.0.0.1:80` (solo loopback, espera un proxy TLS), PostgreSQL 17 sin puerto público, `worker` (`queue:work`) y `scheduler` (`schedule:work`). Caché y colas en PostgreSQL; sesiones en el volumen `app-storage`. |
 | `docker-compose.tls.yml` + `docker/nginx/tls.conf` | Superposición opcional para terminar TLS dentro del stack: publica `80`/`443`, redirige HTTP a HTTPS y monta `docker/certs`. |
 | `docker/nginx/Dockerfile.prod` | Build multi-stage: parte de `car-agency-laravel-api:prod`, copia `public/` y sirve los estáticos con Nginx. |
 | `.env.production.example` | Plantilla versionable, sin credenciales reales (marcadores `CHANGE_ME_*`). |
@@ -782,7 +787,7 @@ El repositorio incluye un stack de producción separado que **no modifica** el e
 cp .env.production.example .env.production
 ```
 
-Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real (`https://api.example.com`) y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción: el arranque HTTP falla con un `500` explicativo si está vacío o contiene el comodín). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `MYSQL_*`, porque la imagen de MySQL crea el usuario con `MYSQL_USER`/`MYSQL_PASSWORD` y la app se conecta con `DB_USERNAME`/`DB_PASSWORD`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
+Edita `.env.production` y sustituye todos los `CHANGE_ME_*`, el `APP_URL` real (`https://api.example.com`) y `CORS_ALLOWED_ORIGINS` (nunca uses `*` en producción: el arranque HTTP falla con un `500` explicativo si está vacío o contiene el comodín). Añade también `ADMIN_EMAIL` y `ADMIN_PASSWORD` para el administrador que crea el seed. Mantén sincronizadas las variables `DB_*` con `POSTGRES_*`: la aplicación conecta con `DB_USERNAME=car_agency`, que debe coincidir con `POSTGRES_APP_USER`, y `DB_PASSWORD` con `POSTGRES_APP_PASSWORD`. Deja `DB_SSLMODE=prefer` mientras PostgreSQL viva en la red de Compose (sin TLS); si algún día usas un PostgreSQL gestionado, súbelo a `require` o `verify-full`. Deja `APP_KEY` vacía por ahora: se genera en el paso 2, cuando la imagen ya exista.
 
 Para TLS deja `TRUSTED_PROXIES=172.28.0.0/16` (la red de Compose), `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. `HSTS_INCLUDE_SUBDOMAINS` solo debe activarse si **todos** los subdominios del dominio sirven HTTPS. Los detalles y las dos vías de terminación TLS están en el paso 5.
 
@@ -809,7 +814,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production \
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-Compose construye la imagen de Nginx a partir de la del paso 2, arranca `mysql` y espera su healthcheck (`mysqladmin ping`), levanta `app` y espera a que arranque y solo entonces inicia `nginx`, que publica **solo `127.0.0.1:80`**. MySQL queda aislado en la red interna `car-agency-prod`. El puerto público `80`/`443` lo atiende un proxy TLS del host (paso 5) o la superposición `docker-compose.tls.yml`.
+Compose construye la imagen de Nginx a partir de la del paso 2, arranca `postgres` y espera su healthcheck (`pg_isready`), levanta `app` y espera a que arranque y solo entonces inicia `nginx`, que publica **solo `127.0.0.1:80`**. PostgreSQL queda aislado en la red interna `car-agency-prod`. El puerto público `80`/`443` lo atiende un proxy TLS del host (paso 5) o la superposición `docker-compose.tls.yml`.
 
 El healthcheck de `app` combina `fsockopen` al puerto 9000 con `php artisan health:check` (base de datos + caché), y `nginx` tiene el suyo contra `/up`. `/up` responde `200 {"status":"ok"}` cuando la base y la caché responden y `503 {"status":"unavailable"}` cuando alguna falla, sin exponer el error (el detalle va al log). En el primer despliegue, antes de `migrate`, `health:check` falla porque aún no existen las tablas; por eso `nginx` usa `service_started` y no bloquea el paso 4. Después de migrar, `docker compose ps` debe mostrar ambos servicios como `healthy`.
 
@@ -824,7 +829,7 @@ docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --forc
 docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
 ```
 
-> En el primer despliegue, `worker` y `scheduler` arrancan antes de que existan las tablas y reinician en bucle hasta que corre `migrate`; `restart: unless-stopped` los recupera solos en cuanto la base está lista. Si quieres evitar ese ruido en los logs, levanta primero solo `mysql` y `app`, ejecuta este paso y después `up -d` con el stack completo.
+> En el primer despliegue, `worker` y `scheduler` arrancan antes de que existan las tablas y reinician en bucle hasta que corre `migrate`; `restart: unless-stopped` los recupera solos en cuanto la base está lista. Si quieres evitar ese ruido en los logs, levanta primero solo `postgres` y `app`, ejecuta este paso y después `up -d` con el stack completo.
 
 - `migrate --force --seed` crea el esquema y también las tablas `cache`, `jobs` y `failed_jobs`; los drivers `database` de caché y colas dependen de ellas, así que este paso va antes de recibir tráfico. El `--seed` en producción solo siembra roles/permisos y el administrador definido por `ADMIN_EMAIL`/`ADMIN_PASSWORD` (añade esas variables a `.env.production`); no inserta datos demo.
 - `optimize` cachea configuración, eventos, rutas y vistas compiladas (`config:cache`, `event:cache`, `route:cache`, `view:cache`) para que cada petición no reconstruya el bootstrap.
@@ -837,35 +842,41 @@ El pool vive en `docker/php/www.conf` y lo comparten desarrollo y producción. `
 pm.max_children = floor((RAM_MB - 512) / 75)
 ```
 
-512 MB quedan para el sistema, MySQL y Nginx, y 75 MB es el consumo medio de un worker de esta API. Referencias: 1 GB → 7, 2 GB → 20 (valor por defecto), 4 GB → 47, 8 GB → 102. Si cambias el valor, **recrea** los contenedores (`docker compose -f docker-compose.prod.yml --env-file .env.production up -d --force-recreate app worker scheduler`): FPM solo lee el pool al arrancar. `pm.max_requests=500` recicla cada worker para evitar fugas y `request_terminate_timeout=60s` corta peticiones que superen el `fastcgi_read_timeout` de Nginx.
+512 MB quedan para el sistema, PostgreSQL y Nginx, y 75 MB es el consumo medio de un worker de esta API. Referencias: 1 GB → 7, 2 GB → 20 (valor por defecto), 4 GB → 47, 8 GB → 102. Si cambias el valor, **recrea** los contenedores (`docker compose -f docker-compose.prod.yml --env-file .env.production up -d --force-recreate app worker scheduler`): FPM solo lee el pool al arrancar. `pm.max_requests=500` recicla cada worker para evitar fugas y `request_terminate_timeout=60s` corta peticiones que superen el `fastcgi_read_timeout` de Nginx.
 
 > Las cachés de `optimize` se escriben en `bootstrap/cache` dentro del contenedor, no en el volumen `app-storage`: se pierden al recrear `app`, así que vuelve a ejecutar `optimize` después de cada despliegue. Si cambias `.env.production`, ejecuta `php artisan optimize:clear` y reinicia `app`; con la configuración cacheada, los cambios de entorno no se leen.
 
 ### OPcache de producción
 
-El target `prod` copia `docker/php/opcache-prod.ini`: `opcache.enable=1`, `memory_consumption=128`, `max_accelerated_files=10000`, `validate_timestamps=0` y JIT desactivado (`jit_buffer_size=0`). El código va horneado en la imagen, así que no se revalida en cada petición; **cada despliegue debe crear un contenedor nuevo** (no basta con copiar archivos dentro de `app`), porque con `validate_timestamps=0` un cambio en disco no se vería hasta reiniciar FPM. El JIT queda apagado a propósito: la API está limitada por E/S y MySQL, y el JIT añade memoria y tiempo de compilación sin mejora medible. El entorno de desarrollo no usa este archivo, así que los cambios de código siguen aplicándose al instante.
+El target `prod` copia `docker/php/opcache-prod.ini`: `opcache.enable=1`, `memory_consumption=128`, `max_accelerated_files=10000`, `validate_timestamps=0` y JIT desactivado (`jit_buffer_size=0`). El código va horneado en la imagen, así que no se revalida en cada petición; **cada despliegue debe crear un contenedor nuevo** (no basta con copiar archivos dentro de `app`), porque con `validate_timestamps=0` un cambio en disco no se vería hasta reiniciar FPM. El JIT queda apagado a propósito: la API está limitada por E/S y PostgreSQL, y el JIT añade memoria y tiempo de compilación sin mejora medible. El entorno de desarrollo no usa este archivo, así que los cambios de código siguen aplicándose al instante.
 
 ### Compresión de respuestas
 
 Nginx comprime con gzip las respuestas `application/json`, `text/csv` y `text/plain` (`gzip_comp_level 5`, `gzip_min_length 512`). Los PDF **no** se comprimen: ya vienen comprimidos y gzip solo gastaría CPU y latencia. El JSON de la API y la exportación CSV de auditoría viajan comprimidos cuando el cliente envía `Accept-Encoding: gzip`; en PaaS el `Caddyfile` aplica `encode zstd br gzip`.
 
-### Ajuste de MySQL
+### Ajuste de PostgreSQL
 
-El contenedor `mysql` arranca con el buffer pool y el log lento configurables por entorno:
+El contenedor `postgres` arranca con memoria y log de consultas lentas configurables por entorno:
 
 | Variable | Producción | Desarrollo | Criterio |
 | :--- | :--- | :--- | :--- |
-| `MYSQL_INNODB_BUFFER_POOL_SIZE` | `512M` | `256M` | 25-50 % de la RAM del servidor: 2 GB → 512M-1G, 4 GB → 1G-2G, 8 GB → 2G-4G. |
-| `MYSQL_LONG_QUERY_TIME` | `1` | `1` | Segundos a partir de los que una consulta se registra. |
+| `POSTGRES_SHARED_BUFFERS` | `512MB` | `256MB` | Caché de páginas: ~25 % de la RAM del servidor (2 GB → 512 MB, 4 GB → 1 GB). |
+| `POSTGRES_EFFECTIVE_CACHE_SIZE` | `1536MB` | `768MB` | Estimación para el planificador: ~50-75 % de la RAM del servidor. |
+| `POSTGRES_WORK_MEM` | `8MB` | `8MB` | Memoria por operación de ordenación/hash; hay pocas conexiones concurrentes. |
+| `POSTGRES_LOG_MIN_DURATION_STATEMENT` | `1000` | `1000` | Milisegundos a partir de los que una consulta se registra. |
 
-El log lento se escribe en la tabla `mysql.slow_log` (`--log-output=TABLE`), así que se consulta con SQL normal y persiste en el volumen `mysql-data`:
+El log lento va a `stderr`, así que se lee con `docker compose logs postgres` (no hay tabla `slow_log`):
 
 ```bash
-docker compose exec -T mysql mysql -uroot -psecret api_laravel_car_agency \
-  -e "SELECT start_time, query_time, rows_examined, sql_text FROM mysql.slow_log ORDER BY start_time DESC LIMIT 10;"
+# Provoca una consulta lenta a propósito
+docker compose exec -T postgres psql -U car_agency -d api_laravel_car_agency \
+  -c "SELECT pg_sleep(1.3);"
+
+# La línea aparece como "LOG: duration: 1302.350 ms statement: ..."
+docker compose logs --tail=20 postgres
 ```
 
-Cambiar estas variables exige recrear el contenedor (`docker compose up -d mysql` en desarrollo, `... up -d mysql` en producción); MySQL solo las lee al arrancar. En MySQL 8.0.28+ la tabla `mysql.slow_log` usa el motor CSV y está protegida: consúltala con un usuario administrador.
+Cambiar estas variables exige recrear el contenedor (`docker compose up -d --force-recreate postgres` en desarrollo; en producción, con `-f docker-compose.prod.yml --env-file .env.production`). PostgreSQL solo las lee al arrancar.
 
 ### Paso 5: TLS y proxy inverso
 
@@ -969,33 +980,35 @@ curl -sI https://api.example.com/up | grep -i strict-transport-security
 docker compose -f docker-compose.prod.yml --env-file .env.production down
 ```
 
-> Solo Nginx publica un puerto, y en el compose base lo hace en `127.0.0.1:80`; MySQL queda aislado en la red interna. El volumen `app-storage` conserva `storage/` (sesiones, logs y cachés de framework) entre despliegues. `docker compose ... down -v` borra la base de datos y el volumen de storage.
+> Solo Nginx publica un puerto, y en el compose base lo hace en `127.0.0.1:80`; PostgreSQL queda aislado en la red interna. El volumen `app-storage` conserva `storage/` (sesiones, logs y cachés de framework) entre despliegues. `docker compose ... down -v` borra la base de datos y el volumen de storage.
 
 ### Backups y restauración
 
-Dos scripts de ejemplo cubren el ciclo completo sobre el stack de Compose:
+Dos scripts cubren el ciclo completo sobre el stack de Compose:
 
 | Script | Qué hace |
 | :--- | :--- |
-| `docker/scripts/backup-mysql.sh` | `mysqldump` comprimido con `--single-transaction --routines --triggers --events --add-drop-database`, más retención por días. |
-| `docker/scripts/restore-mysql.sh` | Detiene `app`/`worker`/`scheduler`, recrea la base desde el dump y vuelve a arrancar los servicios. Exige `--confirm`. |
+| `docker/scripts/backup-postgres.sh` | `pg_dump --format=custom` (ya comprimido) y retención por días. |
+| `docker/scripts/restore-postgres.sh` | Detiene `app`/`worker`/`scheduler`, elimina y recrea la base con `car_agency` como dueño, importa el dump con `pg_restore` conectado como ese mismo rol y vuelve a arrancar los servicios (`nginx -s reload` incluido). Exige `--confirm`. |
 
 ```bash
 # Copia en ./backups (ignorado por Git), conservando 7 días
-BACKUP_RETENTION_DAYS=7 ./docker/scripts/backup-mysql.sh backups
+BACKUP_RETENTION_DAYS=7 ./docker/scripts/backup-postgres.sh backups
 
 # Restauración (recrea la base de datos)
-./docker/scripts/restore-mysql.sh backups/api_laravel_car_agency-20261116-010723.sql.gz --confirm
+./docker/scripts/restore-postgres.sh backups/api_laravel_car_agency-20261119-210600.dump --confirm
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/up
 ```
 
-Los scripts leen `MYSQL_DATABASE` y `MYSQL_ROOT_PASSWORD` del contenedor `mysql`, así que las credenciales no viajan en la línea de comandos del host. `COMPOSE_FILE` y `ENV_FILE` permiten apuntar al compose de desarrollo (`COMPOSE_FILE=docker-compose.yml ENV_FILE=`).
+Los scripts leen `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD` del contenedor `postgres`, así que las credenciales no viajan en la línea de comandos del host. `COMPOSE_FILE` y `ENV_FILE` permiten apuntar al compose de desarrollo (`COMPOSE_FILE=docker-compose.yml ENV_FILE=.env`).
+
+La restauración corre como `car_agency` a propósito: si se hiciera con el superusuario, las tablas y secuencias quedarían a nombre de `postgres` y la API respondería `permission denied`. Al terminar se recarga Nginx porque `stop` + `start` puede cambiar la IP del contenedor `app` y Nginx resuelve el servicio al cargar su configuración.
 
 Programación recomendada (diaria, fuera de la ventana de uso):
 
 ```cron
 # /etc/cron.d/api-backup
-15 3 * * * root cd /srv/api && BACKUP_RETENTION_DAYS=14 ./docker/scripts/backup-mysql.sh /var/backups/api >> /var/log/api-backup.log 2>&1
+15 3 * * * root cd /srv/api && BACKUP_RETENTION_DAYS=14 ./docker/scripts/backup-postgres.sh /var/backups/api >> /var/log/api-backup.log 2>&1
 ```
 
 Alternativa con systemd:
@@ -1003,18 +1016,18 @@ Alternativa con systemd:
 ```ini
 # /etc/systemd/system/api-backup.service
 [Unit]
-Description=Backup MySQL API Car Agency
+Description=Backup PostgreSQL API Car Agency
 [Service]
 Type=oneshot
 WorkingDirectory=/srv/api
 Environment=BACKUP_RETENTION_DAYS=14
-ExecStart=/srv/api/docker/scripts/backup-mysql.sh /var/backups/api
+ExecStart=/srv/api/docker/scripts/backup-postgres.sh /var/backups/api
 ```
 
 ```ini
 # /etc/systemd/system/api-backup.timer
 [Unit]
-Description=Backup diario MySQL API Car Agency
+Description=Backup diario PostgreSQL API Car Agency
 [Timer]
 OnCalendar=*-*-* 03:15:00
 Persistent=true
@@ -1026,15 +1039,15 @@ WantedBy=timers.target
 systemctl enable --now api-backup.timer
 ```
 
-**Restauración probada (staging).** El procedimiento se validó sobre una copia real: se generó el dump, se insertó una fila marcadora, se restauró y se comprobó que la fila desaparecía y que `users`, `cars` y `sales` conservaban sus conteos. Tras restaurar, si Nginx devuelve `502`, reinícialo para que vuelva a resolver el servicio `app` (`docker compose ... restart nginx`). Guarda las copias fuera del host o en almacenamiento externo: el volumen `mysql-data` no sustituye a un backup.
+**Restauración probada (desarrollo, 2026-11-19).** Se generó el dump, se insertó una fila marcadora en `countries`, se restauró y se comprobó que el marcador desaparecía, que `cars` (52), `users` (3) y `branches` (8) conservaban sus conteos, que `cars_id_seq` seguía avanzando y que `/up` respondía `200`. Guarda las copias fuera del host o en almacenamiento externo: el volumen `pg-data` no sustituye a un backup.
 
-**PaaS (Render/Railway).** Con MySQL gestionado, activa las copias automáticas del proveedor y usa sus snapshots para restaurar; el contenedor monolítico no incluye MySQL. Para una copia manual, ejecuta `mysqldump` desde una shell del servicio con las variables `DB_*` o desde tu equipo contra la base gestionada (con TLS y usuario restringido). Si la plataforma no ofrece backups, programa un job externo que llame a `mysqldump` y suba el archivo a un almacenamiento duradero.
+**PaaS (Render/Railway).** Con PostgreSQL gestionado (Render PostgreSQL, Neon, Supabase, Railway), activa las copias automáticas del proveedor y usa sus snapshots para restaurar; el contenedor monolítico no incluye PostgreSQL. Para una copia manual ejecuta `pg_dump -Fc` desde una shell del servicio con las variables `DB_*` (con `DB_SSLMODE=require` o `verify-full`) o desde tu equipo contra la base gestionada. Si la plataforma no ofrece backups, programa un job externo que haga el dump y suba el archivo a un almacenamiento duradero.
 
 ---
 
 ## ☁️ Despliegue en PaaS (Render / Railway)
 
-Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la sección anterior sigue funcionando igual: ninguno de sus archivos se toca. Aquí se publica una **imagen monolítica** en Docker Hub y la plataforma la ejecuta como un único contenedor, sin `docker-compose`, sin Nginx/PHP-FPM separados y sin MySQL propio.
+Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la sección anterior sigue funcionando igual: ninguno de sus archivos se toca. Aquí se publica una **imagen monolítica** en Docker Hub y la plataforma la ejecuta como un único contenedor, sin `docker-compose`, sin Nginx/PHP-FPM separados y sin PostgreSQL propio.
 
 | Archivo | Propósito |
 | :--- | :--- |
@@ -1050,7 +1063,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 - **Usuario sin privilegios**: el contenedor corre como `www-data`, así que `PORT` debe ser `>= 1024`. Si una plataforma obliga a usar el puerto `80`, arráncalo con `--user 0`.
 - **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
 - **Migraciones y seed**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force --seed`) o define `RUN_MIGRATIONS=true` y `RUN_SEED=true` para que los ejecute el entrypoint. El `--seed` solo crea roles/permisos y el administrador; no inserta datos demo.
-- **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a una base gestionada externa (Aiven, el plugin MySQL de Railway, etc.).
+- **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a un PostgreSQL gestionado externo (Render PostgreSQL, Neon, Supabase, Railway, etc.).
 - **TLS lo termina la plataforma**: el contenedor recibe HTTP por `$PORT`, así que configura `APP_URL=https://...`, `TRUSTED_PROXIES=*` (la plataforma es el único origen que alcanza el contenedor), `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. Sin `TRUSTED_PROXIES=*`, Laravel ignora `X-Forwarded-Proto`, no detecta HTTPS y no envía HSTS. En local con `docker run` sobre HTTP deja `TRUSTED_PROXIES` vacío y `HSTS_ENABLED=false`.
 
 Construir y probar en local sin compose:
@@ -1117,14 +1130,13 @@ ADMIN_PASSWORD=...            # 8+ con mayúsculas, minúsculas, números y sím
 # ADMIN_CODE=USR-0001
 # ADMIN_DOCUMENT_NUMBER=V-00000001
 
-DB_CONNECTION=mysql
-DB_HOST=...                   # host de Aiven u otro MySQL gestionado
-DB_PORT=3306
+DB_CONNECTION=pgsql
+DB_HOST=...                   # host del PostgreSQL gestionado
+DB_PORT=5432
 DB_DATABASE=...
 DB_USERNAME=...
 DB_PASSWORD=...
-# Si el proveedor exige TLS (Aiven), apunta a su CA:
-# MYSQL_ATTR_SSL_CA=/ruta/al/ca.pem
+DB_SSLMODE=require            # `verify-full` si el certificado es de confianza pública
 
 CACHE_STORE=database
 SESSION_DRIVER=file
@@ -1136,9 +1148,9 @@ QUEUE_CONNECTION=database
 
 > **Administrador inicial.** En producción `DatabaseSeeder` no ejecuta los seeders demo (usan Faker, que no se instala con `composer install --no-dev`): solo siembra roles/permisos y crea el administrador con `ADMIN_EMAIL` y `ADMIN_PASSWORD`. Es idempotente (no duplica usuarios ni roles), pero `ADMIN_PASSWORD` es la fuente de verdad: cada ejecución de `--seed` vuelve a fijar esa contraseña. Si faltan las credenciales, conservan un `CHANGE_ME_*` o la clave no cumple la política fuerte, el seeder aborta antes de escribir nada para no dejar un administrador con credenciales conocidas.
 
-En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, añade un MySQL gestionado, define las mismas variables y el comando de release `php artisan migrate --force --seed`.
+En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, añade un PostgreSQL gestionado, define las mismas variables y el comando de release `php artisan migrate --force --seed`.
 
-> La base de datos debe ser externa y accesible desde internet. Aiven (MySQL) y el plugin de MySQL de Railway son opciones habituales: copia host, puerto, base, usuario y contraseña a las variables `DB_*`.
+> La base de datos debe ser externa y accesible desde internet. Render PostgreSQL, Neon, Supabase y el plugin de PostgreSQL de Railway son opciones habituales: copia host, puerto, base, usuario y contraseña a las variables `DB_*` y ajusta `DB_SSLMODE` a lo que exija el proveedor (`require` o `verify-full`).
 
 ### 4. Actualizar la versión desplegada
 
@@ -1162,10 +1174,13 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `env file .env not found` | No existe `.env`. | `cp .env.example .env`. |
 | `vendor/autoload.php` no existe | Faltan dependencias PHP. | `docker compose exec -T app composer install`. |
 | Error 500 al abrir la API | `APP_KEY` vacío o dependencias sin instalar. | `key:generate` y `composer install`. |
-| `SQLSTATE[HY000] [2002]` | La app no encuentra MySQL o aún no está listo. | `docker compose ps`, `docker compose logs mysql`; usa `DB_HOST=mysql`. |
-| `Access denied for user 'car_agency'` | Credenciales distintas a las del compose. | Revisa `DB_PASSWORD=secret` y `docker-compose.yml`; si la base ya existía antes del cambio, crea el usuario `car_agency` a mano. |
+| `SQLSTATE[08006]` | La app no encuentra PostgreSQL o aún no está listo. | `docker compose ps`, `docker compose logs postgres`; usa `DB_HOST=postgres` y `DB_PORT=5432`. |
+| `SQLSTATE[28P01]` | Contraseña incorrecta para el rol. | Revisa `DB_PASSWORD` y que coincida con `POSTGRES_APP_PASSWORD`; si el volumen ya existía, el rol no se recrea solo. |
+| `SQLSTATE[42P01]` (relation does not exist) | Faltan migraciones o se apunta a otra base. | `docker compose exec -T app php artisan migrate --seed` y comprueba `DB_DATABASE`. |
+| `permission denied for schema public` | El rol no es dueño del schema o el volumen se creó con otro usuario. | Recrea el volumen (`docker compose down -v`) o ejecuta a mano el SQL de `docker/postgres/init/01-app-role.sh`. |
+| `remaining connection slots are reserved` | Se agotaron las conexiones de PostgreSQL. | Reduce `pm.max_children` en `docker/php/www.conf` o sube `max_connections`; revisa procesos `worker`/`scheduler` duplicados. |
 | Error de tabla `sessions` | `SESSION_DRIVER=database` sin migración de sesiones. | Usa `SESSION_DRIVER=file` en `.env`. |
-| `port is already allocated` | Otro proceso usa `8000` o `3306`. | Cambia los puertos en `docker-compose.yml`. |
+| `port is already allocated` | Otro proceso usa `8000` o `5432`. | Cambia los puertos en `docker-compose.yml`. |
 | `pull access denied for car-agency-laravel-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
 | `[entrypoint] ERROR: APP_KEY no está definida` | La imagen PaaS exige la clave por entorno. | Define `APP_KEY` (`php artisan key:generate --show`) en la plataforma. |
 | `permission denied` al abrir el puerto en PaaS | `PORT < 1024` y el contenedor corre como `www-data`. | Usa un puerto `>= 1024` (Render inyecta `10000`) o arranca con `--user 0`. |
@@ -1208,8 +1223,8 @@ docker compose exec -T app php artisan migrate --seed
 - `phpunit.xml` fuerza SQLite `:memory:` para los tests.
 - PHPStan/Larastan corre en **nivel 7 sin baseline**: si añades código, `composer analyse` debe seguir en 0 errores.
 - La visibilidad de datos es **multi-sucursal a propósito**: cualquier usuario con el permiso correspondiente ve todas las sucursales. No hay filtro automático por sucursal del usuario.
-- Las credenciales de MySQL (`root` / `secret`) son solo para desarrollo local y para tareas administrativas; la aplicación usa el usuario `car_agency` y el puerto solo escucha en `127.0.0.1`.
-- El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, MySQL sin puerto público, sesiones en `app-storage` y caché/colas en MySQL). Usa `.env.production.example` como plantilla del entorno productivo.
+- Las credenciales de PostgreSQL (`postgres` / `secret` para el superusuario) son solo para desarrollo local y para tareas administrativas o backups; la aplicación usa el rol `car_agency` y el puerto solo escucha en `127.0.0.1`.
+- El stack de desarrollo vive en `docker-compose.yml`; el de producción en `docker-compose.prod.yml` (Nginx con estáticos, PostgreSQL sin puerto público, sesiones en `app-storage` y caché/colas en PostgreSQL). Usa `.env.production.example` como plantilla del entorno productivo.
 - Nginx y Caddy añaden `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer-when-downgrade` y `Permissions-Policy` a todas las respuestas, incluidos los errores (`always` en Nginx). Nginx oculta su versión con `server_tokens off` y solo `/docs/api` recibe una CSP que permite Stoplight Elements (JS/CSS de `unpkg.com` y scripts inline); el resto de la API no necesita CSP porque no sirve HTML.
 - No hay llamadas HTTP salientes en tiempo de ejecución: la política de contraseñas, la auditoría y las estadísticas se resuelven en local.
 
