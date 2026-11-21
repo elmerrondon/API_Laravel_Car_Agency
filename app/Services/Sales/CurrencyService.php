@@ -6,9 +6,11 @@ namespace App\Services\Sales;
 
 use App\DTOs\Sales\CurrencyData;
 use App\Enums\Audit\AuditAction;
+use App\Exceptions\Sales\BaseCurrencyAlreadyExistsException;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
+use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use LogicException;
 
@@ -39,7 +41,15 @@ class CurrencyService
             throw new LogicException('The base currency cannot be created because a base currency already exists');
         }
 
-        $currency = Currency::create($cleanArray);
+        try {
+            $currency = Currency::create($cleanArray);
+        } catch (QueryException $e) {
+            if ($this->isSingleBaseViolation($e)) {
+                throw BaseCurrencyAlreadyExistsException::create();
+            }
+
+            throw $e;
+        }
 
         $currency->refresh();
 
@@ -73,7 +83,16 @@ class CurrencyService
             throw new LogicException('The base currency cannot be updated because a base currency already exists');
         }
 
-        $currency->update($cleanArray);
+        try {
+            $currency->update($cleanArray);
+        } catch (QueryException $e) {
+            if ($this->isSingleBaseViolation($e)) {
+                throw BaseCurrencyAlreadyExistsException::update();
+            }
+
+            throw $e;
+        }
+
         $currency->refresh();
 
         $newValues = $this->currencyAuditValues($currency);
@@ -101,6 +120,14 @@ class CurrencyService
         $this->audit->record(AuditAction::CATALOG_DELETED, $currency, $oldValues, []);
 
         return (bool) $deleted;
+    }
+
+    private function isSingleBaseViolation(QueryException $e): bool
+    {
+        $message = mb_strtolower($e->getMessage());
+
+        return ($e->getCode() === '23505' && str_contains($message, 'currencies_single_base_unique'))
+            || ($e->getCode() === '23000' && str_contains($message, 'unique constraint failed: currencies.is_base'));
     }
 
     /**

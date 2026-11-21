@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Sales;
 
 use App\DTOs\Sales\CurrencyData;
+use App\Exceptions\Sales\BaseCurrencyAlreadyExistsException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sales\Currency\IndexCurrencyRequest;
 use App\Http\Requests\Sales\Currency\StoreCurrencyRequest;
@@ -43,7 +44,7 @@ class CurrencyController extends Controller
             $currency = $this->service->createCurrency($dto);
 
             return new CurrencyResource($currency);
-        } catch (LogicException $e) {
+        } catch (LogicException|BaseCurrencyAlreadyExistsException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
     }
@@ -57,7 +58,7 @@ class CurrencyController extends Controller
 
             return new CurrencyResource($currency);
 
-        } catch (LogicException $e) {
+        } catch (LogicException|BaseCurrencyAlreadyExistsException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
     }
@@ -69,7 +70,7 @@ class CurrencyController extends Controller
 
             return response()->noContent();
 
-        } catch (LogicException $e) {
+        } catch (LogicException|BaseCurrencyAlreadyExistsException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
     }
