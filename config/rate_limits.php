@@ -12,7 +12,9 @@ return [
     | Se leen en los RateLimiter de AppServiceProvider. `login` se cuenta por
     | email + IP; `login_ip` acota la rotación de emails desde una misma IP;
     | `api_anon` frena a los clientes sin token y `api`/`reports` se cuentan por
-    | usuario autenticado (o IP si aún no hay usuario resuelto).
+    | usuario autenticado (o IP si aún no hay usuario resuelto). `health` cubre
+    | `/up`, que vive fuera del grupo `api`, y `audit_export` acota la descarga
+    | del CSV de auditoría.
     |
     */
 
@@ -27,5 +29,9 @@ return [
     'reports' => (int) env('RATE_LIMIT_REPORTS', 30),
 
     'reports_pdf' => (int) env('RATE_LIMIT_REPORTS_PDF', 5),
+
+    'health' => (int) env('RATE_LIMIT_HEALTH', 30),
+
+    'audit_export' => (int) env('RATE_LIMIT_AUDIT_EXPORT', 10),
 
 ];

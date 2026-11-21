@@ -136,6 +136,15 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
+        // `/up` vive fuera de los grupos `api`/`web`, así que no lo alcanza
+        // `ThrottleAnonymousApi`: sin este cupo un anónimo podría usarlo para
+        // sondear la base y la caché sin límite. 30/min deja margen de sobra a
+        // los healthchecks de Docker y Nginx.
+        RateLimiter::for('health', function (Request $request) {
+            return Limit::perMinute((int) config('rate_limits.health'))
+                ->by('health|'.$request->ip());
+        });
+
         // La documentación se abre en local/testing; en el resto de entornos
         // exige DOCS_ENABLED=true de forma explícita.
         Gate::define('viewApiDocs', function (?User $user = null): bool {

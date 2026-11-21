@@ -34,9 +34,12 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         // `/up` vive fuera de los grupos web/api y no arrastra sesión ni CSRF:
-        // comprueba base de datos y caché y responde 503 si alguna falla.
+        // comprueba base de datos y caché y responde 503 si alguna falla. Al no
+        // pasar por el grupo `api`, necesita su propio limitador `health`.
         then: function (): void {
-            Route::get('/up', HealthController::class)->name('health');
+            Route::get('/up', HealthController::class)
+                ->middleware('throttle:health')
+                ->name('health');
         },
     )
     ->withMiddleware(function (Middleware $middleware) {

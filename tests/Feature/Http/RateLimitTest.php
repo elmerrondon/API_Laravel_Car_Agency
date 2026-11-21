@@ -98,6 +98,18 @@ it('aplica un cupo propio a la generación de PDF', function () {
     $this->getJson('/api/reports/cars')->assertOk();
 });
 
+it('limita por IP el healthcheck público', function () {
+    // `/up` está fuera del grupo `api`: sin su limitador propio, un anónimo
+    // podría usarlo para sondear la base y la caché sin límite.
+    config(['rate_limits.health' => 1]);
+
+    $this->get('/up')->assertOk();
+
+    $this->get('/up')
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+});
+
 it('mantiene el límite de login configurable', function () {
     config(['rate_limits.login' => 2]);
 
@@ -117,5 +129,6 @@ it('lee los límites por defecto de la configuración', function () {
         ->and(config('rate_limits.api_anon'))->toBe(30)
         ->and(config('rate_limits.api'))->toBe(120)
         ->and(config('rate_limits.reports'))->toBe(30)
-        ->and(config('rate_limits.reports_pdf'))->toBe(5);
+        ->and(config('rate_limits.reports_pdf'))->toBe(5)
+        ->and(config('rate_limits.health'))->toBe(30);
 });
