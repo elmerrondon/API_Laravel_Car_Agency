@@ -13,6 +13,7 @@ use App\Models\Cars\Car;
 use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class CarService
 {
@@ -70,35 +71,43 @@ class CarService
 
     public function updateCar(Car $car, CarData $data): Car
     {
-        // Una venta completada congela el coche: el histórico financiero no
-        // debe moverse por una edición manual posterior.
-        if ($this->hasCompletedSale($car)) {
-            throw CarStatusTransitionException::lockedByCompletedSale((int) $car->getKey());
-        }
+        $oldValues = [];
 
-        if ($data->status !== null) {
-            $target = CarStatus::from($data->status);
+        $updated = DB::transaction(function () use ($car, $data, &$oldValues) {
+            // El bloqueo evita que una venta se cree entre la comprobación y
+            // la escritura: las guardas se re-evalúan con la fila bloqueada.
+            $locked = Car::whereKey($car->getKey())->lockForUpdate()->firstOrFail();
 
-            if (! $this->isManualTransitionAllowed($car->status, $target)) {
-                throw CarStatusTransitionException::manualChange($car->status, $target);
+            // Una venta completada congela el coche: el histórico financiero
+            // no debe moverse por una edición manual posterior.
+            if ($this->hasCompletedSale($locked)) {
+                throw CarStatusTransitionException::lockedByCompletedSale((int) $locked->getKey());
             }
-        }
 
-        $oldValues = $this->carAuditValues($car);
+            if ($data->status !== null) {
+                $target = CarStatus::from($data->status);
 
-        $arrayData = ['price' => $data->price !== null ? round($data->price, 2) : null, 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
+                if (! $this->isManualTransitionAllowed($locked->status, $target)) {
+                    throw CarStatusTransitionException::manualChange($locked->status, $target);
+                }
+            }
 
-        $cleanData = array_filter($arrayData, function ($value) {
-            return $value !== null;
+            $oldValues = $this->carAuditValues($locked);
+
+            $arrayData = ['price' => $data->price !== null ? round($data->price, 2) : null, 'mileage' => $data->mileage, 'year' => $data->year, 'vin' => $data->vin, 'status' => $data->status, 'color_id' => $data->colorId, 'car_model_id' => $data->carModelId, 'car_type_id' => $data->carTypeId, 'category_id' => $data->categoryId, 'branch_id' => $data->branchId];
+
+            $cleanData = array_filter($arrayData, function ($value) {
+                return $value !== null;
+            });
+
+            $locked->update($cleanData);
+
+            return $locked->load(self::RELATIONS);
         });
 
-        $car->update($cleanData);
+        $this->audit->record(AuditAction::CAR_UPDATED, $updated, $oldValues, $this->carAuditValues($updated));
 
-        $car = $car->load(self::RELATIONS);
-
-        $this->audit->record(AuditAction::CAR_UPDATED, $car, $oldValues, $this->carAuditValues($car));
-
-        return $car;
+        return $updated;
     }
 
     public function deleteCar(Car $car): bool

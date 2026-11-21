@@ -2,13 +2,19 @@
 
 declare(strict_types=1);
 
+use App\DTOs\Cars\CarData;
 use App\Enums\Cars\CarStatus;
+use App\Enums\Sales\SaleStatus;
+use App\Exceptions\Cars\CarStatusTransitionException;
 use App\Models\Cars\Car;
 use App\Models\Sales\Currency;
 use App\Models\Sales\PaymentMethod;
+use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
 use App\Models\Users\User;
+use App\Services\Cars\CarService;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -72,6 +78,49 @@ it('rechaza marcar un coche como vendido desde la edición manual', function () 
         ->assertJsonValidationErrors('status');
 
     expect(Car::findOrFail($car['id'])->status)->toBe(CarStatus::AVAILABLE);
+});
+
+it('re-evalua la venta completada despues de bloquear el coche', function () {
+    $car = Car::where('status', CarStatus::AVAILABLE)->firstOrFail();
+
+    $saleData = [
+        'exchange_rate' => 1,
+        'base_price' => $car->price,
+        'taxes' => [],
+        'total_taxes' => 0,
+        'discount_percentage' => 0,
+        'total_base_amount' => $car->price,
+        'total_amount_paid' => $car->price,
+        'total_discount' => 0,
+        'status' => SaleStatus::COMPLETED,
+        'sale_date' => now(),
+        'car_id' => $car->id,
+        'user_id' => User::where('email', 'admin@caragency.test')->value('id'),
+        'branch_id' => $car->branch_id,
+        'payment_currency_id' => Currency::where('code', 'EUR')->value('id'),
+        'base_currency_id' => Currency::where('is_base', true)->value('id'),
+        'payment_method_id' => PaymentMethod::firstOrFail()->id,
+    ];
+
+    // Simula la ventana de concurrencia: otra petición completa la venta justo
+    // cuando esta transacción acaba de bloquear la fila del coche. Si las
+    // guardas se evaluaran antes del bloqueo, la edición se aceptaría igual.
+    $injected = false;
+    DB::listen(function ($query) use ($saleData, &$injected): void {
+        if (! $injected && str_contains($query->sql, 'from "cars"') && str_contains($query->sql, 'limit 1')) {
+            $injected = true;
+            Sale::create($saleData);
+        }
+    });
+
+    expect(fn () => app(CarService::class)->updateCar($car, new CarData(mileage: 999)))
+        ->toThrow(CarStatusTransitionException::class, sprintf(
+            'The car %d has a completed sale and cannot be modified',
+            $car->id,
+        ));
+
+    expect($injected)->toBeTrue()
+        ->and($car->fresh()->mileage)->not->toBe(999);
 });
 
 it('bloquea cambios manuales sobre un coche con venta completada y los libera al cancelar', function () {
