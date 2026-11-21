@@ -81,6 +81,7 @@ ENV APP_ENV=production \
     APP_DEBUG=false
 
 COPY docker/php/opcache-prod.ini /usr/local/etc/php/conf.d/zz-opcache-prod.ini
+COPY docker/php/php-prod.ini /usr/local/etc/php/conf.d/zz-prod-errors.ini
 
 COPY composer.json composer.lock ./
 
