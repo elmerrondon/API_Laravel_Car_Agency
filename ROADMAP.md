@@ -2,201 +2,124 @@
 
 > **Propósito:** único plan de trabajo y registro de avance del proyecto. Aquí viven objetivos, tareas y criterios de cierre. La guía operativa está en `AGENTS.md`, las lecciones en `MEMORY.md` y el uso en `README.md`; no dupliques esos contenidos aquí.
 >
-> **Regla de arquitectura de esta etapa:** la API es Laravel 12 sobre **PostgreSQL 17** (locale `C.UTF-8`). MySQL queda fuera del proyecto: no hay imágenes, servicios, conexiones, scripts ni documentación operativa de MySQL. Prohibido usar servicios externos (SMTP/correo, OAuth/Google, analítica externa) o librerías pesadas de terceros. La auditoría y las estadísticas se resuelven con tablas, servicios y consultas propias.
+> **Regla de arquitectura vigente:** Laravel 12 sobre **PostgreSQL 17** (`C.UTF-8`). Sin servicios externos nuevos (SMTP, OAuth, Redis, brokers, almacenamiento gestionado) ni dependencias pesadas. La auditoría, las estadísticas, la caché y las colas siguen resolviéndose con tablas propias. El histórico de la migración MySQL→PostgreSQL está cerrado y documentado en `MEMORY.md`; no se reabre.
 
 ---
 
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-20.
-- **Estado:** fase 7 completada (verificación integral y cierre). Migración a PostgreSQL 17 cerrada; no quedan fases pendientes.
-- **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
-- **Verificación de referencia:** 443 tests / 2 823 aserciones en SQLite y PostgreSQL, PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
-- **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
+- **Estado:** migración a PostgreSQL cerrada; plan vigente = análisis de seguridad, rendimiento y optimización de este mismo día. Ninguna tarea de este roadmap está empezada.
+- **Repo:** limpio en `558400a`. Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
+- **Línea base de verificación:** 443 tests / 2 823 aserciones en SQLite y PostgreSQL, PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
+- **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
 ---
 
-## 🎯 Decisiones adoptadas
+## 🔎 Hallazgos de entrada
 
-| Tema | Decisión |
-| :--- | :--- |
-| Datos | No hay datos reales que migrar. La base se recrea con `migrate:fresh --seed`. Sin importador, sin `pgloader` y sin conexión `legacy`. |
-| Alcance MySQL | Switch completo: se elimina de imágenes, compose, `config/database.php`, CI, scripts y documentación operativa. |
-| Versión | `postgres:17-alpine` con locale `C.UTF-8`. Se evita `postgres:18` por el cambio de `PGDATA`. |
-| Case sensitivity | Normalización en el borde (email en minúsculas; `document_number`, `code` y `vin` en mayúsculas) + índices únicos parciales `lower(...) WHERE deleted_at IS NULL` en usuarios y `lower(...)` en catálogos. |
-| CI | Se mantiene la matriz PHP 8.2/8.3/8.4 con SQLite y se añade un job dedicado que corre `migrate:fresh --seed` y la suite completa contra PostgreSQL. |
-| Rol de BD | Usuario de aplicación no superusuario `car_agency`, dueño de la base y del schema, creado por un script de inicialización. |
-| Zona horaria | Sesión de PostgreSQL en UTC mediante `DB_TIMEZONE=UTC`. |
-| JSON | Se mantiene el tipo `json` de Laravel (`sales.taxes`, `audit_logs.old_values/new_values`). La app no consulta dentro del JSON, así que `jsonb` queda como mejora futura. |
-| Orden de texto | Se acepta el orden por bytes de `C.UTF-8`. ICU `es-ES` queda como mejora futura porque exige un volumen nuevo. |
+Resultado del análisis de 2026-11-20. Los IDs se conservan en las tareas para trazabilidad.
 
-**Riesgos aceptados**
+| ID | Prioridad | Hallazgo | Fase |
+| :--- | :--- | :--- | :--- |
+| S1 | Media | `/up` es público, no tiene límite de tasa y ejecuta ~4 consultas por petición | 1 |
+| S2 | Media (validar) | `TRUSTED_PROXIES=*` en la vía PaaS permite falsificar `X-Forwarded-For` | 3 |
+| S3 | Baja-media | La imagen `prod` tiene `display_errors=1` y `log_errors=0` | 1 |
+| S4 | Baja | Los dumps de backup quedan con el `umask` del host (típicamente `644`) | 4 |
+| S5 | Informativa | `GET /api/audit-logs/export` no tiene limitador propio | 1 |
+| S6 | Informativa | `user_id` de las ventas viene del payload; revisar si debe ser `Auth::id()` | 2 |
+| P1 | Media | Cancelar una venta con el coche en soft delete responde `404` | 2 |
+| P2 | Media (concurrencia) | `updateCar` comprueba ventas completadas sin transacción ni bloqueo | 2 |
+| P3 | Baja-media | PDF generados en el worker FPM: hasta ~216 MB y ~8 s por reporte | 5 |
+| P4 | Baja | Los 16 listados solo validan `per_page`; no hay filtros indexados | 5 |
+| P5 | Informativa | Los 8 endpoints de estadísticas recalculan agregados en cada petición | 5 |
+| P6 | Informativa | `audit:prune` borra en una sola sentencia (bloqueos y bloat) | 4 |
 
-- **Orden alfabético:** con `C.UTF-8`, `ORDER BY name` ordena por bytes (mayúsculas antes que minúsculas y acentos después de `z`). Los reportes y rankings pueden cambiar de orden respecto a MySQL.
-- **Enteros sin signo:** `jobs.reserved_at/available_at/created_at` y `cache.expiration` pasan a `integer` con signo. El límite baja de 2106 a 2038; sin impacto práctico para la app.
-- **`mediumText` → `text`:** sin cambio funcional.
-- **Índices de FK:** PostgreSQL no crea índices implícitos para `foreignId()->constrained()`. Se cubren en la Fase 2.
-- **Histórico:** `MEMORY.md` y `MEMORY-ARCHIVE.md` conservan menciones a MySQL como registro histórico; no se reescriben.
-
-**Regla de ejecución:** cada micro-tarea equivale a un commit atómico y solo se cierra tras verificar en Docker. Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
+**Ya cubierto y fuera de alcance:** RBAC por permisos, `active` y `password.changed`, tokens Sanctum con expiración/revocación, limitadores de login y anónimo, CORS/HSTS condicionados, auditoría append-only con redacción, rol de BD no superusuario, eager loads fijados por tests, filtros de fecha sargables, imágenes no root, OPcache y gzip selectivo.
 
 ---
 
-## Fase 1 — Infraestructura Docker y entorno
+## Fase 1 — Hardening HTTP y superficie pública
 
-**Objetivo:** que el stack completo arranque sobre PostgreSQL 17 sin ninguna dependencia ni variable de MySQL.
+**Objetivo:** cerrar los puntos expuestos a anónimos o que pueden filtrar información sin tocar el contrato de la API.
 
-- [x] `1.1` `docker/php/Dockerfile`: reemplazar `pdo_mysql` por `pdo_pgsql`, añadir `libpq` al runtime y `postgresql-dev` a `.build-deps`; conservar `pdo_sqlite` porque la suite rápida lo usa.
-- [x] `1.2` `docker/render/Dockerfile.render`: cambiar `pdo_mysql` por `pdo_pgsql` en `install-php-extensions` y actualizar los comentarios de cabecera (`DB_CONNECTION=pgsql`).
-- [x] `1.3` `docker-compose.yml`: sustituir el servicio `mysql` por `postgres:17-alpine` con volumen `pg-data:/var/lib/postgresql/data`, `shm_size: 256mb`, puerto `127.0.0.1:5432:5432`, healthcheck `pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"` y `app.depends_on.postgres: condition: service_healthy`.
-- [x] `1.4` `docker-compose.yml`: definir `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD`; ajustar `DB_HOST=postgres`, `DB_PORT=5432`, `DB_USERNAME=car_agency` y `DB_PASSWORD` de `app` y `scheduler` (y de `worker` en producción).
-- [x] `1.5` `docker-compose.yml`: sustituir el slow log de MySQL por `command: [postgres, -c, shared_buffers=..., -c, effective_cache_size=..., -c, work_mem=..., -c, log_min_duration_statement=...]` con variables `POSTGRES_*`.
-- [x] `1.6` `docker/postgres/init/01-app-role.sh` (nuevo): crear el rol `car_agency` (`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`), hacerlo dueño de la base y del schema `public`, y crear la base `testing` cuando `POSTGRES_CREATE_TESTING_DB=true` (solo desarrollo).
-- [x] `1.7` `docker-compose.prod.yml`: replicar el servicio `postgres` con `env_file: .env.production`, sin puertos publicados, `shared_buffers=512MB`, volumen `pg-data`, `shm_size`, healthcheck y el mismo script de inicialización.
-- [x] `1.8` `.env.example`: `DB_CONNECTION=pgsql`, `DB_HOST=postgres`, `DB_PORT=5432`, `DB_SSLMODE=prefer`, `DB_TIMEZONE=UTC`, `DB_URL=` y `POSTGRES_*`; eliminar `MYSQL_*`.
-- [x] `1.9` `.env.production.example`: `DB_SSLMODE=prefer` (el `postgres` del compose no habilita TLS; con un PostgreSQL gestionado se sube a `require`/`verify-full`), `POSTGRES_*` con marcadores `CHANGE_ME_*`, `DB_TIMEZONE=UTC` y nota de que `POSTGRES_APP_PASSWORD` debe coincidir con `DB_PASSWORD`; eliminar `MYSQL_*`.
-- [x] `1.10` Actualizar a mano el `.env` local (ignorado por Git) a `pgsql` y comentarios de `docker/php/opcache-prod.ini` y `.gitignore` que citan MySQL.
-- [x] `1.11` `grep -rni "mysql\|mariadb\|pdo_mysql" docker .env.example .env.production.example`: sin resultados operativos.
+- [ ] `1.1` (S1) Añadir limitador `health` en `config/rate_limits.php` y `AppServiceProvider` (30/min por IP, variable `RATE_LIMIT_HEALTH`) y aplicarlo a la ruta `/up` de `bootstrap/app.php` sin sacarla del healthcheck de Nginx/Docker.
+- [ ] `1.2` (S1) Cachear el resultado de `HealthChecker::check()` 5-10 s con `Cache::remember`, manteniendo `health:check` en lectura directa (o con opción `--fresh`) para no enmascarar una recuperación. Añadir test que verifique una sola comprobación tras dos peticiones.
+- [ ] `1.3` (S1) Cubrir `/up` en `RateLimitTest`: N peticiones anónimas → 200 y la siguiente → 429; documentar en `README.md` el cupo y la excepción para la IP interna del proxy si se aplica.
+- [ ] `1.4` (S3) Crear un ini exclusivo del target `prod` con `display_errors=Off`, `log_errors=On`, `error_log=/dev/stderr`, `html_errors=Off` y copiarlo en `docker/php/Dockerfile`. Verificar con `docker run --rm --entrypoint php car-agency-laravel-api:prod -r '...'` que los valores cambiaron y que `dev` sigue revalidando el código.
+- [ ] `1.5` (S5) Aplicar un limitador `audit-export` (o reutilizar `reports`) a `routes/api.php:130-132` y añadir test de `429` tras agotar el cupo con token de administrador.
+- [ ] `1.6` Registrar en `MEMORY.md` el gotcha del limitador de `/up` (fuera del grupo `api`, `ThrottleAnonymousApi` no lo ve) y actualizar `AGENTS.md` con las variables nuevas.
 
-**Criterio de cierre:** `docker compose config` válido en desarrollo y producción; `docker compose up -d --build` levanta `postgres` healthy y `app` conecta; `migrate:fresh --seed` crea el esquema; `/up` responde `200`.
+**Criterio de cierre:** `/up` respondiendo 200 al healthcheck y 429 al abuso; sin `display_errors` en la imagen `prod`; exportación de auditoría limitada; suite, análisis, formato y auditoría limpios.
 
 ---
 
-## Fase 2 — Esquema, índices y conexión
+## Fase 2 — Integridad de ventas e inventario
 
-**Objetivo:** que el esquema sea equivalente al de MySQL y que las consultas conserven su rendimiento **sin** los índices implícitos de las claves foráneas.
+**Objetivo:** eliminar las dos incoherencias transaccionales y cerrar la decisión de atribución de ventas.
 
-- [x] `2.1` `config/database.php`: añadir `'timezone' => env('DB_TIMEZONE', 'UTC')` al bloque `pgsql`; eliminar los bloques `mysql`/`mariadb` y el `use Pdo\Mysql;`.
-- [x] `2.2` Migración `..._add_foreign_key_indexes.php` (nueva) con los índices que PostgreSQL no genera:
+- [ ] `2.1` (P1) `SaleService::cancelSale()`: cargar el coche con `Car::withTrashed()->whereKey(...)->lockForUpdate()->firstOrFail()` y decidir explícitamente si se restaura (`restore()`) o se omite el cambio de estado cuando está borrado lógicamente. Añadir test de regresión: vender → soft-delete del coche → cancelar → 200, venta `cancelled` y comportamiento del coche documentado.
+- [ ] `2.2` (P2) Envolver `CarService::updateCar()` en `DB::transaction`, cargar el coche con `lockForUpdate()` y re-evaluar la matriz de estados y `hasCompletedSale()` **después** del bloqueo, antes de escribir. Sin cambiar respuestas ni eager loads.
+- [ ] `2.3` (P2) Añadir test de concurrencia controlada (dos conexiones o transacción anidada con barrera): `updateCar` no puede sobrescribir un coche cuya venta hizo commit mientras tanto. Si el test resulta inviable con SQLite, marcar la validación definitiva en el job `postgres` del CI.
+- [ ] `2.4` (S6) Decidir el origen de `user_id` en `StoreSaleRequest`/`SaleService`: (a) sobrescribir con `Auth::id()` para que la venta siempre pertenezca a quien opera, o (b) conservar el payload y documentar el caso de uso «venta en nombre de otro» con validación de rol. Aplicar la opción elegida con test y actualizar OpenAPI/README.
+- [ ] `2.5` Verificar que la auditoría de ventas sigue escribiéndose **después** del commit y que los tests de `QueryCountTest` no cambian su número de consultas.
 
-  | Tabla | Columnas |
-  | :--- | :--- |
-  | `states` | `country_id` |
-  | `cities` | `state_id` |
-  | `branches` | `city_id` |
-  | `brands` | `country_id` |
-  | `car_models` | `brand_id` |
-  | `cars` | `color_id`, `car_model_id`, `car_type_id`, `category_id` |
-  | `role_user` | `user_id` |
-  | `permission_role` | `role_id` |
-  | `branch_user` | `user_id` |
-  | `sales` | `car_id`, `user_id`, `payment_method_id`, `payment_currency_id`, `base_currency_id` |
-
-  Ya cubiertos por índices compuestos existentes: `cars.branch_id` por `(branch_id, status)`, `sales.branch_id` por `(branch_id, sale_date)`, `audit_logs.user_id` por `(user_id, created_at)` y los lados izquierdos de `role_user`, `permission_role` y `branch_user`.
-
-- [x] `2.3` Migración `..._add_case_insensitive_unique_indexes.php` (nueva): sustituir los `unique()` de texto por índices de expresión y añadir los parciales de usuarios.
-
-  ```sql
-  -- Usuarios: el índice (columna, deleted_at) no protege filas activas en PostgreSQL
-  -- porque los NULL de deleted_at son distintos entre sí.
-  CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(email)) WHERE deleted_at IS NULL;
-  CREATE UNIQUE INDEX users_document_number_lower_unique ON users (lower(document_number)) WHERE deleted_at IS NULL;
-
-  -- Catálogos: nombres con unicidad case-insensitive
-  CREATE UNIQUE INDEX countries_name_lower_unique ON countries (lower(name));
-  CREATE UNIQUE INDEX states_name_country_lower_unique ON states (lower(name), country_id);
-  CREATE UNIQUE INDEX cities_name_state_lower_unique ON cities (lower(name), state_id);
-  CREATE UNIQUE INDEX branches_name_lower_unique ON branches (lower(name));
-  CREATE UNIQUE INDEX brands_name_lower_unique ON brands (lower(name));
-  CREATE UNIQUE INDEX car_models_name_lower_unique ON car_models (lower(name));
-  CREATE UNIQUE INDEX car_types_name_lower_unique ON car_types (lower(name));
-  CREATE UNIQUE INDEX categories_name_lower_unique ON categories (lower(name));
-  CREATE UNIQUE INDEX colors_name_lower_unique ON colors (lower(name));
-  CREATE UNIQUE INDEX payment_methods_name_lower_unique ON payment_methods (lower(name));
-  CREATE UNIQUE INDEX currencies_name_lower_unique ON currencies (lower(name));
-  CREATE UNIQUE INDEX taxes_name_lower_unique ON taxes (lower(name));
-  CREATE UNIQUE INDEX roles_name_lower_unique ON roles (lower(name));
-  CREATE UNIQUE INDEX permissions_name_lower_unique ON permissions (lower(name));
-  ```
-
-  Cada `CREATE` va precedido del `dropUnique` de la restricción plana equivalente (incluidos `users_email_deleted_at_unique` y `users_document_number_deleted_at_unique`) para no duplicar estructura. `currencies.code`, `taxes.code`, `branches.code`, `users.code` y `cars.vin` mantienen su índice plano: se normalizan en el borde.
-
-- [x] `2.4` `tests/Feature/Database/IndexesTest.php`: añadir aserciones por nombre para los índices de FK y para los índices case-insensitive; conservar las que garantizan que `cars` no tiene índices duplicados.
-- [x] `2.5` Actualizar comentarios que afirman que las FK ya indexan: `database/migrations/2026_10_20_000001_add_performance_indexes.php`, `app/Services/Reports/SaleReportService.php` y `tests/Feature/Stats/InventoryStatsTest.php` (menciona MySQL).
-- [x] `2.6` `migrate:fresh --seed` limpio en PostgreSQL y comprobación de `Schema::hasIndex` en un `tinker` puntual.
-- [x] `2.7` Validar con dataset realista (3 000 ventas/coches) y `EXPLAIN (ANALYZE, BUFFERS)` que se usan `sales(branch_id, status, sale_date)`, `cars(branch_id, status)` y los nuevos índices de FK; sin `Seq Scan` en reportes y estadísticas. Con el seed pequeño el planner elige `Seq Scan` y no prueba nada.
-
-**Criterio de cierre:** `migrate:fresh --seed` sin errores, `IndexesTest` verde y los `EXPLAIN` muestran los índices previstos.
+**Criterio de cierre:** cancelación con coche borrado y edición concurrente cubiertas por tests; atribución de `user_id` decidida y documentada; sin regresión en reportes ni en estadísticas.
 
 ---
 
-## Fase 3 — Compatibilidad de código y semántica case-sensitive
+## Fase 3 — Confianza en proxies y procedencia de IP
 
-**Objetivo:** eliminar la única función SQL específica de MySQL y recuperar la semántica case-insensitive que aportaba `utf8mb4_unicode_ci`.
+**Objetivo:** decidir con evidencia si la configuración PaaS permite falsificar la IP del cliente y endurecerla donde haga falta.
 
-- [x] `3.1` `app/Services/Stats/StatsQuery.php`: añadir `pgsql => "to_char(sale_date, 'YYYY-MM')"` a `periodExpression()`; conservar SQLite y eliminar la rama MySQL.
-- [x] `3.2` `app/Rules/CaseInsensitiveUnique.php` (nuevo): regla invocable reutilizable con tabla, columna, `ignoreId`, condiciones extra (para `states`/`cities`) y `withoutTrashed`; compara con `whereRaw('lower(columna) = ?', [mb_strtolower($valor)])` y falla con el mensaje de `validation.unique`.
-- [x] `3.3` `StoreUserRequest`/`UpdateUserRequest`: normalizar `email` a minúsculas y `document_number` a mayúsculas en `prepareForValidation()`; aplicar `CaseInsensitiveUnique` con `withoutTrashed()` (y `ignore()` en update). `users.code` se normaliza a mayúsculas y conserva la regla de inmutabilidad.
-- [x] `3.4` `LoginAuthRequest`: normalizar `email` a minúsculas para que `Auth::attempt` encuentre la fila guardada.
-- [x] `3.5` `StoreCarRequest`/`UpdateCarRequest`: normalizar `vin` a mayúsculas antes de validar y guardar. Añadir un mutador `vin` en `Car` (mayúsculas y `trim`) como defensa para factories, seeders y escrituras fuera de los FormRequest.
-- [x] `3.6` Catálogos de coches: `Brand`, `CarModel`, `CarType`, `Category` y `Color` usan `CaseInsensitiveUnique` sobre `name` en Store/Update (el alta de duplicados con otra capitalización responde `422`).
-- [x] `3.7` Catálogos de ventas: `Currency` (`name` y `code`), `Tax` (`name` y `code`) y `PaymentMethod` (`name`); normalizar `code` a mayúsculas y usar la regla en `name`.
-- [x] `3.8` Ubicaciones y usuarios: `Country`, `Branch` y `Role` por `name`; `State` por `name` + `country_id` y `City` por `name` + `state_id` con condiciones extra.
-- [x] `3.9` Tests: login con email en mayúsculas, alta duplicada con distinta capitalización (catálogo, usuario y `role`), VIN/códigos normalizados y `422` en los duplicados.
-- [x] `3.10` Revisar seeders, factories y `ProductionAdminSeeder`: `CarFactory` genera VIN con `bothify('???##?##?######??')` y puede producir minúsculas, así que debe pasar por el mutador del modelo. Añadir mutadores equivalentes para `User.email` (minúsculas) y `User.code`/`document_number` (mayúsculas).
+- [ ] `3.1` (S2) Verificar en la plataforma objetivo (Render/Railway) si el ingress **sobrescribe** `X-Forwarded-For` o si lo añade a la cadena. Dejar la evidencia (cabeceras observadas) en `MEMORY.md`.
+- [ ] `3.2` (S2) Si no se garantiza la sobrescritura: sustituir `TRUSTED_PROXIES=*` por la IP/rango real del proxy en la documentación PaaS y ajustar el `Caddyfile`/Nginx para no reenviar una cabecera controlada por el cliente. Si se garantiza, documentar por qué `*` es seguro en ese despliegue concreto.
+- [ ] `3.3` Añadir/ajustar `TrustedProxyTest`: cabecera XFF falsificada desde origen no confiable → la IP de auditoría y las claves de `login_ip`/`api-anon` usan la IP real; desde proxy confiable → se respeta la IP reenviada.
+- [ ] `3.4` Revisar `README.md` y `AGENTS.md` para que las dos vías (VPS con proxy externo y PaaS) tengan una única recomendación coherente de `TRUSTED_PROXIES` y de reenvío de cabeceras.
 
-**Criterio de cierre:** suite SQLite verde, `migrate:fresh --seed` en PostgreSQL y los tests de case sensitivity pasan; la tendencia mensual de estadísticas funciona en PostgreSQL.
+**Criterio de cierre:** comportamiento de XFF verificado y cubierto por test; ninguna configuración publicada admita spoofing sin una justificación documentada.
 
 ---
 
-## Fase 4 — Tests y CI
+## Fase 4 — Secretos y operación de la auditoría
 
-**Objetivo:** que PostgreSQL se valide de verdad en cada push, no solo con la suite rápida de SQLite.
+**Objetivo:** reducir exposición de dumps y hacer predecible la poda de datos antiguos.
 
-- [x] `4.1` `phpunit-postgres.xml` (nuevo): copia de `phpunit.xml` con `DB_CONNECTION=pgsql`, `DB_DATABASE=testing` y `DB_URL=""`; `DB_HOST`, `DB_PORT`, `DB_USERNAME` y `DB_PASSWORD` se toman del entorno (`.env` en Docker, variables del job en Actions).
-- [x] `4.2` `composer.json`: script `test:postgres` que limpie configuración y ejecute `php artisan test --configuration=phpunit-postgres.xml`.
-- [x] `4.3` `tests/TestCase.php`: confirmar que `PHPUNIT_ENV_KEYS` basta (ya incluye `DB_CONNECTION`, `DB_DATABASE` y `DB_URL`); no añadir `DB_HOST` salvo que la ejecución en Docker lo exija.
-- [x] `4.4` `.github/workflows/ci.yml`: añadir `pdo_pgsql` a `setup-php`, retirar `pdo_mysql` y crear el job `postgres` (PHP 8.3) con `services.postgres` (`postgres:17-alpine`, base `testing`, healthcheck `pg_isready`), `DB_HOST=127.0.0.1`, `migrate:fresh --seed`, `composer test:postgres`, `composer analyse`, `pint --test` y `composer audit`.
-- [x] `4.5` Actualizar el comentario de cabecera de `ci.yml`: ya no es un workflow "sin servicios externos".
-- [x] `4.6` Ejecutar en Docker `composer test` (SQLite) y `composer test:postgres` contra la base `testing`; corregir divergencias (tipos `numeric` devueltos como string, diferencias de redondeo, `RefreshDatabase`).
-- [x] `4.7` Revisar `deploy-dockerhub.yml`: no cambia de lógica, pero el build debe incluir `pdo_pgsql`; validar la imagen PaaS con un `docker build` local.
+- [ ] `4.1` (S4) Añadir `umask 077` al inicio de `docker/scripts/backup-postgres.sh` y `chmod 600 "$FILE"` tras el `mv`. Verificar con `stat -c %a backups/*.dump` tras un backup real.
+- [ ] `4.2` (P6) Reescribir `PruneAuditLogs::handle()` para borrar por lotes (`chunkById` con `limit`, o `DELETE ... WHERE id IN (...)` en bucle hasta que no haya filas), conservando `--days` y el mensaje de salida. Añadir test con varios cientos de filas antiseguimiento (`freezeTime`/fechas antiguas) y comprobar que no se borra nada dentro de la retención.
+- [ ] `4.3` Revisar `routes/console.php`: la programación diaria a las 03:00 y `withoutOverlapping()` no cambian; verificar con `schedule:list`.
+- [ ] `4.4` Registrar en `MEMORY.md` el hallazgo del `umask` y el motivo del borrado por lotes.
 
-**Criterio de cierre:** suite verde en SQLite y en PostgreSQL, `composer analyse`, `pint --test` y `composer audit` limpios; el YAML del CI es válido.
+**Criterio de cierre:** dump con permisos `600`; poda probada con datos antiguos y recientes; `schedule:list` sin cambios.
 
 ---
 
-## Fase 5 — Operación: backup y restauración
+## Fase 5 — Rendimiento de consultas, reportes y agregados
 
-**Objetivo:** sustituir el runbook de MySQL por uno de PostgreSQL probado de ida y vuelta.
+**Objetivo:** atacar el coste de PDFs, listados y estadísticas sin añadir servicios externos.
 
-- [x] `5.1` `docker/scripts/backup-postgres.sh` (nuevo): `pg_dump -Fc` dentro del contenedor `postgres` con `PGPASSWORD` desde `POSTGRES_PASSWORD`, retención por `BACKUP_RETENTION_DAYS` y `COMPOSE_FILE`/`ENV_FILE` configurables.
-- [x] `5.2` `docker/scripts/restore-postgres.sh` (nuevo): parar `app`, `worker` y `scheduler`, `dropdb --if-exists --force`, `createdb -O car_agency`, `pg_restore --no-owner --no-privileges --exit-on-error`, reiniciar y exigir `--confirm`.
-- [x] `5.3` Eliminar `docker/scripts/backup-mysql.sh` y `restore-mysql.sh`, y actualizar el `.gitignore` si el comentario de `/backups` cita MySQL.
-- [x] `5.4` Probar el ciclo completo en desarrollo: dump → fila marcadora → restore → marcador ausente y conteos intactos.
-- [x] `5.5` Verificar que `log_min_duration_statement` escribe en `docker compose logs postgres` con una consulta lenta provocada.
+- [ ] `5.1` (P3) Medir con un dataset realista (3 000 ventas) el coste actual del PDF y decidir: (a) mantener descarga síncrona con límite y pool dedicado, o (b) encolar la generación con `jobs` y servir el archivo desde `storage/app`. Documentar la decisión antes de implementar; cualquier opción conserva `REPORTS_MAX_ROWS` y los limitadores `reports`/`reports-pdf`.
+- [ ] `5.2` (P4) Inventariar los 16 listados y añadir filtros indexados por dominio: `status`, `branch_id`, rangos de fecha y búsqueda de texto. Validar en `postgres:17-alpine` la disponibilidad de `pg_trgm` y, si procede, crear índices de expresión `lower(...)`; actualizar FormRequest, servicios, `ApiDocumentationParameters`, `PaginationTest`, `QueryCountTest` y tests nuevos de filtro.
+- [ ] `5.3` (P5) Cachear los 8 agregados de `/api/stats/*` 30-60 s con clave por combinación de filtros (`start_date`, `end_date`, `branch_id`, `limit`) e invalidar al crear/cancelar venta. Comprobar que el cambio no altera las respuestas ni el número de consultas en frío, y añadir test de acierto de caché.
+- [ ] `5.4` Verificar con `EXPLAIN (ANALYZE, BUFFERS)` sobre el dataset de 3 000 filas que los nuevos filtros usan índices y no introducen `Seq Scan` donde antes no lo había.
 
-**Criterio de cierre:** backup y restauración probados; las consultas lentas son visibles en los logs del contenedor.
-
----
-
-## Fase 6 — Documentación
-
-**Objetivo:** que ninguna guía operativa mencione MySQL ni comandos que ya no existen.
-
-- [x] `6.1` `README.md`: badge y stack, inicio rápido (la base la crea `POSTGRES_DB`), puertos y healthchecks, comandos `psql`, tests (SQLite + PostgreSQL), despliegue, "Ajuste de PostgreSQL" (sustituye "Ajuste de MySQL"), backups, PaaS con PostgreSQL gestionado y `DB_SSLMODE`, troubleshooting (`SQLSTATE[08006]`, `28P01`, `42P01`, `remaining connection slots`, `permission denied for schema public`) y notas finales.
-- [x] `6.2` `AGENTS.md`: entorno sin MySQL local, extensiones `pdo_pgsql`, servicios `postgres` en ambos compose, script de rol de app, scripts de backup/restore, CI con job PostgreSQL, `to_char` en estadísticas, autosuficiencia "API + PostgreSQL", índices de FK y semántica case-sensitive.
-- [x] `6.3` `ROADMAP.md`: marcar las tareas al cerrarlas y dejar el estado actualizado.
-- [x] `6.4` `MEMORY.md`: entrada fechada con las decisiones no obvias (FK sin índice, `C.UTF-8`, índices parciales, rol dueño del schema, `to_char`); verificar `wc -l MEMORY.md` ≤ 100.
-- [x] `6.5` `grep -rni "mysql\|mariadb" --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=storage --exclude-dir=.git --exclude-dir=.agents .`: solo pueden quedar `MEMORY.md`/`MEMORY-ARCHIVE.md` como histórico.
-
-> **Resultado de 6.5:** `README.md`, `AGENTS.md`, `docker/`, `config/`, `.github/` y los scripts quedan limpios. Permanecen menciones en `MEMORY.md`/`MEMORY-ARCHIVE.md` (histórico), en `ROADMAP.md` (describe la propia migración) y en `composer.lock` (descripción de una dependencia de terceros); ninguna es documentación operativa.
-
-**Criterio de cierre:** documentación operativa 100 % PostgreSQL y sin referencias obsoletas.
+**Criterio de cierre:** decisión de PDF aplicada y medida; filtros y caché con tests; contrato OpenAPI ampliado sin romper el existente; planes de ejecución documentados en `MEMORY.md`.
 
 ---
 
-## Fase 7 — Verificación integral y cierre
+## Fase 6 — Verificación integral y cierre
 
-**Objetivo:** demostrar que la migración es reproducible desde cero y que el contrato de la API no cambió.
+**Objetivo:** demostrar que todo lo anterior es reproducible y que la API sigue siendo la misma.
 
-- [x] `7.1` Verificación completa en Docker (ver bloque de comandos).
-- [x] `7.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up` y login.
-- [x] `7.3` Imagen PaaS: `docker build -f docker/render/Dockerfile.render` y arranque contra PostgreSQL (o SQLite si no hay instancia accesible).
-- [x] `7.4` Smoke HTTP: login, `/auth/me`, estadísticas, reportes JSON/PDF, export CSV, auditoría y `/up`.
-- [x] `7.5` `composer docs:export` + Redocly: el contrato OpenAPI sigue siendo válido (la migración no cambia rutas ni respuestas).
-- [x] `7.6` Cierre: tareas marcadas, `MEMORY.md` actualizado y un commit atómico por micro-tarea.
+- [ ] `6.1` Suite completa en Docker con `./vendor/bin/pest` (SQLite) y `./vendor/bin/pest -c phpunit-postgres.xml` (PostgreSQL), más `composer analyse`, `./vendor/bin/pint --test` y `composer audit`.
+- [ ] `6.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up`, login y un PDF/CSV de reporte. Imagen PaaS: build y arranque con `APP_KEY` y PostgreSQL, `/up` y `/docs/api` según `DOCS_ENABLED`.
+- [ ] `6.3` Smoke HTTP de regresión: login, `/auth/me`, estadísticas, reportes, exportación CSV, auditoría, `/up` y los casos nuevos de las fases 1-3.
+- [ ] `6.4` `composer docs:export` + `npx @redocly/cli lint storage/app/openapi.json`; comprobar que los nuevos parámetros/limitadores están documentados.
+- [ ] `6.5` Cierre documental: tareas marcadas, `README.md`/`AGENTS.md`/`MEMORY.md` actualizados (entrada fechada por fase) y un commit atómico por micro-tarea. `wc -l MEMORY.md` ≤ 100.
+- [ ] `6.6` Decisión pendiente del análisis anterior: eliminar el volumen huérfano `api_laravel_car_agency_mysql-data` **solo con confirmación explícita del usuario**; mientras tanto, dejarlo documentado como sin uso.
 
-**Criterio de cierre:** suite verde en SQLite y PostgreSQL, `migrate:fresh --seed` limpio, índices usados en `EXPLAIN`, backup/restore probado, ambos compose válidos, builds `prod` y PaaS correctos, `/up` 200, login 200, reportes/CSV/PDF funcionando y documentación actualizada.
+**Criterio de cierre:** suites verdes en ambos motores, builds `prod` y PaaS correctos, smoke y OpenAPI válidos, documentación coherente y `git status` limpio.
 
 ---
 
@@ -207,24 +130,25 @@
 docker compose config
 docker compose up -d --build
 docker compose exec -T app php artisan migrate:fresh --seed
-docker compose exec -T app composer test
-docker compose exec -T app composer test:postgres
+docker compose exec -T app ./vendor/bin/pest
+docker compose exec -T app ./vendor/bin/pest -c phpunit-postgres.xml
 docker compose exec -T app composer analyse
 docker compose exec -T app ./vendor/bin/pint --test
 docker compose exec -T app composer audit
 docker compose exec -T app php artisan health:check
 docker compose exec -T app php artisan schedule:list
-docker compose exec -T postgres psql -U car_agency -d api_laravel_car_agency -c '\dt'
 curl -i http://localhost:8000/up
 
 # Operación
 ./docker/scripts/backup-postgres.sh backups
+stat -c '%a %n' backups/*.dump
 ./docker/scripts/restore-postgres.sh backups/<archivo>.dump --confirm
 docker compose logs postgres
 
 # Producción y PaaS
 docker compose -f docker-compose.prod.yml --env-file .env.production config
 docker compose -f docker-compose.prod.yml --env-file .env.production build app
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
 
 # Contrato
@@ -232,6 +156,4 @@ docker compose exec -T app composer docs:export
 npx @redocly/cli lint storage/app/openapi.json
 ```
 
-> La suite rápida sigue usando SQLite `:memory:`; PostgreSQL se valida con `test:postgres`, con `migrate:fresh --seed` y con los smoke tests HTTP.
->
-> Los comandos `docker compose config`, los builds y `npx` se ejecutan en el host porque son de Docker o Node; el resto va dentro de `app` con `-T`.
+> `docker compose`, los builds y `npx` se ejecutan en el host; el resto de comandos van dentro de `app` con `-T`. La imagen `prod` solo se construye después de `build app` porque el Dockerfile de Nginx parte de ella.
