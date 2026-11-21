@@ -110,6 +110,24 @@ it('limita por IP el healthcheck público', function () {
         ->assertHeader('Retry-After');
 });
 
+it('aplica un cupo propio a la exportación de auditoría', function () {
+    config([
+        'rate_limits.api' => 10,
+        'rate_limits.audit_export' => 1,
+    ]);
+
+    actingAsRole(RoleEnum::ADMIN);
+
+    $this->get('/api/audit-logs/export')->assertOk();
+
+    $this->get('/api/audit-logs/export')
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+
+    // El listado sigue usando el cupo general y no se ve afectado.
+    $this->getJson('/api/audit-logs')->assertOk();
+});
+
 it('mantiene el límite de login configurable', function () {
     config(['rate_limits.login' => 2]);
 
@@ -130,5 +148,6 @@ it('lee los límites por defecto de la configuración', function () {
         ->and(config('rate_limits.api'))->toBe(120)
         ->and(config('rate_limits.reports'))->toBe(30)
         ->and(config('rate_limits.reports_pdf'))->toBe(5)
-        ->and(config('rate_limits.health'))->toBe(30);
+        ->and(config('rate_limits.health'))->toBe(30)
+        ->and(config('rate_limits.audit_export'))->toBe(10);
 });

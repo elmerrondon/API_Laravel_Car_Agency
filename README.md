@@ -302,6 +302,10 @@ Los límites se definen en `config/rate_limits.php` y se pueden ajustar con vari
 | `api` | Resto de rutas autenticadas | 120/min (`RATE_LIMIT_API`) | usuario (o IP sin token) |
 | `reports` | `/api/reports/*` | 30/min (`RATE_LIMIT_REPORTS`) | usuario (o IP sin token) |
 | `reports-pdf` | `/api/reports/*/pdf` | 5/min (`RATE_LIMIT_REPORTS_PDF`) | usuario (o IP sin token) |
+| `audit-export` | `GET /api/audit-logs/export` | 10/min (`RATE_LIMIT_AUDIT_EXPORT`) | usuario (o IP sin token) |
+| `health` | `GET /up` | 30/min (`RATE_LIMIT_HEALTH`) | IP |
+
+`/up` se registra fuera del grupo `api` (para no arrastrar sesión ni CSRF), así que el limitador anónimo de la API no lo cubre: necesita su propio cupo `health`. Su resultado se cachea 10 s para absorber ráfagas de healthchecks; `php artisan health:check --fresh` fuerza una lectura directa de base de datos y caché. Si el store de caché falla, `/up` responde `503`, nunca `500`.
 
 El reporte PDF es la ruta más cara: además del límite, corta en `REPORTS_MAX_ROWS` (500 por defecto) y responde `422` si el rango de fechas lo supera.
 
@@ -652,7 +656,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-19): **443 tests / 2823 aserciones** en SQLite y en PostgreSQL, **PHPStan nivel 7 con 0 errores**, **Pint limpio (366 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
+Estado verificado de la suite (2026-11-21): **450 tests / 2841 aserciones** en SQLite y en PostgreSQL, **PHPStan nivel 7 con 0 errores**, **Pint limpio (366 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 

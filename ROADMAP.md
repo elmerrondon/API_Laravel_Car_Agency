@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Ninguna tarea iniciada**; cada hallazgo se volvió a verificar contra el código en esa fecha.
-- **Repo:** limpio en `a29c759`. Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 443 tests / 2 823 aserciones en SQLite y PostgreSQL, PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fase 1 cerrada**; fases 2-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Repo:** limpio al cierre de la fase 1 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
+- **Línea base:** 450 tests / 2 841 aserciones en SQLite (tras la fase 1), PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -57,7 +57,7 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 - [x] `1.2` (S1) Cachear `HealthChecker::check()` 5-10 s. El comando `health:check` debe poder leer en directo (opción `--fresh`) para no enmascarar una recuperación. Si el store de caché falla, la comprobación debe devolver `false`, no `500`.
 - [x] `1.3` (S3) Crear un ini exclusivo del target `prod` con `display_errors=Off`, `log_errors=On`, `error_log=/dev/stderr`, `html_errors=Off` y `expose_php=Off`; copiarlo solo en la etapa `prod` de `docker/php/Dockerfile`. Verificar con `docker run --rm --entrypoint php <imagen> -i` que los valores cambiaron y que `dev` sigue revalidando el código.
 - [x] `1.4` (S5) Añadir el limitador `audit-export` (10/min por usuario, `RATE_LIMIT_AUDIT_EXPORT`) y aplicarlo a `routes/api.php:131`.
-- [ ] `1.5` Tests: `RateLimitTest` para `/up` (N peticiones → 200 y la siguiente → 429) y para el export (429 tras agotar el cupo con token de administrador). Documentar los cupos en `README.md`/`AGENTS.md` y registrar en `MEMORY.md` el gotcha de `/up` fuera del grupo `api`.
+- [x] `1.5` Tests: `RateLimitTest` para `/up` (N peticiones → 200 y la siguiente → 429) y para el export (429 tras agotar el cupo con token de administrador). Documentar los cupos en `README.md`/`AGENTS.md` y registrar en `MEMORY.md` el gotcha de `/up` fuera del grupo `api`.
 
 **Criterio de cierre:** `/up` responde 200 al healthcheck y 429 al abuso; la imagen `prod` no muestra errores; la exportación de auditoría está limitada; suite, análisis, formato y auditoría limpios.
 
