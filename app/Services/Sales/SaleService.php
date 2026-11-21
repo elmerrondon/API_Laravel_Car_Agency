@@ -158,7 +158,9 @@ class SaleService
                 throw SaleNotCancellableException::withStatus($lockedSale->status);
             }
 
-            $car = Car::whereKey($lockedSale->car_id)->lockForUpdate()->firstOrFail();
+            // El histórico conserva el coche aunque se haya borrado lógicamente.
+            // La cancelación no debe resurrectarlo: solo se cancela la venta.
+            $car = Car::withTrashed()->whereKey($lockedSale->car_id)->lockForUpdate()->firstOrFail();
 
             $oldValues = [
                 'status' => $lockedSale->status->value,
@@ -170,7 +172,7 @@ class SaleService
             $lockedSale->notes = $notes;
             $lockedSale->save();
 
-            if ($car->status === CarStatus::SOLD) {
+            if (! $car->trashed() && $car->status === CarStatus::SOLD) {
                 $car->status = CarStatus::AVAILABLE;
                 $car->save();
             }

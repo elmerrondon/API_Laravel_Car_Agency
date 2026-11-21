@@ -85,6 +85,21 @@ it('cancela una venta completada y libera el coche', function () {
         ->and($sale->car->fresh()->status)->toBe(CarStatus::AVAILABLE);
 });
 
+it('cancela la venta sin restaurar un coche borrado logicamente', function () {
+    $sale = createSaleWithStatus();
+
+    $sale->car->delete();
+
+    $this->patchJson("/api/sales/{$sale->id}/cancel", [
+        'notes' => 'El cliente desistió de la compra',
+    ])->assertOk()
+        ->assertJsonPath('data.status', SaleStatus::CANCELLED->value);
+
+    expect($sale->fresh()->status)->toBe(SaleStatus::CANCELLED)
+        ->and($sale->car->fresh()->trashed())->toBeTrue()
+        ->and(Car::withTrashed()->findOrFail($sale->car_id)->status)->toBe(CarStatus::SOLD);
+});
+
 it('rechaza cancelar dos veces la misma venta con 409', function () {
     $sale = createSaleWithStatus();
 
