@@ -19,14 +19,37 @@ use Throwable;
 class HealthChecker
 {
     /**
+     * Clave del resultado cacheado. Pública para que los tests y el comando
+     * puedan inspeccionarla sin duplicar el literal.
+     */
+    public const CACHE_KEY = 'health:check';
+
+    /**
+     * Ventana corta: absorbe las ráfagas de healthchecks sin retrasar más de
+     * unos segundos la detección de una caída.
+     */
+    private const CACHE_TTL_SECONDS = 10;
+
+    /**
      * @return array{database: bool, cache: bool}
      */
-    public function check(): array
+    public function check(bool $fresh = false): array
     {
-        return [
-            'database' => $this->databaseIsUp(),
-            'cache' => $this->cacheIsUp(),
-        ];
+        if ($fresh) {
+            return $this->runChecks();
+        }
+
+        $cached = $this->cachedResult();
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $checks = $this->runChecks();
+
+        $this->cacheResult($checks);
+
+        return $checks;
     }
 
     /**
@@ -35,6 +58,51 @@ class HealthChecker
     public function passes(array $checks): bool
     {
         return ! in_array(false, $checks, true);
+    }
+
+    /**
+     * @return array{database: bool, cache: bool}|null
+     */
+    private function cachedResult(): ?array
+    {
+        try {
+            $cached = Cache::get(self::CACHE_KEY);
+        } catch (Throwable) {
+            // Un store caído no puede tumbar `/up`: se ejecutan las
+            // comprobaciones reales y `cache` devolverá false.
+            return null;
+        }
+
+        if (! is_array($cached)
+            || ! is_bool($cached['database'] ?? null)
+            || ! is_bool($cached['cache'] ?? null)) {
+            return null;
+        }
+
+        return ['database' => $cached['database'], 'cache' => $cached['cache']];
+    }
+
+    /**
+     * @param  array{database: bool, cache: bool}  $checks
+     */
+    private function cacheResult(array $checks): void
+    {
+        try {
+            Cache::put(self::CACHE_KEY, $checks, self::CACHE_TTL_SECONDS);
+        } catch (Throwable) {
+            // Sin caché se sigue respondiendo con el resultado en directo.
+        }
+    }
+
+    /**
+     * @return array{database: bool, cache: bool}
+     */
+    private function runChecks(): array
+    {
+        return [
+            'database' => $this->databaseIsUp(),
+            'cache' => $this->cacheIsUp(),
+        ];
     }
 
     private function databaseIsUp(): bool

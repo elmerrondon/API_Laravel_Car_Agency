@@ -54,7 +54,7 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 **Objetivo:** cerrar los puntos expuestos a anónimos o que pueden filtrar información sin tocar el contrato de la API.
 
 - [x] `1.1` (S1) Añadir el limitador `health` en `config/rate_limits.php` (30/min por IP, `RATE_LIMIT_HEALTH`) y registrarlo en `AppServiceProvider`; aplicarlo a la ruta `/up` de `bootstrap/app.php` con `throttle:health`, sin sacarla del healthcheck de Nginx/Docker.
-- [ ] `1.2` (S1) Cachear `HealthChecker::check()` 5-10 s. El comando `health:check` debe poder leer en directo (opción `--fresh`) para no enmascarar una recuperación. Si el store de caché falla, la comprobación debe devolver `false`, no `500`.
+- [x] `1.2` (S1) Cachear `HealthChecker::check()` 5-10 s. El comando `health:check` debe poder leer en directo (opción `--fresh`) para no enmascarar una recuperación. Si el store de caché falla, la comprobación debe devolver `false`, no `500`.
 - [ ] `1.3` (S3) Crear un ini exclusivo del target `prod` con `display_errors=Off`, `log_errors=On`, `error_log=/dev/stderr`, `html_errors=Off` y `expose_php=Off`; copiarlo solo en la etapa `prod` de `docker/php/Dockerfile`. Verificar con `docker run --rm --entrypoint php <imagen> -i` que los valores cambiaron y que `dev` sigue revalidando el código.
 - [ ] `1.4` (S5) Añadir el limitador `audit-export` (10/min por usuario, `RATE_LIMIT_AUDIT_EXPORT`) y aplicarlo a `routes/api.php:131`.
 - [ ] `1.5` Tests: `RateLimitTest` para `/up` (N peticiones → 200 y la siguiente → 429) y para el export (429 tras agotar el cupo con token de administrador). Documentar los cupos en `README.md`/`AGENTS.md` y registrar en `MEMORY.md` el gotcha de `/up` fuera del grupo `api`.
