@@ -9,7 +9,7 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-20.
-- **Estado:** fase 6 completada (documentación). Siguiente: fase 7 (verificación integral y cierre).
+- **Estado:** fase 7 completada (verificación integral y cierre). Migración a PostgreSQL 17 cerrada; no quedan fases pendientes.
 - **Punto de partida:** API completa y estable sobre MySQL (fases 1-9 cerradas; el histórico vive en `MEMORY.md` y `MEMORY-ARCHIVE.md`).
 - **Verificación de referencia:** 443 tests / 2 823 aserciones en SQLite y PostgreSQL, PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos y OpenAPI 3.1.2 válido (55 paths).
 - **Objetivo:** misma API, mismo contrato y mismo comportamiento sobre PostgreSQL 17, sin rastro de MySQL en el stack.
@@ -189,12 +189,12 @@
 
 **Objetivo:** demostrar que la migración es reproducible desde cero y que el contrato de la API no cambió.
 
-- [ ] `7.1` Verificación completa en Docker (ver bloque de comandos).
-- [ ] `7.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up` y login.
-- [ ] `7.3` Imagen PaaS: `docker build -f docker/render/Dockerfile.render` y arranque contra PostgreSQL (o SQLite si no hay instancia accesible).
-- [ ] `7.4` Smoke HTTP: login, `/auth/me`, estadísticas, reportes JSON/PDF, export CSV, auditoría y `/up`.
-- [ ] `7.5` `composer docs:export` + Redocly: el contrato OpenAPI sigue siendo válido (la migración no cambia rutas ni respuestas).
-- [ ] `7.6` Cierre: tareas marcadas, `MEMORY.md` actualizado y un commit atómico por micro-tarea.
+- [x] `7.1` Verificación completa en Docker (ver bloque de comandos).
+- [x] `7.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up` y login.
+- [x] `7.3` Imagen PaaS: `docker build -f docker/render/Dockerfile.render` y arranque contra PostgreSQL (o SQLite si no hay instancia accesible).
+- [x] `7.4` Smoke HTTP: login, `/auth/me`, estadísticas, reportes JSON/PDF, export CSV, auditoría y `/up`.
+- [x] `7.5` `composer docs:export` + Redocly: el contrato OpenAPI sigue siendo válido (la migración no cambia rutas ni respuestas).
+- [x] `7.6` Cierre: tareas marcadas, `MEMORY.md` actualizado y un commit atómico por micro-tarea.
 
 **Criterio de cierre:** suite verde en SQLite y PostgreSQL, `migrate:fresh --seed` limpio, índices usados en `EXPLAIN`, backup/restore probado, ambos compose válidos, builds `prod` y PaaS correctos, `/up` 200, login 200, reportes/CSV/PDF funcionando y documentación actualizada.
 
