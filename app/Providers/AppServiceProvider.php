@@ -145,6 +145,15 @@ class AppServiceProvider extends ServiceProvider
                 ->by('health|'.$request->ip());
         });
 
+        // La exportación de auditoría recorre la tabla con un cursor y genera
+        // un CSV; aunque el listado ya tiene el cupo `api`, merece uno propio
+        // más estricto para evitar descargas repetidas del histórico.
+        RateLimiter::for('audit-export', function (Request $request) {
+            return Limit::perMinute((int) config('rate_limits.audit_export'))->by(
+                'audit-export|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+            );
+        });
+
         // La documentación se abre en local/testing; en el resto de entornos
         // exige DOCS_ENABLED=true de forma explícita.
         Gate::define('viewApiDocs', function (?User $user = null): bool {

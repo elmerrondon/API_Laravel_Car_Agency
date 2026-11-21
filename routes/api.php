@@ -128,7 +128,8 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed', 'throttle:api']
     // Auditoría (solo lectura). La exportación va antes del resource para que
     // `export` no sea capturado por el route-model binding de `{audit_log}`.
     Route::middleware('permission:view_audit_logs')->group(function () {
-        Route::get('audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('audit-logs/export', [AuditLogController::class, 'export'])
+            ->middleware('throttle:audit-export');
         Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     });
 });
