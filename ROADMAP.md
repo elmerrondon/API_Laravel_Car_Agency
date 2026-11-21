@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fase 1 cerrada**; fases 2-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
-- **Repo:** limpio al cierre de la fase 1 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 450 tests / 2 841 aserciones en SQLite (tras la fase 1), PHPStan nivel 7 sin errores, Pint limpio en 366 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-2 cerradas**; fases 3-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Repo:** limpio al cierre de la fase 2 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
+- **Línea base:** 455 tests / 2 857 aserciones en SQLite y PostgreSQL (tras la fase 2), PHPStan nivel 7 sin errores, Pint limpio en 368 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -71,7 +71,7 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 - [x] `2.2` (P2) Envolver `CarService::updateCar()` en `DB::transaction`, cargar el coche con `lockForUpdate()` y re-evaluar `hasCompletedSale()` y la matriz de estados **después** del bloqueo, antes de escribir. La auditoría sigue escribiéndose después del commit. Test de concurrencia controlada; si SQLite no lo permite, validarlo en el job `postgres` del CI.
 - [x] `2.3` (P7) Migración con índice único parcial `currencies (is_base) WHERE is_base` (válido en PostgreSQL y SQLite vía `DB::statement`). Capturar la violación (`SQLSTATE 23505`) y responder `409` con una excepción de dominio. Mantener la validación amable de los FormRequest y añadir test de segunda moneda base (API `409` y escritura directa rechazada). Verificar que los datos existentes no tengan duplicados antes de crear el índice.
 - [x] `2.4` (S6) Quitar `user_id` de las reglas de `StoreSaleRequest` y del DTO `SaleData`; en `SaleService` fijar `user_id` con `Auth::id()`. Actualizar tests que enviaban `user_id`, ejemplos de OpenAPI y `README.md`. Test: aunque el payload incluya el ID de otro usuario, la venta queda a nombre del actor.
-- [ ] `2.5` Verificar que la auditoría de ventas sigue escribiéndose después del commit y que `QueryCountTest` no cambia su número de consultas.
+- [x] `2.5` Verificar que la auditoría de ventas sigue escribiéndose después del commit y que `QueryCountTest` no cambia su número de consultas.
 
 **Criterio de cierre:** cancelación con coche borrado y edición concurrente cubiertas por tests; atribución de ventas resuelta; una sola moneda base garantizada por la base; sin regresión en reportes ni estadísticas.
 
