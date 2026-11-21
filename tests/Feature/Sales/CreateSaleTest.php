@@ -47,7 +47,6 @@ function salePayload(Car $car, array $overrides = []): array
         'taxes' => [Tax::where('code', 'I0001')->value('id')],
         'sale_date' => '2026-02-10 10:30:00',
         'car_id' => $car->id,
-        'user_id' => User::where('email', 'manager@caragency.test')->value('id'),
         'branch_id' => $car->branch_id,
         'payment_currency_id' => Currency::where('code', 'EUR')->value('id'),
         'payment_method_id' => PaymentMethod::firstOrFail()->id,
@@ -145,6 +144,19 @@ it('audita el importe base redondeado igual que la venta persistida', function (
         ->and($log->new_values['total_base_amount'])->toEqual(
             round((float) Sale::findOrFail($sale['id'])->total_base_amount, 2),
         );
+});
+
+it('atribuye la venta al actor autenticado aunque el payload envie otro usuario', function () {
+    $car = sellingCar(10000);
+    $actor = User::where('email', 'manager@caragency.test')->firstOrFail();
+    $other = User::where('email', 'admin@caragency.test')->firstOrFail();
+
+    $sale = $this->postJson('/api/sales', salePayload($car, ['user_id' => $other->id]))
+        ->assertCreated()
+        ->json('data');
+
+    expect((int) $sale['user_id'])->toBe($actor->id)
+        ->and((int) Sale::findOrFail($sale['id'])->user_id)->toBe($actor->id);
 });
 
 it('rechaza con 422 un coche que no está disponible', function () {

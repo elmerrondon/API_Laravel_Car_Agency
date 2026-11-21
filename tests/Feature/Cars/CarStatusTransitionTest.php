@@ -132,7 +132,6 @@ it('bloquea cambios manuales sobre un coche con venta completada y los libera al
         'taxes' => [Tax::where('code', 'I0001')->value('id')],
         'sale_date' => '2026-02-10 10:30:00',
         'car_id' => $car['id'],
-        'user_id' => User::where('email', 'admin@caragency.test')->value('id'),
         'branch_id' => $car['branch_id'],
         'payment_currency_id' => Currency::where('code', 'EUR')->value('id'),
         'payment_method_id' => PaymentMethod::firstOrFail()->id,

@@ -375,8 +375,9 @@ decimales). La tasa expresa cuántas unidades de la moneda de pago equivalen a
 una de la moneda base; una venta en la moneda base usa tasa `1`.
 `branch_id` debe coincidir con la sucursal del coche: la venta se registra
 siempre en la sucursal del vehículo y una sucursal distinta responde `422`.
-`sale_date` no puede ser futura ni anterior a `SALES_MIN_DATE` (por defecto
-`2000-01-01`).
+El vendedor se toma siempre del token autenticado: el payload no acepta
+`user_id` y cualquier valor que se envíe se ignora. `sale_date` no puede ser
+futura ni anterior a `SALES_MIN_DATE` (por defecto `2000-01-01`).
 
 En coches, el alta solo admite `status=available`; la edición manual mueve
 entre `available` y `reserved`, y `sold` lo asigna únicamente la venta. Un coche

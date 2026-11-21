@@ -19,6 +19,7 @@ use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
 use App\Services\Audit\AuditService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class SaleService
@@ -124,7 +125,9 @@ class SaleService
                     'status' => SaleStatus::COMPLETED,
                     'sale_date' => $data->saleDate,
                     'car_id' => $data->carId,
-                    'user_id' => $data->userId,
+                    // La atribución siempre es el actor autenticado; el payload
+                    // no puede decidir a nombre de quién se registra la venta.
+                    'user_id' => Auth::id(),
                     'branch_id' => (int) $car->branch_id,
                     'payment_currency_id' => $data->paymentCurrencyId,
                     'base_currency_id' => $baseCurrency->id,
