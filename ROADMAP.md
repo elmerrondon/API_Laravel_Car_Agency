@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-2 cerradas**; fases 3-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-3 cerradas**; fases 4-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
 - **Repo:** limpio al cierre de la fase 2 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 455 tests / 2 857 aserciones en SQLite y PostgreSQL (tras la fase 2), PHPStan nivel 7 sin errores, Pint limpio en 368 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Línea base:** 462 tests / 2 872 aserciones en SQLite (tras la fase 3), PHPStan nivel 7 sin errores, Pint limpio en 372 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -20,7 +20,7 @@
 - **S6:** el `user_id` de la venta se toma siempre de `Auth::id()`; se elimina del payload.
 - **P3:** PDF síncrono con límite de filas menor (no hay worker en la vía PaaS).
 - **P4:** filtros indexados diferidos a una fase opcional con gate de volumen.
-- **S2:** la validación de `X-Forwarded-For` se hace sobre **Render**.
+- **S2:** la solución no depende de la plataforma: `TRUSTED_PROXIES=*` se rechaza en producción y `ClientIpResolver` solo acepta `X-Forwarded-For` de un proxy explícito cuando la cadena tiene una sola IP; si hay varios saltos, usa la IP del par (fail closed). El borde debe sobrescribir la cabecera.
 - **P1:** al cancelar una venta cuyo coche está en soft delete, la venta se cancela y el coche **no** se restaura; el borrado lógico es una decisión independiente.
 
 ---
@@ -81,10 +81,10 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 
 **Objetivo:** decidir con evidencia si la configuración PaaS permite falsificar la IP del cliente y endurecerla donde haga falta.
 
-- [ ] `3.1` (S2) Capturar en un despliegue de staging de Render la cadena `X-Forwarded-For` y compararla con la IP pública real del cliente (log temporal o cabecera de diagnóstico). Dejar la evidencia en `MEMORY.md`.
-- [ ] `3.2` (S2) Si Render **sobrescribe** la cabecera, documentar por qué `TRUSTED_PROXIES=*` es seguro en ese despliegue. Si la **añade** a la cadena, fijar el rango/proxy real o confiar solo en el último salto mediante middleware; nunca dejar `*` sin justificación.
-- [ ] `3.3` Añadir/ajustar `TrustedProxyTest`: XFF falsificado desde un origen no confiable → la IP de auditoría y las claves de `login_ip`/`api-anon` usan la IP real; desde un proxy confiable → se respeta la IP reenviada.
-- [ ] `3.4` Revisar `README.md` y `AGENTS.md` para que VPS (proxy externo) y Render tengan una única recomendación coherente de `TRUSTED_PROXIES` y reenvío de cabeceras.
+- [x] `3.1` (S2) Verificar empíricamente cómo resuelve Laravel la IP con `TRUSTED_PROXIES=*` (sondeo con test temporal: toma la **última** IP de `X-Forwarded-For`, así que un cliente puede falsificarla) y dejar la evidencia en `MEMORY.md`. Se sustituye la captura en staging acordada inicialmente por decisión del usuario: no depender de una plataforma concreta.
+- [x] `3.2` (S2) Prohibir `*` en producción con `TrustedProxyPolicy` (igual que CORS) y resolver la IP con `ClientIpResolver`: solo acepta `X-Forwarded-For` si el par inmediato está en `TRUSTED_PROXIES` y la cadena tiene una sola IP válida; con varios saltos usa la IP del par. El contrato del edge es sobrescribir la cabecera, válido para cualquier proveedor.
+- [x] `3.3` Añadir/ajustar `TrustedProxyTest`: XFF falsificado desde un origen no confiable → la IP de auditoría y las claves de `login_ip`/`api-anon` usan la IP real; desde un proxy confiable → se respeta la IP reenviada; con cadena de varios saltos → se descarta. Añadir `TrustedProxyConfigTest` para la política.
+- [x] `3.4` Revisar `README.md` y `AGENTS.md` para que VPS (proxy externo) y PaaS tengan una única recomendación coherente de `TRUSTED_PROXIES` y reenvío de cabeceras; actualizar `.env.production.example` y `config/trustedproxy.php`.
 
 **Criterio de cierre:** comportamiento de XFF verificado y cubierto por test; ninguna configuración publicada admite spoofing sin justificación documentada.
 

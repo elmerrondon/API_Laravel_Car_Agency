@@ -201,6 +201,13 @@ Flujo de una petición: `routes/api.php` -> FormRequest en `Http/Requests/...` -
 - En producción el arranque HTTP lanza `InsecureCorsConfigurationException` (500) si la lista está vacía o contiene `*`. Los comandos artisan omiten la comprobación para que `package:discover` y `optimize` funcionen durante el build, donde aún no existe `.env.production`.
 - `CorsPolicy` (`app/Support`) concentra la regla y `CorsConfigTest` la cubre. `.env.production.example` trae un origen explícito (`https://app.example.com`).
 
+### Proxies de confianza
+
+- `TRUSTED_PROXIES` es una IP o una lista de IPs/CIDR separados por comas: la red de Compose en la VPS, la red del borde en PaaS. `TrustedProxyPolicy` (`app/Support`) rechaza `*` en producción en el arranque HTTP (los comandos artisan lo omiten, igual que CORS); dejarlo vacío es seguro pero desactiva `X-Forwarded-Proto` y la granularidad por cliente.
+- Nunca uses `*` como atajo: Laravel se queda con la **última** IP de `X-Forwarded-For`, así que si el borde antepone la IP real y conserva la del cliente, gana la falsificada. La decisión no depende del proveedor: el edge debe **sobrescribir** la cabecera con una sola IP.
+- `ClientIpResolver` (`app/Support`) es la única fuente de IP para auditoría (`AuditService`, `LoginFailureAuditor`) y para las claves de todos los limitadores (`AppServiceProvider`). Acepta `X-Forwarded-For` solo si el par inmediato está en `TRUSTED_PROXIES` y la cabecera contiene una única IP válida; con varios saltos, IP inválida o par no confiable usa la IP de la conexión (fail closed). No llames a `$request->ip()` directamente en esos consumidores.
+- Cobertura en `TrustedProxyConfigTest` (política) y `TrustedProxyTest` (auditoría, `login_ip` y `api-anon`). La recomendación de VPS y PaaS es la misma; solo cambia el valor configurado.
+
 ### Auditoría
 
 - `audit_logs` es append-only: `$guarded = ['*']`, solo escribe `AuditService` con `forceFill()` y no hay rutas de escritura (responden `405`).

@@ -943,7 +943,7 @@ nginx -t && systemctl reload nginx
 
 **Cutover:** baja el TTL del DNS al menos una hora antes; emite el certificado con el puerto 80 libre (o con el método DNS-01 si ya hay un servicio); arranca el stack nuevo en `127.0.0.1:80`; activa el proxy y valida `https://api.example.com/up`, el `301` desde `http://` y las cabeceras de seguridad. Mantén el despliegue anterior hasta comprobar login y reportes; después retíralo.
 
-> El proxy debe reenviar `X-Forwarded-Proto`; sin esa cabecera Laravel no puede saber que la petición original era HTTPS y no enviará HSTS. La IP del proxy también debe entrar en `TRUSTED_PROXIES` (la red de Compose ya está incluida). Si el proxy corre en otro host, añade su IP o rango separado por comas.
+> El proxy debe reenviar `X-Forwarded-Proto`; sin esa cabecera Laravel no puede saber que la petición original era HTTPS y no enviará HSTS. La IP del proxy también debe entrar en `TRUSTED_PROXIES` (la red de Compose ya está incluida). Si el proxy corre en otro host, añade su IP o rango separado por comas; nunca `*`, porque con un comodín un cliente puede falsificar la IP de auditoría y de los limitadores mediante `X-Forwarded-For`. El proxy debe **sobrescribir** esa cabecera con la IP real; si la cadena trae varios saltos, la app descarta la cabecera y usa la IP del proxy inmediato.
 
 #### Vía alternativa: TLS propio dentro del stack
 
@@ -1069,7 +1069,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 - **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
 - **Migraciones y seed**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force --seed`) o define `RUN_MIGRATIONS=true` y `RUN_SEED=true` para que los ejecute el entrypoint. El `--seed` solo crea roles/permisos y el administrador; no inserta datos demo.
 - **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a un PostgreSQL gestionado externo (Render PostgreSQL, Neon, Supabase, Railway, etc.).
-- **TLS lo termina la plataforma**: el contenedor recibe HTTP por `$PORT`, así que configura `APP_URL=https://...`, `TRUSTED_PROXIES=*` (la plataforma es el único origen que alcanza el contenedor), `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. Sin `TRUSTED_PROXIES=*`, Laravel ignora `X-Forwarded-Proto`, no detecta HTTPS y no envía HSTS. En local con `docker run` sobre HTTP deja `TRUSTED_PROXIES` vacío y `HSTS_ENABLED=false`.
+- **TLS lo termina la plataforma**: el contenedor recibe HTTP por `$PORT`, así que configura `APP_URL=https://...`, `TRUSTED_PROXIES=<IP o CIDR del borde>`, `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. Sin un proxy explícito Laravel ignora `X-Forwarded-Proto`, no detecta HTTPS y no envía HSTS. **`TRUSTED_PROXIES=*` está prohibido en producción**: Laravel toma la última IP de `X-Forwarded-For` y un cliente podría falsificar la IP de auditoría y de los limitadores. La misma regla vale para la VPS; la diferencia es solo qué IP o rango se declara. En local con `docker run` sobre HTTP deja `TRUSTED_PROXIES` vacío y `HSTS_ENABLED=false`.
 
 Construir y probar en local sin compose:
 
