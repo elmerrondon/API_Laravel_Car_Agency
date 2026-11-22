@@ -121,7 +121,22 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 
 > **Gate:** no iniciar esta fase sin decisión explícita del usuario o evidencia de que el volumen actual lo justifica. No bloquea las fases 1-5 ni el cierre.
 
-- [ ] `6.1` (P4) Inventariar los 16 listados y priorizar por uso real: `status`, `branch_id`, rangos de fecha y búsqueda de texto.
+- [x] `6.1` (P4) Inventariar los 16 listados y priorizar por uso real: `status`, `branch_id`, rangos de fecha y búsqueda de texto. **Inventario cerrado:** ver la tabla siguiente; `audit-logs` ya está filtrado y no se toca.
+
+  | Listado | Filtros añadidos | Prioridad |
+  | :--- | :--- | :--- |
+  | `cars` | `status`, `branch_id`, `brand_id`, `car_model_id`, `car_type_id`, `category_id`, `color_id`, `year_min`, `year_max`, `price_min`, `price_max`, `search` (VIN) | Alta |
+  | `sales` | `status`, `branch_id`, `user_id`, `payment_method_id`, `payment_currency_id`, `from`, `to` | Alta |
+  | `users` | `role_id`, `branch_id`, `is_active`, `search` (nombre, apellido, email, código, documento) | Alta |
+  | `roles` | `search` (nombre) | Media |
+  | `brands` | `country_id`, `is_active`, `search` | Media |
+  | `car-models` | `brand_id`, `is_active`, `search` | Media |
+  | `states` | `country_id`, `is_active`, `search` | Media |
+  | `cities` | `state_id`, `is_active`, `search` | Media |
+  | `branches` | `city_id`, `is_active`, `search` | Media |
+  | `car-types`, `categories`, `colors`, `currencies`, `payment-methods`, `taxes`, `countries` | `is_active` (donde existe), `search` (nombre) | Baja |
+
+  **Estrategia de texto:** búsqueda por prefijo (`lower(columna) LIKE 'término%'`) con `%`/`_`/`\` escapados. Aprovecha los índices btree de expresión `lower(...)` ya presentes en catálogos y usuarios y evita añadir `pg_trgm` u otras extensiones. No se ofrece búsqueda por substring.
 - [ ] `6.2` (P4) Añadir los filtros por dominio en FormRequest y servicios, manteniendo `per_page`, el orden determinista y `withQueryString()`.
 - [ ] `6.3` (P4) Actualizar `ApiDocumentationParameters`, `PaginationTest`, `QueryCountTest` y añadir tests de filtro. Validar `pg_trgm` en PostgreSQL si se opta por búsqueda de texto.
 - [ ] `6.4` (P4) Verificar con `EXPLAIN (ANALYZE, BUFFERS)` que los nuevos filtros usan índices y no introducen `Seq Scan` donde antes no lo había.
