@@ -18,6 +18,7 @@ use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
 use App\Services\Audit\AuditService;
+use App\Services\Stats\StatsCache;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,10 @@ class SaleService
         'paymentMethod',
     ];
 
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly StatsCache $statsCache,
+    ) {}
 
     /** @return LengthAwarePaginator<int, Sale> */
     public function getAllPaginatedSales(?int $perPage = null): LengthAwarePaginator
@@ -142,6 +146,7 @@ class SaleService
         });
 
         $this->audit->record(AuditAction::SALE_CREATED, $sale, [], $this->saleAuditValues($sale));
+        $this->statsCache->flush();
 
         return $sale;
     }
@@ -189,6 +194,7 @@ class SaleService
             $oldValues,
             $this->saleAuditValues($cancelledSale),
         );
+        $this->statsCache->flush();
 
         return $cancelledSale;
     }

@@ -136,6 +136,10 @@ it('no escala las consultas del reporte de ventas con el número de ventas', fun
 });
 
 it('no escala las consultas de las estadísticas con el número de ventas', function () {
+    // Sin caché: el objetivo es medir las consultas de los agregados. Con la
+    // caché activa, la segunda petición sería un acierto y no ejecutaría SQL.
+    config(['stats.cache_ttl' => 0]);
+
     $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
 
     // Calienta la caché de permisos de `view_statistics` para comparar
