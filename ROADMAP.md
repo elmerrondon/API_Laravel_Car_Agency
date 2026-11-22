@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-3 cerradas**; fases 4-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
-- **Repo:** limpio al cierre de la fase 2 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 462 tests / 2 872 aserciones en SQLite (tras la fase 3), PHPStan nivel 7 sin errores, Pint limpio en 372 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-4 cerradas**; fases 5-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Repo:** limpio al cierre de la fase 4 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
+- **Línea base:** 463 tests / 2 876 aserciones en SQLite (tras la fase 4), PHPStan nivel 7 sin errores, Pint limpio en 372 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -94,9 +94,9 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 
 **Objetivo:** reducir la exposición de los dumps y hacer predecible la poda de datos antiguos.
 
-- [ ] `4.1` (S4) Añadir `umask 077` al inicio de `docker/scripts/backup-postgres.sh` y `chmod 600 "$FILE"` tras el `mv`. Verificar con `stat -c '%a %n' backups/*.dump` tras un backup real.
-- [ ] `4.2` (P6) Reescribir `PruneAuditLogs::handle()` para borrar por lotes de forma portable (por ejemplo, `whereIn('id', ...->limit(1000)->pluck('id'))->delete()` en bucle hasta que no queden filas), conservando `--days` y el mensaje de salida. Test con varios cientos de filas antiguas y recientes: no se borra nada dentro de la retención.
-- [ ] `4.3` Verificar `routes/console.php`: la programación diaria a las 03:00 y `withoutOverlapping()` no cambian; comprobar con `schedule:list` y registrar el hallazgo en `MEMORY.md`.
+- [x] `4.1` (S4) Añadir `umask 077` al inicio de `docker/scripts/backup-postgres.sh` y `chmod 600 "$FILE"` tras el `mv`. Verificar con `stat -c '%a %n' backups/*.dump` tras un backup real.
+- [x] `4.2` (P6) Reescribir `PruneAuditLogs::handle()` para borrar por lotes de forma portable (por ejemplo, `whereIn('id', ...->limit(1000)->pluck('id'))->delete()` en bucle hasta que no queden filas), conservando `--days` y el mensaje de salida. Test con varios cientos de filas antiguas y recientes: no se borra nada dentro de la retención.
+- [x] `4.3` Verificar `routes/console.php`: la programación diaria a las 03:00 y `withoutOverlapping()` no cambian; comprobar con `schedule:list` y registrar el hallazgo en `MEMORY.md`.
 
 **Criterio de cierre:** dump con permisos `600`; poda probada con datos antiguos y recientes; `schedule:list` sin cambios.
 

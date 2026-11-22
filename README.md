@@ -517,8 +517,8 @@ inyección de fórmulas. El nombre del archivo es `auditoria-YYYYMMDD-HHMMSS.csv
 
 La tabla no crece sin límite. `AUDIT_RETENTION_DAYS` (90 por defecto) define los
 días que se conservan; el comando `audit:prune` borra solo los registros
-anteriores al corte y está programado a diario a las 03:00 con
-`withoutOverlapping()`.
+anteriores al corte, en lotes de 1000 ids para no bloquear la tabla, y está
+programado a diario a las 03:00 con `withoutOverlapping()`.
 
 El mismo contenedor `scheduler` ejecuta `sanctum:prune-expired --hours=24` a las
 03:15: sin esa purga, `personal_access_tokens` acumula una fila por cada login y
@@ -657,7 +657,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-21): **455 tests / 2857 aserciones** en SQLite y en PostgreSQL, **PHPStan nivel 7 con 0 errores**, **Pint limpio (368 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
+Estado verificado de la suite (2026-11-21): **463 tests / 2876 aserciones** en SQLite, **PHPStan nivel 7 con 0 errores**, **Pint limpio (372 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 
@@ -1006,6 +1006,8 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/up
 ```
 
 Los scripts leen `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD` del contenedor `postgres`, así que las credenciales no viajan en la línea de comandos del host. `COMPOSE_FILE` y `ENV_FILE` permiten apuntar al compose de desarrollo (`COMPOSE_FILE=docker-compose.yml ENV_FILE=.env`).
+
+El dump contiene datos personales: `backup-postgres.sh` aplica `umask 077` y deja el archivo en `600`, así que solo el usuario que ejecuta el cron puede leerlo. Verifícalo con `stat -c '%a %n' backups/*.dump`.
 
 La restauración corre como `car_agency` a propósito: si se hiciera con el superusuario, las tablas y secuencias quedarían a nombre de `postgres` y la API respondería `permission denied`. Al terminar se recarga Nginx porque `stop` + `start` puede cambiar la IP del contenedor `app` y Nginx resuelve el servicio al cargar su configuración.
 
