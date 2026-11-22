@@ -16,6 +16,11 @@
 # no crea la base: restore-postgres.sh la recrea antes de importarlo.
 set -eu
 
+# El dump contiene datos personales y credenciales de la base: nace y queda con
+# permisos de solo lectura para el propietario (600), aunque el host tenga un
+# umask más permisivo.
+umask 077
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(dirname "$(dirname "$SCRIPT_DIR")")
 cd "$REPO_ROOT"
@@ -43,6 +48,9 @@ if docker compose $ENV_ARGS -f "$COMPOSE_FILE" exec -T postgres sh -c '
         --format=custom --no-password
 ' > "$TMP"; then
     mv "$TMP" "$FILE"
+    # `mv` conserva los permisos del temporal, pero se fijan de nuevo por si el
+    # archivo venía de un backup anterior creado con un umask distinto.
+    chmod 600 "$FILE"
 else
     rm -f "$TMP"
     echo "[backup] ERROR: pg_dump falló; no se generó $FILE" >&2
