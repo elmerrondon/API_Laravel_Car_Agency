@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-5 cerradas**; fases 6-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-6 cerradas**; fase 7 pendiente. Cada hallazgo se volvió a verificar contra el código en esa fecha.
 - **Repo:** limpio al cierre de la fase 5 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 466 tests / 2 893 aserciones en SQLite (tras la fase 5), PHPStan nivel 7 sin errores, Pint limpio en 375 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Línea base:** 491 tests / 3 050 aserciones en SQLite (tras la fase 6), PHPStan nivel 7 sin errores, Pint limpio en 380 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -137,9 +137,9 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
   | `car-types`, `categories`, `colors`, `currencies`, `payment-methods`, `taxes`, `countries` | `is_active` (donde existe), `search` (nombre) | Baja |
 
   **Estrategia de texto:** búsqueda por prefijo (`lower(columna) LIKE 'término%'`) con `%`/`_`/`\` escapados. Aprovecha los índices btree de expresión `lower(...)` ya presentes en catálogos y usuarios y evita añadir `pg_trgm` u otras extensiones. No se ofrece búsqueda por substring.
-- [ ] `6.2` (P4) Añadir los filtros por dominio en FormRequest y servicios, manteniendo `per_page`, el orden determinista y `withQueryString()`.
-- [ ] `6.3` (P4) Actualizar `ApiDocumentationParameters`, `PaginationTest`, `QueryCountTest` y añadir tests de filtro. Validar `pg_trgm` en PostgreSQL si se opta por búsqueda de texto.
-- [ ] `6.4` (P4) Verificar con `EXPLAIN (ANALYZE, BUFFERS)` que los nuevos filtros usan índices y no introducen `Seq Scan` donde antes no lo había.
+- [x] `6.2` (P4) Añadir los filtros por dominio en FormRequest y servicios, manteniendo `per_page`, el orden determinista y `withQueryString()`. **`ListFilters` centraliza búsqueda por prefijo (`lower(col) LIKE 'term%'` con `!` como escape) y los 16 listados aceptan filtros tipados por dominio; sin `pg_trgm`.**
+- [x] `6.3` (P4) Actualizar `ApiDocumentationParameters`, `PaginationTest`, `QueryCountTest` y añadir tests de filtro. Validar `pg_trgm` en PostgreSQL si se opta por búsqueda de texto. **OpenAPI describe los nuevos filtros; `PaginationTest` conserva filtros en links; `Filter` tests cubren coches, ventas, usuarios, roles, catálogos y ubicaciones. No se usa `pg_trgm`.**
+- [x] `6.4` (P4) Verificar con `EXPLAIN (ANALYZE, BUFFERS)` que los nuevos filtros usan índices y no introducen `Seq Scan` donde antes no lo había. **Con 3 000 ventas: `sales status+fecha` usa `sales_status_sale_date_index` (Bitmap, ~0,8 ms); `cars status+branch` usa `cars_branch_id_status_index` (Bitmap, ~0,2 ms); `cars vin` prefijo usa `cars_vin_unique` (Index Scan, ~0,08 ms); `users lower(name)` prefijo usa `users_name_lower_index` (Bitmap, ~0,06 ms).**
 
 **Criterio de cierre:** filtros documentados y probados; contrato OpenAPI ampliado sin romper el existente; planes de ejecución documentados.
 

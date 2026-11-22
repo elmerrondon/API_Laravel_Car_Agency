@@ -395,6 +395,30 @@ curl -s "http://localhost:8000/api/cars?page=2&per_page=25" \
 
 La respuesta incluye `data`, `links` (`first`, `last`, `prev`, `next`) y `meta` con `current_page`, `last_page`, `per_page` y `total`. Los enlaces conservan los parámetros de la petición (por ejemplo `per_page`) y cada listado se ordena por `id`, así que las páginas son estables. `GET /api/car-statuses` y `GET /api/permissions` devuelven la colección completa, sin paginar.
 
+### Filtros de listado
+
+Todos los filtros son opcionales, se validan en el `FormRequest` y se conservan en los enlaces de paginación.
+
+| Endpoint | Filtros |
+| :--- | :--- |
+| `GET /api/cars` | `status`, `branch_id`, `brand_id`, `car_model_id`, `car_type_id`, `category_id`, `color_id`, `year_min`, `year_max`, `price_min`, `price_max`, `search` |
+| `GET /api/sales` | `status`, `branch_id`, `user_id`, `payment_method_id`, `payment_currency_id`, `from`, `to` |
+| `GET /api/users` | `role_id`, `branch_id`, `is_active`, `search` |
+| `GET /api/roles` | `search` |
+| `GET /api/brands` | `country_id`, `is_active`, `search` |
+| `GET /api/car-models` | `brand_id`, `is_active`, `search` |
+| `GET /api/states` | `country_id`, `is_active`, `search` |
+| `GET /api/cities` | `state_id`, `is_active`, `search` |
+| `GET /api/branches` | `city_id`, `is_active`, `search` |
+| `GET /api/car-types`, `/categories`, `/colors`, `/currencies`, `/payment-methods`, `/taxes`, `/countries` | `is_active`, `search` (y `is_base` en monedas) |
+
+`from`/`to` son fechas `Y-m-d` inclusivas sobre `sale_date` y deben enviarse juntos. `search` busca por **prefijo sin distinguir mayúsculas** (`?search=cor` encuentra `Corolla`): en coches sobre el VIN, en catálogos y ubicaciones sobre el nombre, y en usuarios sobre nombre, apellido, email, código y documento. Los caracteres `%`, `_` y `!` se escapan, así que no se puede hacer búsqueda por substring; esto permite usar índices btree y no necesita la extensión `pg_trgm`.
+
+```bash
+curl -s "http://localhost:8000/api/cars?status=available&branch_id=1&search=1HG&per_page=10" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ---
 
 ## 📘 Documentación OpenAPI y Postman
@@ -664,7 +688,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-21): **466 tests / 2893 aserciones** en SQLite, **PHPStan nivel 7 con 0 errores**, **Pint limpio (375 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
+Estado verificado de la suite (2026-11-21): **491 tests / 3050 aserciones** en SQLite, **PHPStan nivel 7 con 0 errores**, **Pint limpio (380 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 
