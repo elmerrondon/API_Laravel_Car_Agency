@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-4 cerradas**; fases 5-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
-- **Repo:** limpio al cierre de la fase 4 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 463 tests / 2 876 aserciones en SQLite (tras la fase 4), PHPStan nivel 7 sin errores, Pint limpio en 372 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-5 cerradas**; fases 6-7 pendientes. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Repo:** limpio al cierre de la fase 5 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
+- **Línea base:** 466 tests / 2 893 aserciones en SQLite (tras la fase 5), PHPStan nivel 7 sin errores, Pint limpio en 375 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -106,10 +106,10 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 
 **Objetivo:** reducir el coste de los PDFs y de las estadísticas sin añadir servicios externos.
 
-- [ ] `5.1` (P3) Medir con un dataset realista (3 000 ventas en la base `testing`) la memoria pico y el tiempo del PDF actual. Guardar la medición en `MEMORY.md` y fijar el límite con margen para no superar ~256 MB.
-- [ ] `5.2` (P3) Bajar `REPORTS_MAX_ROWS` al valor medido (~250-300) en `config/reports.php` y actualizar `README.md`/`AGENTS.md`. Mantener los limitadores `reports`/`reports-pdf`.
-- [ ] `5.3` (P5) Cachear los 8 agregados de `/api/stats/*` 30-60 s con clave por combinación de filtros (`start_date`, `end_date`, `branch_id`, `limit`) y una versión de caché (`stats:version`) que se incremente al crear o cancelar una venta. Test de acierto de caché y de invalidación.
-- [ ] `5.4` Verificar con `EXPLAIN (ANALYZE, BUFFERS)` sobre el dataset de 3 000 filas que las consultas siguen usando los índices de estadísticas; documentar en `MEMORY.md`.
+- [x] `5.1` (P3) Medir con un dataset realista (3 000 ventas en la base `testing`) la memoria pico y el tiempo del PDF actual. Guardar la medición en `MEMORY.md` y fijar el límite con margen para no superar ~256 MB. **Medido:** 259 filas ≈ 128 MB / 2,5 s; 307 ≈ 147 MB / 2,8 s; 511 ≈ 228 MB / 5,8 s; 751 ≈ 350 MB / 10,7 s; 1 003 ≈ 508 MB / 18,3 s; 3 000 agota los 512 MB.
+- [x] `5.2` (P3) Bajar `REPORTS_MAX_ROWS` al valor medido (~250-300) en `config/reports.php` y actualizar `README.md`/`AGENTS.md`. Mantener los limitadores `reports`/`reports-pdf`. **Fijado en 300** (≈147 MB, ~2,8 s), también en `.env.example` y `.env.production.example`.
+- [x] `5.3` (P5) Cachear los 8 agregados de `/api/stats/*` 30-60 s con clave por combinación de filtros (`start_date`, `end_date`, `branch_id`, `limit`) y una versión de caché (`stats:version`) que se incremente al crear o cancelar una venta. Test de acierto de caché y de invalidación. **`StatsCache` con `STATS_CACHE_TTL=45` y `StatsCacheTest` (acierto, claves por filtro, TTL 0 e invalidación por alta/cancelación).**
+- [x] `5.4` Verificar con `EXPLAIN (ANALYZE, BUFFERS)` sobre el dataset de 3 000 filas que las consultas siguen usando los índices de estadísticas; documentar en `MEMORY.md`. **Rankings y tendencia usan `sales_branch_id_sale_date_index` (~0,8 ms); el resumen sin filtros hace `Seq Scan` (1,3 ms) porque a ese volumen es más barato.**
 
 **Criterio de cierre:** PDF medido y con límite seguro; caché de estadísticas con tests de acierto e invalidación; planes de ejecución documentados.
 

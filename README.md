@@ -307,7 +307,7 @@ Los límites se definen en `config/rate_limits.php` y se pueden ajustar con vari
 
 `/up` se registra fuera del grupo `api` (para no arrastrar sesión ni CSRF), así que el limitador anónimo de la API no lo cubre: necesita su propio cupo `health`. Su resultado se cachea 10 s para absorber ráfagas de healthchecks; `php artisan health:check --fresh` fuerza una lectura directa de base de datos y caché. Si el store de caché falla, `/up` responde `503`, nunca `500`.
 
-El reporte PDF es la ruta más cara: además del límite, corta en `REPORTS_MAX_ROWS` (500 por defecto) y responde `422` si el rango de fechas lo supera.
+El reporte PDF es la ruta más cara: además del límite, corta en `REPORTS_MAX_ROWS` (300 por defecto) y responde `422` si el rango de fechas lo supera.
 
 Ejemplos:
 
@@ -560,6 +560,13 @@ filas si no hay suficientes datos. El orden es estable por número de ventas,
 importe, nombre e id. Los rankings conservan usuarios y coches históricos con soft
 delete; el inventario solo cuenta coches actuales.
 
+Los ocho agregados se cachean `STATS_CACHE_TTL` segundos (45 por defecto) con una
+clave por endpoint y combinación de filtros (`start_date`, `end_date`,
+`branch_id`, `limit`). Crear o cancelar una venta incrementa `stats:version` y
+descarta todas las entradas de golpe, sin tocar la caché de permisos; con un TTL
+de `0` la caché queda desactivada. Las respuestas pueden ir hasta ese desfase por
+detrás de la base de datos, de sobra para un dashboard.
+
 ```bash
 # Resumen del mes en curso para una sucursal
 curl -s "http://localhost:8000/api/stats/summary?start_date=2026-11-01&end_date=2026-11-30&branch_id=1" \
@@ -657,7 +664,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-21): **463 tests / 2876 aserciones** en SQLite, **PHPStan nivel 7 con 0 errores**, **Pint limpio (372 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
+Estado verificado de la suite (2026-11-21): **466 tests / 2893 aserciones** en SQLite, **PHPStan nivel 7 con 0 errores**, **Pint limpio (375 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 
@@ -1199,7 +1206,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `403` en `/docs/api` | El entorno no es `local`/`testing` y `DOCS_ENABLED=false`. | Activa `DOCS_ENABLED=true` o consulta el documento en desarrollo. |
 | `403` con «You must change your password before continuing» | `ENFORCE_PASSWORD_CHANGE=true` y la cuenta tiene `must_change_password=true`. | Cambia la clave con `PUT /api/auth/password` o desactiva el flag si el cliente aún no lo gestiona. |
 | `413 Request Entity Too Large` | El cuerpo supera el límite de 8 MB compartido por Nginx (`client_max_body_size`) y PHP (`post_max_size`/`upload_max_filesize`). | Reduce el payload; si de verdad necesitas más, sube ambos límites a la vez. |
-| `422` en `/api/reports/sales/pdf` | El rango supera `REPORTS_MAX_ROWS` (500 ventas). | Acota `from`/`to` o sube el límite junto con la memoria PHP. |
+| `422` en `/api/reports/sales/pdf` | El rango supera `REPORTS_MAX_ROWS` (300 ventas). | Acota `from`/`to` o sube el límite junto con la memoria PHP. |
 | `401` con un usuario válido | La cuenta está inactiva o el token expiró/fue revocado. | Actívala con `is_active=true`, vuelve a iniciar sesión o usa `/auth/refresh`. |
 | `403` en `/api/audit-logs` o `/api/stats/*` | El rol no tiene `view_audit_logs` o `view_statistics`. | Usa un `admin` (auditoría) o un `admin`/`manager` (estadísticas). |
 | `409` al borrar un catálogo | Está referenciado por otros registros. | Elimina o reasigna las referencias primero. |
