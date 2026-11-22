@@ -58,6 +58,22 @@ it('pagina los listados con orden estable y conserva los filtros en los enlaces'
     '/api/roles',
 ]);
 
+it('conserva los filtros activos en los enlaces de paginación', function (string $url, string $query, string $expected) {
+    $separator = str_contains($url, '?') ? '&' : '?';
+    $response = test()->getJson($url.$separator.$query.'&per_page=2&page=1')->assertOk();
+
+    expect($response->json('links.next'))->toContain($expected)
+        ->and($response->json('links.next'))->toContain('per_page=2');
+
+    foreach (collect($response->json('meta.links'))->pluck('url')->filter() as $link) {
+        expect($link)->toContain($expected);
+    }
+})->with([
+    ['/api/cars', 'status=available', 'status=available'],
+    ['/api/users', 'is_active=true', 'is_active=true'],
+    ['/api/brands', 'is_active=true', 'is_active=true'],
+]);
+
 it('pagina las ventas con orden estable y conserva los filtros en los enlaces', function () {
     seedSales(3);
 
