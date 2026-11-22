@@ -7,6 +7,7 @@ namespace App\Services\Audit;
 use App\Enums\Audit\AuditAction;
 use App\Models\Audit\AuditLog;
 use App\Models\Users\User;
+use App\Support\ClientIpResolver;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -105,11 +106,11 @@ class AuditService
 
         $request = request();
 
-        $ipAddress = $request->ip();
+        $ipAddress = ClientIpResolver::resolve($request);
         $userAgent = $request->userAgent();
 
         return [
-            $ipAddress === null ? null : Str::limit($ipAddress, 45, ''),
+            Str::limit($ipAddress, 45, ''),
             $userAgent === null ? null : Str::limit($userAgent, 500, ''),
         ];
     }

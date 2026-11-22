@@ -6,6 +6,7 @@ namespace App\Services\Auth;
 
 use App\Enums\Audit\AuditAction;
 use App\Services\Audit\AuditService;
+use App\Support\ClientIpResolver;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
@@ -54,6 +55,6 @@ final class LoginFailureAuditor
 
     private function clientIp(): ?string
     {
-        return app()->bound('request') ? request()->ip() : null;
+        return app()->bound('request') ? ClientIpResolver::resolve(request()) : null;
     }
 }

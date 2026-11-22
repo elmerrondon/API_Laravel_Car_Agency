@@ -21,8 +21,10 @@ use App\Models\Sales\Tax;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\OpenApi\ApiDocumentation;
+use App\Support\ClientIpResolver;
 use App\Support\CorsPolicy;
 use App\Support\PasswordPolicy;
+use App\Support\TrustedProxyPolicy;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -57,6 +59,11 @@ class AppServiceProvider extends ServiceProvider
                 app()->environment(),
                 (array) config('cors.allowed_origins'),
             );
+
+            TrustedProxyPolicy::assertConfiguration(
+                app()->environment(),
+                config('trustedproxy.proxies'),
+            );
         }
 
         // Alias legibles para `audit_logs.auditable_type`: el log guarda el
@@ -89,7 +96,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('login', function (Request $request) {
             $email = mb_strtolower(trim((string) $request->input('email')));
-            $ip = (string) $request->ip();
+            $ip = ClientIpResolver::resolve($request);
 
             // Dos ventanas: email+IP frena la fuerza bruta contra una cuenta y
             // la ventana por IP corta la rotación de emails (password spraying).
@@ -111,20 +118,20 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return Limit::perMinute((int) config('rate_limits.api_anon'))
-                ->by('api-anon|'.$request->ip());
+                ->by('api-anon|'.ClientIpResolver::resolve($request));
         });
 
         // Límite general del API agrupado por usuario (o IP si no hay token).
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.api'))->by(
-                'api|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+                'api|'.($request->user()?->getAuthIdentifier() ?? ClientIpResolver::resolve($request))
             );
         });
 
         // Los reportes generan PDFs y agregan datos: límite más estricto.
         RateLimiter::for('reports', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.reports'))->by(
-                'reports|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+                'reports|'.($request->user()?->getAuthIdentifier() ?? ClientIpResolver::resolve($request))
             );
         });
 
@@ -132,7 +139,7 @@ class AppServiceProvider extends ServiceProvider
         // así que tienen su propio cupo además del general de reportes.
         RateLimiter::for('reports-pdf', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.reports_pdf'))->by(
-                'reports-pdf|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+                'reports-pdf|'.($request->user()?->getAuthIdentifier() ?? ClientIpResolver::resolve($request))
             );
         });
 
@@ -142,7 +149,7 @@ class AppServiceProvider extends ServiceProvider
         // los healthchecks de Docker y Nginx.
         RateLimiter::for('health', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.health'))
-                ->by('health|'.$request->ip());
+                ->by('health|'.ClientIpResolver::resolve($request));
         });
 
         // La exportación de auditoría recorre la tabla con un cursor y genera
@@ -150,7 +157,7 @@ class AppServiceProvider extends ServiceProvider
         // más estricto para evitar descargas repetidas del histórico.
         RateLimiter::for('audit-export', function (Request $request) {
             return Limit::perMinute((int) config('rate_limits.audit_export'))->by(
-                'audit-export|'.($request->user()?->getAuthIdentifier() ?? $request->ip())
+                'audit-export|'.($request->user()?->getAuthIdentifier() ?? ClientIpResolver::resolve($request))
             );
         });
 
