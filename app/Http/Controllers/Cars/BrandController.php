@@ -19,13 +19,25 @@ class BrandController extends Controller
 {
     public function __construct(private readonly BrandService $service) {}
 
-    public function index(IndexBrandRequest $indexBrand): AnonymousResourceCollection
+    public function index(IndexBrandRequest $request): AnonymousResourceCollection
     {
-        $perPage = $this->perPage($indexBrand);
+        $perPage = $this->perPage($request);
 
-        $brands = $this->service->getAllPaginated($perPage);
+        $brands = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return BrandResource::collection($brands);
+    }
+
+    /**
+     * @return array{country_id: int|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexBrandRequest $request): array
+    {
+        return [
+            'country_id' => $this->nullableInt($request, 'country_id'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Brand $brand): BrandResource

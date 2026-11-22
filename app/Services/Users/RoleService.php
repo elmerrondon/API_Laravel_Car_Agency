@@ -11,6 +11,7 @@ use App\Exceptions\Users\RoleInUseException;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,11 +21,17 @@ class RoleService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, Role> */
-    public function getAllPaginatedRoles(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Role>
+     */
+    public function getAllPaginatedRoles(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Role::with('permissions')
-            ->orderBy('id')
+        $query = Role::with('permissions');
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

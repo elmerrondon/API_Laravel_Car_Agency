@@ -22,9 +22,21 @@ class CountryController extends Controller
     public function index(IndexCountryRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $countries = $this->service->getAllPaginated($perPage);
+
+        $countries = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CountryResource::collection($countries);
+    }
+
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCountryRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function store(StoreCountryRequest $request): CountryResource

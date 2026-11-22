@@ -20,4 +20,33 @@ abstract class Controller
 
         return $perPage === null ? null : (int) $perPage;
     }
+
+    /**
+     * Los filtros llegan como strings desde la query string; se casan aquí,
+     * en el borde HTTP, para que los servicios reciban tipos concretos.
+     */
+    protected function nullableInt(FormRequest $request, string $key): ?int
+    {
+        $value = $request->validated($key);
+
+        return $value === null ? null : (int) $value;
+    }
+
+    protected function nullableFloat(FormRequest $request, string $key): ?float
+    {
+        $value = $request->validated($key);
+
+        return $value === null ? null : (float) $value;
+    }
+
+    protected function nullableBool(FormRequest $request, string $key): ?bool
+    {
+        $value = $request->validated($key);
+
+        if ($value === null) {
+            return null;
+        }
+
+        return is_bool($value) ? $value : filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
 }

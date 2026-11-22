@@ -8,6 +8,8 @@ use App\DTOs\Users\UserData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Users\User;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -23,11 +25,37 @@ class UserService
         private readonly UserAdminGuard $guard,
     ) {}
 
-    /** @return LengthAwarePaginator<int, User> */
-    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{role_id: int|null, branch_id: int|null, is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, User>
+     */
+    public function getAllPaginated(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return User::with(self::RELATIONS)
-            ->orderBy('id')
+        $query = User::with(self::RELATIONS);
+
+        if ($filters['role_id'] !== null) {
+            $roleId = $filters['role_id'];
+
+            $query->whereHas('roles', static function (Builder $q) use ($roleId): void {
+                $q->where('roles.id', $roleId);
+            });
+        }
+
+        if ($filters['branch_id'] !== null) {
+            $branchId = $filters['branch_id'];
+
+            $query->whereHas('branches', static function (Builder $q) use ($branchId): void {
+                $q->where('branches.id', $branchId);
+            });
+        }
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::searchAny($query, ['name', 'last_name', 'email', 'code', 'document_number'], $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

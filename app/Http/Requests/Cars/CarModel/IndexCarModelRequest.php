@@ -6,6 +6,7 @@ namespace App\Http\Requests\Cars\CarModel;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class IndexCarModelRequest extends FormRequest
 {
@@ -25,6 +26,9 @@ class IndexCarModelRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'brand_id' => ['nullable', 'integer', 'min:1', 'exists:brands,id'],
+            'is_active' => ['nullable', Rule::in([true, false, 1, 0, '1', '0', 'true', 'false'])],
+            'search' => ['nullable', 'string', 'max:100'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

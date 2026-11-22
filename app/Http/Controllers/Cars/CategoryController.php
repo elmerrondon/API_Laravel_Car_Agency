@@ -22,9 +22,21 @@ class CategoryController extends Controller
     public function index(IndexCategoryRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $categories = $this->service->getAllPaginated($perPage);
+
+        $categories = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CategoryResource::collection($categories);
+    }
+
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCategoryRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Category $category): CategoryResource

@@ -26,9 +26,21 @@ class CurrencyController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $currencies = $this->service->getAllPaginatedCurrencies($perPage);
+        $currencies = $this->service->getAllPaginatedCurrencies($this->filters($request), $perPage);
 
         return CurrencyResource::collection($currencies);
+    }
+
+    /**
+     * @return array{is_base: bool|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCurrencyRequest $request): array
+    {
+        return [
+            'is_base' => $this->nullableBool($request, 'is_base'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Currency $currency): CurrencyResource

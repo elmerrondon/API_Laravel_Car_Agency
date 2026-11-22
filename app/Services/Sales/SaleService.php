@@ -20,6 +20,7 @@ use App\Models\Sales\Tax;
 use App\Services\Audit\AuditService;
 use App\Services\Stats\StatsCache;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -49,11 +50,41 @@ class SaleService
         private readonly StatsCache $statsCache,
     ) {}
 
-    /** @return LengthAwarePaginator<int, Sale> */
-    public function getAllPaginatedSales(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{status: string|null, branch_id: int|null, user_id: int|null, payment_method_id: int|null, payment_currency_id: int|null, from: string|null, to: string|null}  $filters
+     * @return LengthAwarePaginator<int, Sale>
+     */
+    public function getAllPaginatedSales(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Sale::with(self::RELATIONS)
-            ->orderBy('id')
+        $query = Sale::with(self::RELATIONS);
+
+        $foreignKeys = [
+            'branch_id' => $filters['branch_id'],
+            'user_id' => $filters['user_id'],
+            'payment_method_id' => $filters['payment_method_id'],
+            'payment_currency_id' => $filters['payment_currency_id'],
+        ];
+
+        foreach ($foreignKeys as $column => $value) {
+            if ($value !== null) {
+                $query->where($column, $value);
+            }
+        }
+
+        if ($filters['status'] !== null) {
+            $query->where('status', $filters['status']);
+        }
+
+        if ($filters['from'] !== null) {
+            $query->where('sale_date', '>=', $filters['from'].' 00:00:00');
+        }
+
+        if ($filters['to'] !== null) {
+            $nextDay = Carbon::parse($filters['to'])->addDay()->toDateString();
+            $query->where('sale_date', '<', $nextDay.' 00:00:00');
+        }
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

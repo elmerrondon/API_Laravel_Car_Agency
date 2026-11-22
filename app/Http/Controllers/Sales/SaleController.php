@@ -21,9 +21,25 @@ class SaleController extends Controller
     public function index(IndexSaleRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $sales = $this->service->getAllPaginatedSales($perPage);
+        $sales = $this->service->getAllPaginatedSales($this->filters($request), $perPage);
 
         return SaleResource::collection($sales);
+    }
+
+    /**
+     * @return array{status: string|null, branch_id: int|null, user_id: int|null, payment_method_id: int|null, payment_currency_id: int|null, from: string|null, to: string|null}
+     */
+    private function filters(IndexSaleRequest $request): array
+    {
+        return [
+            'status' => $request->validated('status'),
+            'branch_id' => $this->nullableInt($request, 'branch_id'),
+            'user_id' => $this->nullableInt($request, 'user_id'),
+            'payment_method_id' => $this->nullableInt($request, 'payment_method_id'),
+            'payment_currency_id' => $this->nullableInt($request, 'payment_currency_id'),
+            'from' => $request->validated('from'),
+            'to' => $request->validated('to'),
+        ];
     }
 
     public function show(Sale $sale): SaleResource

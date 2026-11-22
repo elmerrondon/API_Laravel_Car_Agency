@@ -22,9 +22,22 @@ class CityController extends Controller
     public function index(IndexCityRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $cities = $this->service->getAllPaginated($perPage);
+
+        $cities = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CityResource::collection($cities);
+    }
+
+    /**
+     * @return array{state_id: int|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCityRequest $request): array
+    {
+        return [
+            'state_id' => $this->nullableInt($request, 'state_id'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(City $city): CityResource

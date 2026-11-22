@@ -23,9 +23,21 @@ class CarModelController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $carModels = $this->service->getAllPaginated($perPage);
+        $carModels = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CarModelResource::collection($carModels);
+    }
+
+    /**
+     * @return array{brand_id: int|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCarModelRequest $request): array
+    {
+        return [
+            'brand_id' => $this->nullableInt($request, 'brand_id'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(CarModel $carModel): CarModelResource

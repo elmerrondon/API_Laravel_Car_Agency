@@ -10,6 +10,7 @@ use App\Exceptions\Sales\BaseCurrencyAlreadyExistsException;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
 use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use LogicException;
@@ -18,11 +19,25 @@ class CurrencyService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, Currency> */
-    public function getAllPaginatedCurrencies(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{is_base: bool|null, is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Currency>
+     */
+    public function getAllPaginatedCurrencies(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Currency::select(['id', 'name', 'code', 'is_base', 'is_active'])
-            ->orderBy('id')
+        $query = Currency::select(['id', 'name', 'code', 'is_base', 'is_active']);
+
+        if ($filters['is_base'] !== null) {
+            $query->where('is_base', $filters['is_base']);
+        }
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

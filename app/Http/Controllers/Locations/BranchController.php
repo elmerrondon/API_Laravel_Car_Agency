@@ -22,9 +22,22 @@ class BranchController extends Controller
     public function index(IndexBranchRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $branches = $this->service->getAllPaginated($perPage);
+
+        $branches = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return BranchResource::collection($branches);
+    }
+
+    /**
+     * @return array{city_id: int|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexBranchRequest $request): array
+    {
+        return [
+            'city_id' => $this->nullableInt($request, 'city_id'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Branch $branch): BranchResource

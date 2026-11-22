@@ -24,9 +24,17 @@ class RoleController extends Controller
     public function index(IndexRoleRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $roles = $this->service->getAllPaginatedRoles($perPage);
+        $roles = $this->service->getAllPaginatedRoles($this->filters($request), $perPage);
 
         return RoleResource::collection($roles);
+    }
+
+    /** @return array{search: string|null} */
+    private function filters(IndexRoleRequest $request): array
+    {
+        return [
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Role $role): RoleResource

@@ -12,6 +12,8 @@ use App\Exceptions\Cars\CarStatusTransitionException;
 use App\Models\Cars\Car;
 use App\Models\Sales\Sale;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -32,11 +34,60 @@ class CarService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, Car> */
-    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{status: string|null, branch_id: int|null, brand_id: int|null, car_model_id: int|null, car_type_id: int|null, category_id: int|null, color_id: int|null, year_min: int|null, year_max: int|null, price_min: float|null, price_max: float|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Car>
+     */
+    public function getAllPaginated(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Car::with(self::RELATIONS)
-            ->orderBy('id')
+        $query = Car::with(self::RELATIONS);
+
+        $foreignKeys = [
+            'branch_id' => $filters['branch_id'],
+            'car_model_id' => $filters['car_model_id'],
+            'car_type_id' => $filters['car_type_id'],
+            'category_id' => $filters['category_id'],
+            'color_id' => $filters['color_id'],
+        ];
+
+        foreach ($foreignKeys as $column => $value) {
+            if ($value !== null) {
+                $query->where($column, $value);
+            }
+        }
+
+        // `brand_id` no es columna de cars: se resuelve por el modelo.
+        if ($filters['brand_id'] !== null) {
+            $brandId = $filters['brand_id'];
+
+            $query->whereHas('carModel', static function (Builder $model) use ($brandId): void {
+                $model->where('brand_id', $brandId);
+            });
+        }
+
+        if ($filters['status'] !== null) {
+            $query->where('status', $filters['status']);
+        }
+
+        if ($filters['year_min'] !== null) {
+            $query->where('year', '>=', $filters['year_min']);
+        }
+
+        if ($filters['year_max'] !== null) {
+            $query->where('year', '<=', $filters['year_max']);
+        }
+
+        if ($filters['price_min'] !== null) {
+            $query->where('price', '>=', $filters['price_min']);
+        }
+
+        if ($filters['price_max'] !== null) {
+            $query->where('price', '<=', $filters['price_max']);
+        }
+
+        ListFilters::search($query, 'vin', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

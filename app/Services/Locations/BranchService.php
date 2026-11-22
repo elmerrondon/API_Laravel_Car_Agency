@@ -8,6 +8,7 @@ use App\DTOs\Locations\BranchData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Locations\Branch;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class BranchService
@@ -20,12 +21,26 @@ class BranchService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, Branch> */
-    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{city_id: int|null, is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Branch>
+     */
+    public function getAllPaginated(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Branch::with(self::RELATIONS)
-            ->select(['id', 'name', 'code', 'address', 'description', 'zip_code', 'is_active', 'city_id'])
-            ->orderBy('id')
+        $query = Branch::with(self::RELATIONS)
+            ->select(['id', 'name', 'code', 'address', 'description', 'zip_code', 'is_active', 'city_id']);
+
+        if ($filters['city_id'] !== null) {
+            $query->where('city_id', $filters['city_id']);
+        }
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

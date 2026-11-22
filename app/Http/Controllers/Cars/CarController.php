@@ -23,9 +23,30 @@ class CarController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $cars = $this->service->getAllPaginated($perPage);
+        $cars = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CarResource::collection($cars);
+    }
+
+    /**
+     * @return array{status: string|null, branch_id: int|null, brand_id: int|null, car_model_id: int|null, car_type_id: int|null, category_id: int|null, color_id: int|null, year_min: int|null, year_max: int|null, price_min: float|null, price_max: float|null, search: string|null}
+     */
+    private function filters(IndexCarRequest $request): array
+    {
+        return [
+            'status' => $request->validated('status'),
+            'branch_id' => $this->nullableInt($request, 'branch_id'),
+            'brand_id' => $this->nullableInt($request, 'brand_id'),
+            'car_model_id' => $this->nullableInt($request, 'car_model_id'),
+            'car_type_id' => $this->nullableInt($request, 'car_type_id'),
+            'category_id' => $this->nullableInt($request, 'category_id'),
+            'color_id' => $this->nullableInt($request, 'color_id'),
+            'year_min' => $this->nullableInt($request, 'year_min'),
+            'year_max' => $this->nullableInt($request, 'year_max'),
+            'price_min' => $this->nullableFloat($request, 'price_min'),
+            'price_max' => $this->nullableFloat($request, 'price_max'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Car $car): CarResource

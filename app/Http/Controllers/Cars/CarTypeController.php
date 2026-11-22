@@ -22,9 +22,21 @@ class CarTypeController extends Controller
     public function index(IndexCarTypeRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $carTypes = $this->service->getAllPaginated($perPage);
+
+        $carTypes = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CarTypeResource::collection($carTypes);
+    }
+
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCarTypeRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(CarType $carType): CarTypeResource

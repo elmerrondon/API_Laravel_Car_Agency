@@ -23,9 +23,20 @@ class ColorController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $colors = $this->service->getAllPaginated($perPage);
+        $colors = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return ColorResource::collection($colors);
+    }
+
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexColorRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Color $color): ColorResource

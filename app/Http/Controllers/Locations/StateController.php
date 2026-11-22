@@ -22,9 +22,22 @@ class StateController extends Controller
     public function index(IndexStateRequest $request): AnonymousResourceCollection
     {
         $perPage = $this->perPage($request);
-        $states = $this->service->getAllPaginated($perPage);
+
+        $states = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return StateResource::collection($states);
+    }
+
+    /**
+     * @return array{country_id: int|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexStateRequest $request): array
+    {
+        return [
+            'country_id' => $this->nullableInt($request, 'country_id'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(State $state): StateResource

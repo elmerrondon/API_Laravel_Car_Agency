@@ -8,17 +8,32 @@ use App\DTOs\Cars\BrandData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Cars\Brand;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class BrandService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, Brand> */
-    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{country_id: int|null, is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Brand>
+     */
+    public function getAllPaginated(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Brand::select(['id', 'name', 'description', 'country_id', 'is_active'])
-            ->orderBy('id')
+        $query = Brand::select(['id', 'name', 'description', 'country_id', 'is_active']);
+
+        if ($filters['country_id'] !== null) {
+            $query->where('country_id', $filters['country_id']);
+        }
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

@@ -23,9 +23,20 @@ class TaxController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $taxes = $this->service->getAllPaginatedTaxes($perPage);
+        $taxes = $this->service->getAllPaginatedTaxes($this->filters($request), $perPage);
 
         return TaxResource::collection($taxes);
+    }
+
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexTaxRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(Tax $tax): TaxResource

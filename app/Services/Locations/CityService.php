@@ -8,6 +8,7 @@ use App\DTOs\Locations\CityData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Locations\City;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CityService
@@ -19,12 +20,26 @@ class CityService
 
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, City> */
-    public function getAllPaginated(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{state_id: int|null, is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, City>
+     */
+    public function getAllPaginated(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return City::with(self::RELATIONS)
-            ->select(['id', 'name', 'state_id', 'is_active'])
-            ->orderBy('id')
+        $query = City::with(self::RELATIONS)
+            ->select(['id', 'name', 'state_id', 'is_active']);
+
+        if ($filters['state_id'] !== null) {
+            $query->where('state_id', $filters['state_id']);
+        }
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

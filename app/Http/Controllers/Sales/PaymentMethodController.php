@@ -23,9 +23,20 @@ class PaymentMethodController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $paymentMethods = $this->service->getAllPaginatedPaymentMethods($perPage);
+        $paymentMethods = $this->service->getAllPaginatedPaymentMethods($this->filters($request), $perPage);
 
         return PaymentMethodResource::collection($paymentMethods);
+    }
+
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexPaymentMethodRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(PaymentMethod $paymentMethod): PaymentMethodResource

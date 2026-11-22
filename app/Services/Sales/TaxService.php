@@ -8,17 +8,28 @@ use App\DTOs\Sales\TaxData;
 use App\Enums\Audit\AuditAction;
 use App\Models\Sales\Tax;
 use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class TaxService
 {
     public function __construct(private readonly AuditService $audit) {}
 
-    /** @return LengthAwarePaginator<int, Tax> */
-    public function getAllPaginatedTaxes(?int $perPage = null): LengthAwarePaginator
+    /**
+     * @param  array{is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Tax>
+     */
+    public function getAllPaginatedTaxes(array $filters, ?int $perPage = null): LengthAwarePaginator
     {
-        return Tax::select(['id', 'name', 'code', 'percentage', 'is_active'])
-            ->orderBy('id')
+        $query = Tax::select(['id', 'name', 'code', 'percentage', 'is_active']);
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
     }

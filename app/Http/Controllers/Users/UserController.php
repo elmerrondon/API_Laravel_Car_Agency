@@ -29,9 +29,22 @@ class UserController extends Controller
     {
         $perPage = $this->perPage($request);
 
-        $users = $this->service->getAllPaginated($perPage);
+        $users = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return UserResource::collection($users);
+    }
+
+    /**
+     * @return array{role_id: int|null, branch_id: int|null, is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexUserRequest $request): array
+    {
+        return [
+            'role_id' => $this->nullableInt($request, 'role_id'),
+            'branch_id' => $this->nullableInt($request, 'branch_id'),
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
     public function show(User $user): UserResource
