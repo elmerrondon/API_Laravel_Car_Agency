@@ -45,7 +45,9 @@ class StoreSaleRequest extends FormRequest
             'taxes.*' => ['required', 'integer', 'min:1', 'distinct', 'exists:taxes,id,is_active,1'],
             // No se admiten ventas futuras ni anteriores a SALES_MIN_DATE.
             'sale_date' => ['required', 'date_format:Y-m-d H:i:s', 'before_or_equal:now', 'after_or_equal:'.config('sales.min_date')],
-            'car_id' => ['required', 'integer', 'min:1', Rule::exists('cars', 'id')->where('status', CarStatus::AVAILABLE->value)],
+            // Los coches borrados lógicamente no se pueden vender: sin este
+            // filtro la validación pasaba y el servicio respondía 404.
+            'car_id' => ['required', 'integer', 'min:1', Rule::exists('cars', 'id')->where('status', CarStatus::AVAILABLE->value)->whereNull('deleted_at')],
             // Debe coincidir con la sucursal del coche; el servicio lo verifica.
             'branch_id' => ['required', 'integer', 'min:1', 'exists:branches,id,is_active,1'],
             'payment_currency_id' => ['required', 'integer', 'min:1', 'exists:currencies,id,is_active,1'],

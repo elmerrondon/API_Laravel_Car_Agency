@@ -171,6 +171,18 @@ it('rechaza con 422 un coche que no está disponible', function () {
         ->and($car->fresh()->status)->toBe(CarStatus::RESERVED);
 });
 
+it('rechaza con 422 un coche borrado lógicamente', function () {
+    $car = sellingCar(1000);
+    $car->delete();
+
+    $this->postJson('/api/sales', salePayload($car))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('car_id');
+
+    expect(Sale::count())->toBe(0)
+        ->and($car->fresh()->trashed())->toBeTrue();
+});
+
 it('rechaza una sucursal distinta a la del coche', function () {
     $car = sellingCar(1000);
     $otherBranch = Branch::whereKeyNot($car->branch_id)->firstOrFail();
