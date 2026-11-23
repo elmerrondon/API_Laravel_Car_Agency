@@ -17,6 +17,17 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 final class ListFilters
 {
     /**
+     * Valores admitidos por los filtros booleanos de la query string.
+     *
+     * Solo cadenas: la regla `boolean` de Laravel rechaza `"false"` y mezclar
+     * booleanos con cadenas hace que Scramble documente un enum con valores
+     * duplicados (`true` y `"1"` acaban como `"1"`).
+     *
+     * @var list<string>
+     */
+    public const BOOLEAN_VALUES = ['1', '0', 'true', 'false'];
+
+    /**
      * Escapa los comodines de LIKE y añade el sufijo `%` del prefijo.
      */
     public static function prefix(string $term): string

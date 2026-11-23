@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Sales\PaymentMethod;
 
+use App\Support\ListFilters;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,7 +27,7 @@ class IndexPaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'is_active' => ['nullable', Rule::in([true, false, 1, 0, '1', '0', 'true', 'false'])],
+            'is_active' => ['nullable', Rule::in(ListFilters::BOOLEAN_VALUES)],
             'search' => ['nullable', 'string', 'max:100'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
