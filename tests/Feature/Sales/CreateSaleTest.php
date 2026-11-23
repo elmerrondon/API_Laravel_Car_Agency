@@ -258,6 +258,29 @@ it('rechaza tipos de cambio cero o negativos', function () {
         ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
 });
 
+it('exige tipo de cambio 1 cuando se paga en la moneda base', function () {
+    $car = sellingCar(1000);
+    $base = Currency::where('is_base', true)->firstOrFail();
+
+    $this->postJson('/api/sales', salePayload($car, [
+        'payment_currency_id' => $base->id,
+        'exchange_rate' => 1.5,
+    ]))->assertUnprocessable()
+        ->assertJsonValidationErrors('exchange_rate');
+
+    expect(Sale::count())->toBe(0)
+        ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
+
+    $data = $this->postJson('/api/sales', salePayload($car, [
+        'payment_currency_id' => $base->id,
+        'exchange_rate' => 1,
+    ]))->assertCreated()->json('data');
+
+    expect(round((float) $data['total_amount_paid'], 2))
+        ->toBe(round((float) $data['total_base_amount'], 2))
+        ->and($data['base_currency']['id'])->toBe($data['payment_currency']['id']);
+});
+
 it('valida impuestos, descuento y tipo de cambio', function () {
     $car = sellingCar(1000);
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Sales\Sale;
 
 use App\Enums\Cars\CarStatus;
+use App\Models\Sales\Currency;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,18 @@ class StoreSaleRequest extends FormRequest
     {
         return [
             'discount_percentage' => ['required', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
-            'exchange_rate' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
+            // Pagar en la moneda base implica importe pagado == importe base.
+            // El servicio multiplica por la tasa, así que cualquier otro valor
+            // dejaría la venta contabilizada dos veces en distinta moneda.
+            'exchange_rate' => ['required', 'numeric', 'gt:0', 'decimal:0,2', function ($attribute, $value, $fail) {
+                $baseCurrency = Currency::firstWhere('is_base', true);
+
+                if ($baseCurrency !== null
+                    && (int) $this->input('payment_currency_id') === (int) $baseCurrency->id
+                    && (float) $value !== 1.0) {
+                    $fail('La moneda base solo admite un tipo de cambio de 1.');
+                }
+            }],
             'taxes' => ['required', 'array', 'min:1'],
             'taxes.*' => ['required', 'integer', 'min:1', 'distinct', 'exists:taxes,id,is_active,1'],
             // No se admiten ventas futuras ni anteriores a SALES_MIN_DATE.
