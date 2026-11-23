@@ -16,8 +16,12 @@ beforeEach(function () {
 });
 
 it('filtra coches por estado y conserva el filtro en la paginación', function () {
-    Car::query()->whereKey(1)->update(['status' => CarStatus::RESERVED->value]);
-    Car::query()->whereKey(2)->update(['status' => CarStatus::RESERVED->value]);
+    // No se fijan IDs: en PostgreSQL la secuencia no retrocede con el rollback
+    // de RefreshDatabase, así que los coches sembrados no empiezan en 1.
+    $ids = Car::query()->orderBy('id')->limit(2)->pluck('id')->all();
+    expect($ids)->toHaveCount(2);
+
+    Car::query()->whereIn('id', $ids)->update(['status' => CarStatus::RESERVED->value]);
 
     $response = $this->getJson('/api/cars?status=reserved&per_page=1')->assertOk();
 
