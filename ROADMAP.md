@@ -8,10 +8,10 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-21.
-- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-6 cerradas**; fase 7 pendiente. Cada hallazgo se volvió a verificar contra el código en esa fecha.
-- **Repo:** limpio al cierre de la fase 5 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
-- **Línea base:** 491 tests / 3 050 aserciones en SQLite (tras la fase 6), PHPStan nivel 7 sin errores, Pint limpio en 380 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths).
+- **Actualizado:** 2026-11-22.
+- **Estado:** plan vigente = hardening, integridad y optimización derivado del análisis del 2026-11-21. **Fases 1-7 cerradas**. Cada hallazgo se volvió a verificar contra el código en esa fecha.
+- **Repo:** limpio al cierre de la fase 7 (un commit por micro-tarea). Stack de desarrollo arriba (`app`, `nginx`, `postgres`, `scheduler`, todos `healthy`) y `/up` → 200.
+- **Línea base:** 491 tests / 3 048 aserciones en SQLite y 491 tests / 3 027 en PostgreSQL, PHPStan nivel 7 sin errores, Pint limpio en 380 archivos, `composer audit` sin avisos, OpenAPI 3.1.2 válido (55 paths; único aviso de Redocly: el servidor de ejemplo).
 - **Nota de ejecución:** `composer test` agota el `process-timeout` de Composer en este entorno; para la suite completa usar `./vendor/bin/pest` o `./vendor/bin/pest -c phpunit-postgres.xml`.
 - **Regla de ejecución:** cada micro-tarea es un commit atómico y solo se cierra tras verificar en Docker (`pest`, `analyse`, `pint --test`, `audit`). Prohibido `git push`, `git checkout`, `git branch`, `git merge`, `git rebase` y `git reset`; nunca se versiona `.env`.
 
@@ -149,11 +149,11 @@ Resultado del análisis del 2026-11-21. Los IDs se conservan en las tareas para 
 
 **Objetivo:** demostrar que todo lo anterior es reproducible y que la API sigue siendo la misma.
 
-- [ ] `7.1` Suite completa en Docker con `./vendor/bin/pest` (SQLite) y `./vendor/bin/pest -c phpunit-postgres.xml` (PostgreSQL), más `composer analyse`, `./vendor/bin/pint --test` y `composer audit`.
-- [ ] `7.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up`, login y un PDF/CSV de reporte. Imagen PaaS: build y arranque con `APP_KEY` y PostgreSQL, `/up` y `/docs/api` según `DOCS_ENABLED`. Si hay staging de Render, smoke equivalente.
-- [ ] `7.3` Smoke HTTP de regresión: login, `/auth/me`, estadísticas, reportes, exportación CSV, auditoría, `/up` y los casos nuevos de las fases 1-3.
-- [ ] `7.4` `composer docs:export` + `npx @redocly/cli lint storage/app/openapi.json`; comprobar que los nuevos parámetros y limitadores están documentados.
-- [ ] `7.5` Cierre documental: tareas marcadas, `README.md`/`AGENTS.md`/`MEMORY.md` actualizados (entrada fechada por fase) y un commit atómico por micro-tarea. `wc -l MEMORY.md` ≤ 100.
+- [x] `7.1` Suite completa en Docker con `./vendor/bin/pest` (SQLite) y `./vendor/bin/pest -c phpunit-postgres.xml` (PostgreSQL), más `composer analyse`, `./vendor/bin/pint --test` y `composer audit`.
+- [x] `7.2` Stack de producción con volumen nuevo: `build app`, `up -d`, `migrate --force --seed`, `optimize`, `/up`, login y un PDF/CSV de reporte. Imagen PaaS: build y arranque con `APP_KEY` y PostgreSQL, `/up` y `/docs/api` según `DOCS_ENABLED`. Si hay staging de Render, smoke equivalente.
+- [x] `7.3` Smoke HTTP de regresión: login, `/auth/me`, estadísticas, reportes, exportación CSV, auditoría, `/up` y los casos nuevos de las fases 1-3.
+- [x] `7.4` `composer docs:export` + `npx @redocly/cli lint storage/app/openapi.json`; comprobar que los nuevos parámetros y limitadores están documentados.
+- [x] `7.5` Cierre documental: tareas marcadas, `README.md`/`AGENTS.md`/`MEMORY.md` actualizados (entrada fechada por fase) y un commit atómico por micro-tarea. `wc -l MEMORY.md` ≤ 100.
 
 **Criterio de cierre:** suites verdes en ambos motores, builds `prod` y PaaS correctos, smoke y OpenAPI válidos, documentación coherente y `git status` limpio.
 

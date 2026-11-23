@@ -688,7 +688,7 @@ docker compose exec -T app composer analyse
 docker compose exec -T app composer audit
 ```
 
-Estado verificado de la suite (2026-11-21): **491 tests / 3050 aserciones** en SQLite, **PHPStan nivel 7 con 0 errores**, **Pint limpio (380 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
+Estado verificado de la suite (2026-11-22): **491 tests / 3048 aserciones** en SQLite y **491 tests / 3027 aserciones** en PostgreSQL, **PHPStan nivel 7 con 0 errores**, **Pint limpio (380 archivos)** y **`composer audit` sin avisos**. `phpunit.xml` fuerza SQLite `:memory:` (suite rápida) y `phpunit-postgres.xml` fuerza `DB_CONNECTION=pgsql` + `DB_DATABASE=testing`; host, puerto y credenciales llegan del entorno.
 
 El flujo crítico también está cubierto en Pest (`tests/Feature/Smoke/ApiSmokeTest.php`): login, `/auth/me`, estadísticas, exportación CSV de auditoría y logout con revocación del token.
 
@@ -716,6 +716,8 @@ docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
 Redocly valida el contrato sin errores; el único aviso es `no-server-example.com` porque `servers` apunta a `http://localhost:8000/api`, que es lo correcto en desarrollo. Los dos builds se ejecutan en el host porque son de Docker.
 
 El smoke HTTP real (2026-11-17) comprobó login con prefijo `car_`, `429` anónimo a los 30/min, rotación de emails frenada a los 20/min, IP real vía `X-Forwarded-For` con `TRUSTED_PROXIES`, auditoría de catálogos, venta con `exchange_rate=0` y sucursal incoherente (`422`), estado `sold` manual (`422`), coche con soft delete visible en la venta histórica y `/up` en `200`. Ese recorrido detectó que el limitador anónimo contaba también el tráfico autenticado; quedó corregido y cubierto por `RateLimitTest`.
+
+El cierre de 2026-11-22 añadió el humo de producción real: stack `-p car-agency-prod-test` con volumen nuevo, `build app`, `migrate --force --seed`, `optimize`, `/up` y login `200`, PDF de reporte `200`, CSV de auditoría `200` con BOM UTF-8, `/docs/api` `403` y `health:check` correcto (29 tablas propiedad de `car_agency`). La imagen PaaS se construyó y arrancó por separado: `/up` y login `200`, `/docs/api` `403` y `/api/cars` anónimo `401`. El smoke de desarrollo pasó 19/19 y confirmó que una cabecera `X-Forwarded-For` falsificada se ignora si el par no es de confianza (la auditoría registró la IP de la conexión `172.18.0.1`). `composer docs:export` + Redocly validan los 55 paths; antes quedaban 43 avisos por enums booleanos duplicados y ahora solo el esperado `no-server-example.com`.
 
 ### CI de calidad
 
