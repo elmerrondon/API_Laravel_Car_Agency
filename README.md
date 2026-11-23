@@ -727,7 +727,7 @@ El cierre de 2026-11-22 añadió el humo de producción real: stack `-p car-agen
 
 - El número de consultas de cada listado no crece con las filas (`tests/Feature/Performance/QueryCountTest.php`).
 - Ningún N+1 pasa desapercibido: `Model::preventLazyLoading()` está activo fuera de producción.
-- El 403/401/429 de cada ruta y el contrato de la documentación OpenAPI están cubiertos en `tests/Feature/Docs`.
+- El 403/401/429 de cada ruta (incluido el 401 de `/auth/login`) y el contrato de la documentación OpenAPI están cubiertos en `tests/Feature/Docs`.
 - Los importes se comparan redondeados a 2 decimales.
 - La política de contraseñas es local y determinista; `PasswordPolicyTest` comprueba que `uncompromised` está desactivado.
 - `AuditPruneCommandTest`, `AuditLogExportTest` y `EnforcePasswordChangeTest` fijan retención, CSV y bloqueo opcional.

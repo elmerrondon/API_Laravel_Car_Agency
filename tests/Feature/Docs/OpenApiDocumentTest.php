@@ -103,9 +103,12 @@ it('declara la licencia del proyecto y la seguridad bearer', function () {
             'scheme' => 'bearer',
         ]);
 
-    // Login: público (sin 401 ni 403) y con límite de intentos.
+    // Login: público (sin 403) pero con 401 de credenciales inválidas y límite
+    // de intentos.
     expect($document['paths']['/auth/login']['post']['responses'])
-        ->toHaveKeys(['200', '422', '429']);
+        ->toHaveKeys(['200', '401', '422', '429'])
+        ->and($document['paths']['/auth/login']['post']['responses']['401']['content']['application/json']['schema'])
+        ->toMatchArray(['type' => 'object', 'required' => ['message']]);
 
     foreach (['/auth/logout', '/auth/refresh'] as $path) {
         expect($document['paths'][$path]['post']['responses'])

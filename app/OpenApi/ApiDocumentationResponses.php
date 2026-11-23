@@ -62,6 +62,17 @@ final class ApiDocumentationResponses
             'Demasiadas peticiones: se superó el límite por minuto.',
         );
 
+        // Login es público, pero las credenciales inválidas y la cuenta
+        // inactiva responden 401 (LoginSecurityTest). Scramble no lo deduce
+        // porque la ruta no lleva `auth:sanctum`.
+        if ($path === 'auth/login') {
+            self::addResponse(
+                $operation,
+                401,
+                'Credenciales inválidas o cuenta desactivada.',
+            );
+        }
+
         if (self::hasPermissionMiddleware($route)) {
             self::addResponse(
                 $operation,
