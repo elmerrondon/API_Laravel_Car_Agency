@@ -11,6 +11,7 @@
 #   docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
 #   docker run -p 8080:8080 \
 #     -e APP_KEY=base64:... \
+#     -e CORS_ALLOWED_ORIGINS=https://app.example.com \
 #     -e DB_CONNECTION=pgsql -e DB_HOST=... -e DB_DATABASE=... \
 #     -e DB_USERNAME=... -e DB_PASSWORD=... \
 #     car-agency-laravel-api:paas

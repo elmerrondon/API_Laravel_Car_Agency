@@ -33,6 +33,28 @@ if [ -z "${APP_KEY}" ]; then
     exit 1
 fi
 
+# CorsPolicy solo rechaza el comodín en peticiones HTTP (los comandos artisan
+# deben funcionar durante el build y los pre-deploy). Aquí se aplica la misma
+# regla antes de arrancar el servidor para fallar con un mensaje claro en vez
+# de responder 500 en /up. Se comprueban también los espacios porque config/
+# cors.php recorta cada origen antes de pasárselo a CorsPolicy.
+if [ "${APP_ENV:-production}" = "production" ] && [ "${1:-}" = "frankenphp" ]; then
+    origins="${CORS_ALLOWED_ORIGINS:-}"
+    origins_sin_espacios=$(printf '%s' "${origins}" | tr -d '[:space:]')
+    if [ -z "${origins_sin_espacios}" ]; then
+        echo "[entrypoint] ERROR: CORS_ALLOWED_ORIGINS no está definida en producción." >&2
+        echo "[entrypoint] Define una lista de orígenes explícitos (sin '*')." >&2
+        exit 1
+    fi
+
+    for origin in $(printf '%s' "${origins}" | tr ',' ' '); do
+        if [ "${origin}" = "*" ]; then
+            echo "[entrypoint] ERROR: CORS_ALLOWED_ORIGINS no puede contener '*' en producción." >&2
+            exit 1
+        fi
+    done
+fi
+
 # Migraciones opcionales. En Render lo recomendable es usar el Pre-Deploy
 # Command (php artisan migrate --force --seed); en Railway, preDeployCommand.
 # RUN_MIGRATIONS=true las ejecuta al arrancar (útil para demos y pruebas) y

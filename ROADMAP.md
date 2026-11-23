@@ -9,7 +9,7 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-23.
-- **Estado:** QA integral ejecutado sobre el estado cerrado del 2026-11-22. Plan de corrección abierto; todas las tareas están pendientes.
+- **Estado:** QA integral ejecutado sobre el estado cerrado del 2026-11-22. Plan de corrección en curso: fase 1 iniciada (1.1 completada).
 - **Repo:** limpio al iniciar el QA. Este commit sustituye el roadmap anterior (plan de hardening cerrado) por el plan de QA.
 - **Línea base verde:** SQLite 491 tests / 3061 aserciones, PostgreSQL 491 / 3049, PHPStan 0 errores, Pint 380 archivos, `composer audit` sin avisos, OpenAPI válido (único aviso conocido `no-server-example.com`), humo HTTP de desarrollo 20/20 códigos esperados y `/up` → 200.
 - **Hallazgo P0 reproducido:** la imagen PaaS siguiendo el `docker run` del README responde `/up` → **500** si falta `CORS_ALLOWED_ORIGINS`.
@@ -26,7 +26,7 @@ No son fallos; se documentan para no reabrirlos:
 
 ## Fase 1 — P0: arranque y trazabilidad de IP
 
-- [ ] **1.1 PaaS sin CORS arranca en 500.** `docker/render/Dockerfile.render:27` fija `production` y `config/cors.php` decide `*`, lo que `CorsPolicy::assertAllowedOrigins()` rechaza en cada petición HTTP. `README.md:1114-1124` y `README.md:1156-1184` no incluyen `CORS_ALLOWED_ORIGINS`. Añadir la variable a ambos ejemplos y validarla en `docker/render/entrypoint.sh` antes de `exec`. Criterio: el `docker run` literal del README devuelve `/up` → 200 sin pasar la variable a mano.
+- [x] **1.1 PaaS sin CORS arranca en 500.** `docker/render/Dockerfile.render:27` fija `production` y `config/cors.php` decide `*`, lo que `CorsPolicy::assertAllowedOrigins()` rechaza en cada petición HTTP. `README.md:1114-1124` y `README.md:1156-1184` no incluyen `CORS_ALLOWED_ORIGINS`. Añadir la variable a ambos ejemplos y validarla en `docker/render/entrypoint.sh` antes de `exec`. Criterio: el `docker run` literal del README devuelve `/up` → 200 sin pasar la variable a mano.
 - [ ] **1.2 `TRUSTED_PROXIES` no coincide con la red del compose.** `.env.production.example:67`, `README.md:828,928,979` usan `172.28.0.0/16`, pero `docker-compose.prod.yml:122-124` no fija subnet (en este entorno la red dev es `172.18.0.0/16`). Fijar `ipam.config[0].subnet: 172.28.0.0/16` en la red `car-agency-prod` y corregir el texto del README que afirma que ya está incluida. Criterio: `X-Forwarded-For` y `X-Forwarded-Proto` de Nginx llegan a `ClientIpResolver` y a la auditoría.
 
 ## Fase 2 — P1: contrato OpenAPI e integridad financiera
