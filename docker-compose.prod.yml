@@ -122,3 +122,9 @@ volumes:
 networks:
   car-agency-prod:
     driver: bridge
+    # Fija la subnet que TRUSTED_PROXIES declara en .env.production: Nginx es
+    # el par inmediato de la app y su IP debe caer dentro de este rango para
+    # que ClientIpResolver acepte X-Forwarded-For y X-Forwarded-Proto.
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
