@@ -20,10 +20,12 @@ final class ApiDocumentationResponses
 {
     /**
      * Recursos con borrado lógico: eliminar no puede violar una clave foránea.
+     * `users/{user}` no está aquí porque el guarda del último administrador
+     * sí responde 409 al borrarlo.
      *
      * @var list<string>
      */
-    private const SOFT_DELETED = ['cars/{car}', 'users/{user}'];
+    private const SOFT_DELETED = ['cars/{car}'];
 
     /**
      * Los PDF y el CSV se sirven como binario: quitamos el `application/json`
@@ -102,12 +104,17 @@ final class ApiDocumentationResponses
     }
 
     /**
-     * Un borrado con claves foráneas `RESTRICT` o una venta ya cancelada
-     * responden 409 desde `bootstrap/app.php`.
+     * Conflictos de dominio además de los borrados con FK `RESTRICT`:
+     * cancelar una venta, crearla sin moneda base y el guarda del último
+     * administrador al modificar o borrar un usuario.
      */
     private static function canConflict(string $path, string $method): bool
     {
-        if ($path === 'sales/{sale}/cancel') {
+        if ($path === 'sales/{sale}/cancel' || ($path === 'sales' && $method === 'post')) {
+            return true;
+        }
+
+        if ($path === 'users/{user}' && in_array($method, ['put', 'patch', 'delete'], true)) {
             return true;
         }
 

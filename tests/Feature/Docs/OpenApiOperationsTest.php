@@ -19,16 +19,22 @@ it('documenta el autoservicio de identidad y el reset administrativo', function 
         ->and($reset['responses'])->toHaveKeys(['200', '401', '403', '422', '429']);
 });
 
-it('documenta el 409 de cancelar una venta y de los borrados con claves foráneas', function () {
+it('documenta los 409 de cancelar ventas, borrados con FK, último admin y moneda base', function () {
     $document = openApiDocument();
 
     expect($document['paths']['/sales/{sale}/cancel']['patch']['responses'])->toHaveKey('409')
         // Eliminar una marca referenciada por un coche choca con la FK.
-        ->and($document['paths']['/brands/{brand}']['delete']['responses'])->toHaveKey('409');
+        ->and($document['paths']['/brands/{brand}']['delete']['responses'])->toHaveKey('409')
+        // Crear una venta sin moneda base responde 409 (MissingBaseCurrencyException).
+        ->and($document['paths']['/sales']['post']['responses'])->toHaveKey('409');
 
-    // Los recursos con borrado lógico no pueden devolver 409 al eliminarse.
-    expect($document['paths']['/cars/{car}']['delete']['responses'])->not->toHaveKey('409')
-        ->and($document['paths']['/users/{user}']['delete']['responses'])->not->toHaveKey('409');
+    // El guarda del último administrador responde 409 al modificar o borrar.
+    foreach (['put', 'delete'] as $method) {
+        expect($document['paths']['/users/{user}'][$method]['responses'])->toHaveKey('409');
+    }
+
+    // Los coches usan borrado lógico: su DELETE no puede devolver 409.
+    expect($document['paths']['/cars/{car}']['delete']['responses'])->not->toHaveKey('409');
 });
 
 it('documenta los PDF como binario y no como JSON', function (string $path) {
