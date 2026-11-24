@@ -50,6 +50,13 @@ it('filtra ventas por rango de fechas inclusivo', function () {
 
     $all = $this->getJson('/api/sales?from=2026-01-01&to=2026-02-28')->assertOk();
     expect($all->json('meta.total'))->toBe(2);
+
+    // `from == to` es un día exacto: la cota inferior inclusiva y la superior
+    // exclusiva del día siguiente no deben perder ventas ni filtrar las demás.
+    expect(array_column($this->getJson('/api/sales?from=2026-02-20&to=2026-02-20')->assertOk()->json('data'), 'id'))
+        ->toBe([$this->cancelled->id])
+        ->and(array_column($this->getJson('/api/sales?from=2026-01-15&to=2026-01-15')->assertOk()->json('data'), 'id'))
+        ->toBe([$this->completed->id]);
 });
 
 it('exige el par de fechas completo', function () {

@@ -71,31 +71,71 @@ it('desactiva la caché con un TTL de cero', function () {
         ->and($cache->remember('summary', [], $callback))->toBe(2);
 });
 
-it('invalida todos los agregados al crear o cancelar una venta', function () {
+it('invalida los ocho agregados al crear o cancelar una venta', function (string $endpoint) {
     $branch = Branch::firstOrFail();
-    $cars = Car::query()->where('status', 'available')->take(2)->get();
+    $cars = Car::query()->where('status', 'available')->orderBy('id')->take(2)->get();
 
-    $initial = $this->getJson('/api/stats/summary')->assertOk()->json('sales.completed_count');
+    $initial = $this->getJson($endpoint)->assertOk()->json();
 
     // Un alta directa (sin SaleService) no incrementa la versión: la siguiente
     // petición debe seguir sirviendo el valor cacheado.
     createSaleRecord($cars[0], $this->admin, $branch, '2026-02-01 10:00:00', 100);
 
-    expect($this->getJson('/api/stats/summary')->assertOk()->json('sales.completed_count'))
-        ->toBe($initial);
+    expect($this->getJson($endpoint)->assertOk()->json())->toBe($initial);
 
-    // El alta por API invalida la caché y el resumen incluye ambas ventas.
+    // El alta por API invalida la caché de todos los agregados, no solo del
+    // resumen que se consultó para generar la versión.
     $saleId = $this->postJson('/api/sales', statsSalePayload($cars[1]))
         ->assertCreated()
         ->json('data.id');
 
-    expect($this->getJson('/api/stats/summary')->assertOk()->json('sales.completed_count'))
-        ->toBe($initial + 2);
+    $afterCreate = $this->getJson($endpoint)->assertOk()->json();
+
+    expect($afterCreate)->not->toBe($initial);
 
     // Cancelar también invalida: la venta cancelada deja de contar.
     $this->patchJson("/api/sales/{$saleId}/cancel", ['notes' => 'Prueba de caché'])
         ->assertOk();
 
-    expect($this->getJson('/api/stats/summary')->assertOk()->json('sales.completed_count'))
-        ->toBe($initial + 1);
-});
+    expect($this->getJson($endpoint)->assertOk()->json())->not->toBe($afterCreate);
+})->with([
+    '/api/stats/summary',
+    '/api/stats/top-users',
+    '/api/stats/top-branches',
+    '/api/stats/top-cities',
+    '/api/stats/top-brands',
+    '/api/stats/top-models',
+    '/api/stats/inventory',
+    '/api/stats/sales/trend',
+]);
+
+it('caduca por TTL en los ocho agregados sin que cambie la versión', function (string $endpoint) {
+    config(['stats.cache_ttl' => 10]);
+
+    $branch = Branch::firstOrFail();
+    $car = Car::query()->where('status', 'available')->orderBy('id')->firstOrFail();
+
+    $initial = $this->getJson($endpoint)->assertOk()->json();
+
+    // Mutación directa en base de datos: no pasa por SaleService, así que no
+    // incrementa `stats:version`. Debe seguir sirviéndose el valor cacheado.
+    createSaleRecord($car, $this->admin, $branch, '2026-02-01 10:00:00', 100);
+    $car->update(['status' => 'sold', 'price' => $car->price + 1]);
+
+    expect($this->getJson($endpoint)->assertOk()->json())->toBe($initial);
+
+    $this->travel(11)->seconds();
+
+    expect($this->getJson($endpoint)->assertOk()->json())->not->toBe($initial);
+
+    $this->travelBack();
+})->with([
+    '/api/stats/summary',
+    '/api/stats/top-users',
+    '/api/stats/top-branches',
+    '/api/stats/top-cities',
+    '/api/stats/top-brands',
+    '/api/stats/top-models',
+    '/api/stats/inventory',
+    '/api/stats/sales/trend',
+]);
