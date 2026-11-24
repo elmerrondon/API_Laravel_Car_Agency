@@ -276,7 +276,7 @@ Cualquier clave fijada por un administrador (también con `PATCH /api/users/{use
 y `password`) es temporal: marca `must_change_password=true`, revoca los tokens
 del usuario y se limpia cuando este usa `PUT /api/auth/password`.
 
-Un usuario desactivado recibe `401` en cualquier ruta autenticada, aunque su token aún no haya expirado. Para dejar el sistema sin administración, la API responde `409` al borrar, desactivar o quitar el rol `admin` al último administrador activo, y `422` si un rol queda sin permisos o se intenta modificar el `code` de un usuario.
+Un usuario desactivado recibe `401` en cualquier ruta autenticada, aunque su token aún no haya expirado. Para dejar el sistema sin administración, la API responde `409` al borrar, desactivar o quitar el rol `admin` al último administrador activo, y `422` si un rol queda sin permisos o se intenta modificar el `code` de un usuario. Los permisos efectivos se cachean `PERMISSIONS_CACHE_TTL` segundos; `UserService`/`RoleService` y los seeders RBAC invalidan la entrada al cambiar roles o permisos.
 
 | Código | Cuándo |
 | :--- | :--- |
@@ -306,6 +306,8 @@ Los límites se definen en `config/rate_limits.php` y se pueden ajustar con vari
 | `health` | `GET /up` | 30/min (`RATE_LIMIT_HEALTH`) | IP |
 
 `/up` se registra fuera del grupo `api` (para no arrastrar sesión ni CSRF), así que el limitador anónimo de la API no lo cubre: necesita su propio cupo `health`. Su resultado se cachea 10 s para absorber ráfagas de healthchecks; `php artisan health:check --fresh` fuerza una lectura directa de base de datos y caché. Si el store de caché falla, `/up` responde `503`, nunca `500`.
+
+El cupo `api` se aplica justo después de `auth:sanctum`, antes de las guardas `active` y `password.changed`: un token de cuenta desactivada o pendiente de cambiar la clave también consume el cupo por usuario y recibe `429` al agotarlo, en lugar de esquivarlo con el `401`/`403` de la guarda.
 
 El reporte PDF es la ruta más cara: además del límite, corta en `REPORTS_MAX_ROWS` (300 por defecto) y responde `422` si el rango de fechas lo supera.
 
