@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Enums\Users\RoleEnum;
+use App\Models\Users\User;
 use Illuminate\Cache\RateLimiting\Unlimited;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\Sanctum;
 
 it('limita las peticiones generales del API por usuario', function () {
     config(['rate_limits.api' => 2]);
@@ -36,6 +38,39 @@ it('limita por IP los tokens inválidos', function () {
     $this->withToken('token-invalido')->getJson('/api/cars')->assertUnauthorized();
 
     $this->withToken('token-invalido')->getJson('/api/cars')
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+});
+
+it('aplica el cupo general al token de una cuenta desactivada', function () {
+    // `active` aborta con 401, pero ya después de `throttle:api`: el token de
+    // una cuenta inactiva no puede esquivar el cupo por usuario.
+    config(['rate_limits.api' => 2]);
+
+    Sanctum::actingAs(User::factory()->create(['is_active' => false]));
+
+    $this->getJson('/api/cars')->assertUnauthorized();
+    $this->getJson('/api/cars')->assertUnauthorized();
+
+    $this->getJson('/api/cars')
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+});
+
+it('aplica el cupo general a una cuenta obligada a cambiar la clave', function () {
+    // Mismo caso con `password.changed`: responde 403, pero el intento ya
+    // consumió el cupo.
+    config([
+        'rate_limits.api' => 2,
+        'security.enforce_password_change' => true,
+    ]);
+
+    Sanctum::actingAs(User::factory()->create(['must_change_password' => true]));
+
+    $this->getJson('/api/cars')->assertForbidden();
+    $this->getJson('/api/cars')->assertForbidden();
+
+    $this->getJson('/api/cars')
         ->assertStatus(429)
         ->assertHeader('Retry-After');
 });

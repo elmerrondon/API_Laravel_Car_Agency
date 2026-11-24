@@ -30,7 +30,10 @@ use Illuminate\Support\Facades\Route;
 // Autenticación: la única ruta pública es el login.
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-Route::middleware(['auth:sanctum', 'active', 'password.changed', 'throttle:api'])->group(function () {
+// `throttle:api` va antes de las guardas `active` y `password.changed`: si
+// abortaran primero, el token de una cuenta desactivada o con clave temporal
+// esquivaría el cupo por usuario y podría martillear el API sin 429.
+Route::middleware(['auth:sanctum', 'throttle:api', 'active', 'password.changed'])->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::put('auth/password', [AuthController::class, 'changePassword']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
