@@ -52,17 +52,21 @@ class UpdateUserRequest extends FormRequest
      */
     public function rules(): array
     {
+        // El modelo se lee de la ruta, no de `$this->user`: el payload puede
+        // traer una clave `user` y la propiedad mágica del FormRequest la
+        // devolvería en su lugar (warning convertido en 500).
         $target = $this->route('user');
+        $targetId = $target instanceof User ? $target->id : null;
         $currentCode = $target instanceof User ? $target->code : '';
 
         return [
             'name' => ['sometimes', 'required', 'string', 'min:2', 'max:50'],
             'last_name' => ['sometimes', 'required', 'string', 'min:2', 'max:50'],
-            'document_number' => ['sometimes', 'required', 'string', 'min:5', 'max:10', 'regex:/^[a-zA-Z0-9\-]+$/', (new CaseInsensitiveUnique('users', 'document_number', $this->user->id))->withoutTrashed()],
+            'document_number' => ['sometimes', 'required', 'string', 'min:5', 'max:10', 'regex:/^[a-zA-Z0-9\-]+$/', (new CaseInsensitiveUnique('users', 'document_number', $targetId))->withoutTrashed()],
             // `code` es la identidad estable del usuario: solo se acepta el
             // valor actual para que un payload antiguo no lo sobrescriba.
             'code' => ['sometimes', 'required', 'string', 'min:6', 'max:10', 'regex:/^[a-zA-Z0-9\-]+$/', Rule::in([$currentCode])],
-            'email' => ['sometimes', 'required', 'string', 'email', 'max:255', (new CaseInsensitiveUnique('users', 'email', $this->user->id))->withoutTrashed()],
+            'email' => ['sometimes', 'required', 'string', 'email', 'max:255', (new CaseInsensitiveUnique('users', 'email', $targetId))->withoutTrashed()],
             'password' => ['sometimes', 'required', 'string', 'max:100', 'confirmed', Password::default()],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['integer', 'distinct', 'exists:roles,id'],

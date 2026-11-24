@@ -92,6 +92,22 @@ it('actualiza nombre, email, roles y sucursales', function () {
         ->and($user->hasPermissionTo(PermissionEnum::MANAGE_USERS))->toBeFalse();
 });
 
+it('ignora un campo user del payload al actualizar', function () {
+    $created = $this->postJson('/api/users', $this->payload)->assertCreated()->json('data');
+
+    // `user` es el nombre del parámetro de ruta: antes se leía como propiedad
+    // mágica del FormRequest y el array del payload provocaba un 500.
+    $this->patchJson("/api/users/{$created['id']}", [
+        'name' => 'Carla Actualizada',
+        'email' => 'carla.actualizada@example.test',
+        'user' => ['id' => 999999],
+    ])->assertOk()
+        ->assertJsonPath('data.name', 'Carla Actualizada')
+        ->assertJsonPath('data.email', 'carla.actualizada@example.test');
+
+    expect(User::findOrFail($created['id'])->name)->toBe('Carla Actualizada');
+});
+
 it('obliga a cambiar la clave fijada por un administrador', function () {
     $created = $this->postJson('/api/users', $this->payload)->assertCreated()->json('data');
 
