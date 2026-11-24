@@ -28,6 +28,55 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
     APP_ENV=production \
     APP_DEBUG=false
 
+# La imagen upstream compila PHP con --enable-mysqlnd. FrankenPHP enlaza
+# dinámicamente contra /usr/local/lib/libphp.so, así que recompilamos libphp
+# desde el mismo tarball de la imagen con --disable-mysqlnd y los mismos flags
+# (embed/ZTS) sin rehacer el binario de Caddy/Go.
+RUN apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        argon2-dev \
+        curl-dev \
+        gnu-libiconv-dev \
+        libsodium-dev \
+        libxml2-dev \
+        oniguruma-dev \
+        openssl-dev \
+        readline-dev \
+        sqlite-dev \
+        zlib-dev \
+    && docker-php-source extract \
+    && cd /usr/src/php \
+    && ./configure \
+        --sysconfdir=/usr/local/etc \
+        --with-config-file-path=/usr/local/etc/php \
+        --with-config-file-scan-dir=/usr/local/etc/php/conf.d \
+        --enable-option-checking=fatal \
+        --with-mhash \
+        --with-pic \
+        --enable-mbstring \
+        --disable-mysqlnd \
+        --with-password-argon2 \
+        --with-sodium=shared \
+        --with-pdo-sqlite=/usr \
+        --with-sqlite3=/usr \
+        --with-curl \
+        --with-iconv=/usr \
+        --with-openssl \
+        --with-readline \
+        --with-zlib \
+        --enable-phpdbg \
+        --enable-phpdbg-readline \
+        --with-pear \
+        --enable-embed \
+        --enable-zts \
+        --disable-zend-signals \
+    && make -j"$(nproc)" \
+    && make install \
+    && cd /usr/src \
+    && docker-php-source delete \
+    && cd / \
+    && apk del .build-deps
+
 # Extensiones requeridas por el proyecto (las mismas que la imagen FPM).
 # install-php-extensions omite las que FrankenPHP ya trae compiladas.
 RUN install-php-extensions \

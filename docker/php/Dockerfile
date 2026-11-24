@@ -5,6 +5,11 @@ FROM php:8.3-fpm-alpine AS base
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_HOME=/tmp/composer
 
+# La imagen upstream compila PHP con --enable-mysqlnd. El proyecto solo usa
+# PostgreSQL/SQLite, así que recompilamos PHP desde el mismo tarball que trae
+# la imagen, pero con --disable-mysqlnd: no queda ningún driver MySQL en el
+# binario. Al reutilizar /usr/src/php.tar.xz seguimos el ritmo de parches de
+# seguridad de la imagen oficial sin fijar una versión a mano.
 RUN apk add --no-cache \
         bash \
         curl \
@@ -20,14 +25,51 @@ RUN apk add --no-cache \
         unzip \
     && apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
+        argon2-dev \
+        curl-dev \
         freetype-dev \
+        gnu-libiconv-dev \
         libjpeg-turbo-dev \
         libpng-dev \
+        libsodium-dev \
         libxml2-dev \
         libzip-dev \
         oniguruma-dev \
         postgresql-dev \
+        readline-dev \
         sqlite-dev \
+        zlib-dev \
+    && docker-php-source extract \
+    && cd /usr/src/php \
+    && ./configure \
+        --sysconfdir=/usr/local/etc \
+        --with-config-file-path=/usr/local/etc/php \
+        --with-config-file-scan-dir=/usr/local/etc/php/conf.d \
+        --enable-option-checking=fatal \
+        --with-mhash \
+        --with-pic \
+        --enable-mbstring \
+        --disable-mysqlnd \
+        --with-password-argon2 \
+        --with-sodium=shared \
+        --with-pdo-sqlite=/usr \
+        --with-sqlite3=/usr \
+        --with-curl \
+        --with-iconv=/usr \
+        --with-openssl \
+        --with-readline \
+        --with-zlib \
+        --disable-phpdbg \
+        --with-pear \
+        --disable-cgi \
+        --enable-fpm \
+        --with-fpm-user=www-data \
+        --with-fpm-group=www-data \
+    && make -j"$(nproc)" \
+    && make install \
+    && cd /usr/src \
+    && docker-php-source delete \
+    && cd / \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
