@@ -47,25 +47,28 @@ it('exporta un CSV en streaming con los filtros del listado', function () {
         ->not->toContain('user.updated');
 });
 
-it('escapa las celdas que podrían interpretarse como fórmulas', function () {
+it('escribe el BOM y escapa todos los prefijos de inyección de fórmulas', function () {
     $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
     Sanctum::actingAs($admin);
 
-    $log = app(AuditService::class)->record(
-        AuditAction::USER_UPDATED,
-        $admin,
-        ['name' => 'Viejo'],
-        ['name' => 'Nuevo'],
-    );
+    $service = app(AuditService::class);
+    $prefixes = ['=', '+', '-', '@', "\t", "\r", "\n"];
 
-    expect($log)->not->toBeNull();
+    foreach ($prefixes as $prefix) {
+        $log = $service->record(AuditAction::USER_UPDATED, $admin, [], ['name' => 'Nuevo']);
 
-    AuditLog::query()
-        ->whereKey($log->id)
-        ->update(['user_agent' => '=cmd|calc']);
+        expect($log)->not->toBeNull();
+
+        AuditLog::query()
+            ->whereKey($log->id)
+            ->update(['user_agent' => $prefix.'cmd|calc']);
+    }
 
     $csv = $this->get('/api/audit-logs/export')->streamedContent();
 
-    expect($csv)->toContain("'=cmd|calc")
-        ->not->toContain(',=cmd|calc');
+    expect($csv)->toStartWith("\xEF\xBB\xBF");
+
+    foreach ($prefixes as $prefix) {
+        expect($csv)->toContain("'".$prefix.'cmd|calc');
+    }
 });

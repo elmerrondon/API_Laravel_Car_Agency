@@ -9,7 +9,7 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-23.
-- **Estado:** QA integral ejecutado sobre el estado cerrado del 2026-11-22. Plan de corrección en curso: fase 1 completada, fase 2 pendiente.
+- **Estado:** QA integral ejecutado sobre el estado cerrado del 2026-11-22. Plan de corrección en curso: fase 1 completada, fase 2 en ejecución (1.1-2.4 y 2.6 cerrados).
 - **Repo:** limpio al iniciar el QA. Este commit sustituye el roadmap anterior (plan de hardening cerrado) por el plan de QA.
 - **Línea base verde:** SQLite 491 tests / 3061 aserciones, PostgreSQL 491 / 3049, PHPStan 0 errores, Pint 380 archivos, `composer audit` sin avisos, OpenAPI válido (único aviso conocido `no-server-example.com`), humo HTTP de desarrollo 20/20 códigos esperados y `/up` → 200.
 - **Hallazgo P0 reproducido:** la imagen PaaS siguiendo el `docker run` del README responde `/up` → **500** si falta `CORS_ALLOWED_ORIGINS`.
@@ -35,7 +35,7 @@ No son fallos; se documentan para no reabrirlos:
 - [x] **2.2 Faltan 409 reales en OpenAPI.** `ApiDocumentationResponses::canConflict()` (`:97-104`) solo cubre cancelación de ventas y borrados con FK; `LastAdminException` responde 409 en `PUT`/`DELETE /users/{user}` (`UserAdminGuard.php:65`, `bootstrap/app.php:93`) y `MissingBaseCurrencyException` en `POST /sales` (`SaleService.php:147`). Ampliar `canConflict()` y las aserciones de `OpenApiOperationsTest.php:29-31`.
 - [x] **2.3 Pago en moneda base con tasa distinta de 1.** `README.md:373-375` exige tasa `1`, pero `StoreSaleRequest.php:31,39` no valida la combinación y `SaleService.php:142` multiplica igual. Rechazar con 422 cuando `payment_currency_id` sea la base y `exchange_rate !== 1`. Criterio: test de `422` y otro de venta válida en base.
 - [x] **2.4 `car_id` de coche borrado lógicamente da 404.** `StoreSaleRequest.php:36` usa `Rule::exists('cars','id')` sin `deleted_at` y `SaleService.php:101` hace `firstOrFail()`. Añadir `whereNull('deleted_at')` a la regla o traducir el `ModelNotFound` a `CarNotAvailableException` (422).
-- [ ] **2.5 Escape CSV incompleto.** `AuditQueryService.php:126` no escapa el salto de línea (`\n`), que OWASP incluye junto a `= + - @ \t \r`. Añadir `\n` al patrón y cubrir los seis prefijos más el BOM en `AuditLogExportTest.php:50-71`; corregir `README.md:1244`.
+- [x] **2.5 Escape CSV incompleto.** `AuditQueryService.php:126` no escapa el salto de línea (`\n`), que OWASP incluye junto a `= + - @ \t \r`. Añadir `\n` al patrón y cubrir los siete prefijos más el BOM en `AuditLogExportTest.php:50-71`; corregir `README.md:1244`.
 - [x] **2.6 La superposición TLS no reenvía la IP del cliente.** `docker/nginx/tls.conf:72-88` declara `X-Forwarded-Proto` pero no `X-Forwarded-For`, a diferencia de `default.conf:65`. Añadir `fastcgi_param HTTP_X_FORWARDED_FOR $remote_addr;` (una sola IP, sobrescribe la del cliente).
 - [ ] **2.7 Desbordamiento numérico → 500.** `exchange_rate` (`decimal(10,2)`) y `cars.price` (`decimal(15,2)`) no tienen `max` en `StoreSaleRequest.php:31` ni en `StoreCarRequest.php:41`. Añadir `max:99999999.99` y `max:99999999999999.99` respectivamente con tests de 422.
 

@@ -123,7 +123,7 @@ final class AuditQueryService
     private function csvRow(AuditLog $log): array
     {
         return array_map(
-            fn (string $value): string => preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value,
+            fn (string $value): string => preg_match('/^[=+\-@\t\r\n]/', $value) === 1 ? "'".$value : $value,
             [
                 (string) $log->id,
                 $log->action->value,
