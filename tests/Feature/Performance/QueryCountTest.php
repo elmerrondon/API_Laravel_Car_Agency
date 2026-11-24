@@ -28,19 +28,45 @@ function countQueriesDuringRequest(Closure $callback): int
 }
 
 /**
- * Comprueba que el listado no añade consultas al crecer la página.
+ * Fija el número exacto de consultas de un listado.
+ *
+ * Comparar páginas entre sí no detecta un coste constante nuevo (un `+2` en
+ * todas las páginas pasaba) ni la pérdida de un eager load: con `whenLoaded()`
+ * la relación desaparece del JSON pero la consulta que ya no se hace tampoco
+ * cambia el total. Por eso el valor es absoluto y el test de estructura
+ * comprueba que las relaciones siguen presentes.
  */
-function assertConstantQueriesFor(string $url, int $smallPage, int $largePage): void
+function assertQueriesFor(string $url, int $expected, bool $json = true): void
 {
-    $small = countQueriesDuringRequest(function () use ($url, $smallPage) {
-        test()->getJson("{$url}?per_page={$smallPage}")->assertOk();
+    $count = countQueriesDuringRequest(function () use ($url, $json) {
+        $json
+            ? test()->getJson($url)->assertOk()
+            : test()->get($url)->assertOk();
     });
 
-    $large = countQueriesDuringRequest(function () use ($url, $largePage) {
-        test()->getJson("{$url}?per_page={$largePage}")->assertOk();
-    });
+    expect($count)->toBe($expected, "{$url} ejecutó {$count} consultas; se esperaban {$expected}");
+}
 
-    expect($large)->toBe($small);
+/**
+ * Comprueba el valor absoluto en una página pequeña y en una grande.
+ */
+function assertConstantQueriesFor(string $url, int $smallPage, int $largePage, int $expected): void
+{
+    assertQueriesFor("{$url}?per_page={$smallPage}", $expected);
+    assertQueriesFor("{$url}?per_page={$largePage}", $expected);
+}
+
+/**
+ * Falla si alguna de las rutas anidadas no llegó al JSON.
+ *
+ * @param  array<string, mixed>  $item
+ * @param  list<string>  $paths
+ */
+function assertRelationsPresent(array $item, array $paths): void
+{
+    foreach ($paths as $path) {
+        expect(data_get($item, $path))->not->toBeNull("Falta la relación {$path}");
+    }
 }
 
 beforeEach(function () {
@@ -51,88 +77,105 @@ beforeEach(function () {
     Sanctum::actingAs($admin);
 
     // La primera comprobación de permisos calienta la caché; sin este
-    // warm-up el primer request del test pagaría el join extra y la
-    // comparación entre páginas dejaría de ser simétrica.
+    // warm-up el primer request del test pagaría el join extra.
     $admin->hasPermissionTo(PermissionEnum::VIEW_CARS);
 });
 
 it('mantiene constante el número de consultas del listado de coches', function () {
-    assertConstantQueriesFor('/api/cars', 5, 50);
+    assertConstantQueriesFor('/api/cars', 5, 50, 11);
+
+    $first = $this->getJson('/api/cars?per_page=1')->assertOk()->json('data.0');
+
+    assertRelationsPresent($first, [
+        'color',
+        'car_model.brand',
+        'car_type',
+        'category',
+        'branch.city.state.country',
+    ]);
 });
 
 it('mantiene constante el número de consultas del listado de ventas', function () {
     seedSales(20);
 
-    assertConstantQueriesFor('/api/sales', 5, 20);
+    assertConstantQueriesFor('/api/sales', 5, 20, 22);
+
+    $first = $this->getJson('/api/sales?per_page=1')->assertOk()->json('data.0');
+
+    assertRelationsPresent($first, [
+        'car.color',
+        'car.car_model.brand',
+        'car.car_type',
+        'car.category',
+        'car.branch.city.state.country',
+        'branch.city.state.country',
+        'user.roles',
+        'user.branches',
+        'payment_currency',
+        'base_currency',
+        'payment_method',
+    ]);
 });
 
-it('mantiene constante el número de consultas de los catálogos', function (string $url) {
-    assertConstantQueriesFor($url, 1, 40);
+it('mantiene constante el número de consultas de los catálogos', function (string $url, int $expected) {
+    assertConstantQueriesFor($url, 1, 40, $expected);
 })->with([
-    '/api/brands',
-    '/api/colors',
-    '/api/categories',
-    '/api/car-types',
-    '/api/car-models',
-    '/api/taxes',
-    '/api/currencies',
-    '/api/payment-methods',
+    ['/api/brands', 2],
+    ['/api/colors', 2],
+    ['/api/categories', 2],
+    ['/api/car-types', 2],
+    // El modelo carga su marca.
+    ['/api/car-models', 3],
+    ['/api/taxes', 2],
+    ['/api/currencies', 2],
+    ['/api/payment-methods', 2],
 ]);
 
-it('mantiene constante el número de consultas de las ubicaciones', function (string $url, int $large) {
-    assertConstantQueriesFor($url, 1, $large);
+it('mantiene constante el número de consultas de las ubicaciones', function (string $url, int $large, int $expected) {
+    assertConstantQueriesFor($url, 1, $large, $expected);
 })->with([
-    ['/api/branches', 8],
-    ['/api/cities', 50],
-    ['/api/states', 50],
-    ['/api/countries', 50],
+    ['/api/branches', 8, 5],
+    ['/api/cities', 50, 4],
+    ['/api/states', 50, 3],
+    ['/api/countries', 50, 2],
 ]);
 
 it('mantiene constante el número de consultas del listado de usuarios', function () {
-    assertConstantQueriesFor('/api/users', 1, 3);
+    assertConstantQueriesFor('/api/users', 1, 3, 8);
+
+    $first = $this->getJson('/api/users?per_page=1')->assertOk()->json('data.0');
+
+    assertRelationsPresent($first, ['roles.0.name', 'branches.0.city']);
 });
 
 it('no escala las consultas de los reportes de coches con el número de filas', function () {
-    $small = countQueriesDuringRequest(function () {
-        $this->getJson('/api/reports/cars')->assertOk();
-    });
+    assertQueriesFor('/api/reports/cars', 4);
 
     Car::factory()->count(100)->create();
 
-    $large = countQueriesDuringRequest(function () {
-        $this->getJson('/api/reports/cars')->assertOk();
-    });
+    assertQueriesFor('/api/reports/cars', 4);
 
     $branchId = Branch::firstOrFail()->id;
 
-    $filtered = countQueriesDuringRequest(function () use ($branchId) {
-        $this->getJson("/api/reports/cars?branch_id={$branchId}")->assertOk();
-    });
+    // El filtro añade la sucursal y la moneda base, no una consulta por fila.
+    assertQueriesFor("/api/reports/cars?branch_id={$branchId}", 6);
 
-    $pdf = countQueriesDuringRequest(function () use ($branchId) {
-        $this->get("/api/reports/cars/pdf?branch_id={$branchId}")->assertOk();
-    });
-
-    // El agregado vive en SQL: 100 coches más no añaden consultas.
-    expect($large)->toBe($small)
-        // El PDF reutiliza el mismo servicio y no añade consultas.
-        ->and($pdf)->toBe($filtered);
+    // El PDF reutiliza el mismo servicio y no añade consultas.
+    assertQueriesFor("/api/reports/cars/pdf?branch_id={$branchId}", 6, json: false);
 });
 
 it('no escala las consultas del reporte de ventas con el número de ventas', function () {
     seedSales(5);
 
-    $small = countQueriesDuringRequest(function () {
-        $this->get('/api/reports/sales/pdf')->assertOk();
-    });
+    assertQueriesFor('/api/reports/sales/pdf', 12, json: false);
 
     seedSales(15);
 
-    $large = countQueriesDuringRequest(function () {
-        $this->get('/api/reports/sales/pdf')->assertOk();
-    });
+    assertQueriesFor('/api/reports/sales/pdf', 12, json: false);
 
-    expect($large)->toBe($small);
+    $branchId = Branch::firstOrFail()->id;
+
+    assertQueriesFor("/api/reports/sales/pdf?branch_id={$branchId}", 14, json: false);
 });
 
 it('no escala las consultas de las estadísticas con el número de ventas', function () {
@@ -142,34 +185,28 @@ it('no escala las consultas de las estadísticas con el número de ventas', func
 
     $admin = User::where('email', 'admin@caragency.test')->firstOrFail();
 
-    // Calienta la caché de permisos de `view_statistics` para comparar
-    // peticiones simétricas.
+    // Calienta la caché de permisos de `view_statistics`.
     $admin->hasPermissionTo(PermissionEnum::VIEW_STATISTICS);
 
     $endpoints = [
-        '/api/stats/summary',
-        '/api/stats/top-users',
-        '/api/stats/top-branches',
-        '/api/stats/top-cities',
-        '/api/stats/top-brands',
-        '/api/stats/top-models',
-        '/api/stats/inventory',
-        '/api/stats/sales/trend',
+        // El resumen suma varios agregados en consultas separadas.
+        '/api/stats/summary' => 5,
+        '/api/stats/top-users' => 2,
+        '/api/stats/top-branches' => 2,
+        '/api/stats/top-cities' => 2,
+        '/api/stats/top-brands' => 2,
+        '/api/stats/top-models' => 2,
+        '/api/stats/inventory' => 3,
+        '/api/stats/sales/trend' => 2,
     ];
 
-    foreach ($endpoints as $endpoint) {
+    foreach ($endpoints as $endpoint => $expected) {
         seedSales(5);
 
-        $small = countQueriesDuringRequest(function () use ($endpoint) {
-            $this->getJson($endpoint)->assertOk();
-        });
+        assertQueriesFor($endpoint, $expected);
 
         seedSales(20);
 
-        $large = countQueriesDuringRequest(function () use ($endpoint) {
-            $this->getJson($endpoint)->assertOk();
-        });
-
-        expect($large)->toBe($small, "{$endpoint} escala consultas con las ventas");
+        assertQueriesFor($endpoint, $expected);
     }
 });
