@@ -1001,6 +1001,7 @@ docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml \
 - `docker/certs/*.pem` está ignorado por Git; nunca se hornea en la imagen (`.dockerignore` excluye el directorio).
 - `tls.conf` marca la petición como HTTPS (`HTTPS`, `REQUEST_SCHEME` y `X-Forwarded-Proto`) para que Laravel aplique HSTS y genere URLs `https://`.
 - Comprueba la configuración tras copiar certificados: `docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml --env-file .env.production exec -T nginx nginx -t`.
+- El healthcheck heredado sondea `http://127.0.0.1/up`, pero con esta superposición el puerto 80 solo redirige a 443. La superposición lo sustituye por `wget --no-check-certificate https://127.0.0.1/up`, porque el certificado puede ser de una CA interna o estar emitido para el dominio real y no para `127.0.0.1`.
 - **Renovación:** renueva con `certbot renew` (DNS-01, o `--standalone` con el stack parado) y copia de nuevo los `.pem`; recarga sin cortar el servicio con `... exec -T nginx nginx -s reload`. Si el certificado caduca, el healthcheck del proxy fallará y el navegador rechazará la conexión.
 
 > La superposición usa `ports: !override` para sustituir el `127.0.0.1:80` del compose base (requiere Docker Compose 2.24+; este repo usa v5). Si cambias `APP_URL` o el dominio, actualiza también `server_name` en `docker/nginx/tls.conf`.
