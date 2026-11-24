@@ -12,6 +12,10 @@ use App\Models\Users\Permission;
 use App\Models\Users\Role;
 use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\Locations\BranchSeeder;
+use Database\Seeders\Locations\CitySeeder;
+use Database\Seeders\Locations\CountrySeeder;
+use Database\Seeders\Locations\StateSeeder;
 use Database\Seeders\ProductionAdminSeeder;
 use Database\Seeders\Users\PermissionSeeder;
 use Database\Seeders\Users\RolePermissionSeeder;
@@ -192,7 +196,6 @@ it('invalida la caché del administrador al reaplicar su rol', function () {
 
 it('en producción DatabaseSeeder solo ejecuta el seeder fundacional', function () {
     app()['env'] = 'production';
-
     config([
         'seeders.admin_code' => 'USR-9003',
         'seeders.admin_email' => 'prod@agency.test',
@@ -212,4 +215,79 @@ it('en producción DatabaseSeeder solo ejecuta el seeder fundacional', function 
         ->and(Car::count())->toBe(0)
         ->and(Branch::count())->toBe(0)
         ->and(Currency::count())->toBe(0);
+});
+
+it('restaura el administrador de producción borrado lógicamente', function () {
+    config([
+        'seeders.admin_code' => 'USR-9010',
+        'seeders.admin_email' => 'restaurado@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9010')->firstOrFail();
+    $admin->delete();
+
+    expect(User::withTrashed()->findOrFail($admin->id)->trashed())->toBeTrue();
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $restored = User::withTrashed()->findOrFail($admin->id);
+
+    expect($restored->trashed())->toBeFalse()
+        ->and(User::count())->toBe(1)
+        ->and($restored->is_active)->toBeTrue()
+        ->and($restored->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value]);
+});
+
+it('reaplica la clave y el rol a un administrador de producción modificado', function () {
+    config([
+        'seeders.admin_code' => 'USR-9011',
+        'seeders.admin_email' => 'modificado@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9011')->firstOrFail();
+    $admin->update([
+        'password' => Hash::make('clave-anterior'),
+        'is_active' => false,
+        'must_change_password' => true,
+    ]);
+    $admin->roles()->detach();
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $fresh = $admin->fresh();
+
+    expect(Hash::check('S3gura-2026', $fresh->password))->toBeTrue()
+        ->and($fresh->is_active)->toBeTrue()
+        ->and($fresh->must_change_password)->toBeFalse()
+        ->and($fresh->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value]);
+});
+
+it('asocia al administrador de producción la primera sucursal activa', function () {
+    $this->seed([
+        CountrySeeder::class,
+        StateSeeder::class,
+        CitySeeder::class,
+        BranchSeeder::class,
+    ]);
+
+    $active = Branch::query()->where('is_active', true)->orderBy('id')->get();
+    $active[0]->update(['is_active' => false]);
+
+    config([
+        'seeders.admin_code' => 'USR-9012',
+        'seeders.admin_email' => 'sucursal@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9012')->firstOrFail();
+
+    expect($admin->branches()->pluck('branches.id')->all())->toBe([$active[1]->id]);
 });
