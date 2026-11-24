@@ -1104,6 +1104,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 - **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
 - **Migraciones y seed**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force --seed`) o define `RUN_MIGRATIONS=true` y `RUN_SEED=true` para que los ejecute el entrypoint. El `--seed` solo crea roles/permisos y el administrador; no inserta datos demo.
 - **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a un PostgreSQL gestionado externo (Render PostgreSQL, Neon, Supabase, Railway, etc.).
+- **Sesiones en archivo**: define `SESSION_DRIVER=file` (lo que ya hace `.env.production` en la VPS). El proyecto no incluye la migración de `sessions` y el valor por defecto de Laravel es `database`, así que con ese driver el login responde `500` al no existir la tabla.
 - **TLS lo termina la plataforma**: el contenedor recibe HTTP por `$PORT`, así que configura `APP_URL=https://...`, `TRUSTED_PROXIES=<IP o CIDR del borde>`, `HSTS_ENABLED=true` y `SESSION_SECURE_COOKIE=true`. Sin un proxy explícito Laravel ignora `X-Forwarded-Proto`, no detecta HTTPS y no envía HSTS. **`TRUSTED_PROXIES=*` está prohibido en producción**: Laravel toma la última IP de `X-Forwarded-For` y un cliente podría falsificar la IP de auditoría y de los limitadores. La misma regla vale para la VPS; la diferencia es solo qué IP o rango se declara. En local con `docker run` sobre HTTP deja `TRUSTED_PROXIES` vacío y `HSTS_ENABLED=false`.
 - **CORS obligatorio**: la imagen fija `APP_ENV=production`, así que hay que declarar `CORS_ALLOWED_ORIGINS` con orígenes explícitos (lista separada por comas; nunca `*`). El entrypoint lo valida antes de arrancar FrankenPHP y `CorsPolicy` lo vuelve a comprobar en cada petición HTTP; sin él `/up` respondería `500`. Los comandos artisan (migraciones, `optimize`) no requieren esta variable.
 
@@ -1117,6 +1118,7 @@ docker run --rm -p 8080:8080 \
   -e CORS_ALLOWED_ORIGINS=http://localhost:3000 \
   -e DB_CONNECTION=sqlite \
   -e DB_DATABASE=/var/www/html/storage/local.sqlite \
+  -e SESSION_DRIVER=file \
   -e ADMIN_EMAIL=admin@agency.test \
   -e ADMIN_PASSWORD='S3gura-2026' \
   -e RUN_MIGRATIONS=true \

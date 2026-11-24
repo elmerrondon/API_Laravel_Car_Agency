@@ -117,7 +117,9 @@ docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml --env-file .
 docker build -f docker/render/Dockerfile.render -t car-agency-laravel-api:paas .
 docker run --rm -p 8080:8080 \
   -e APP_KEY=base64:... \
+  -e CORS_ALLOWED_ORIGINS=http://localhost:8080 \
   -e DB_CONNECTION=sqlite -e DB_DATABASE=/var/www/html/storage/local.sqlite \
+  -e SESSION_DRIVER=file \
   -e ADMIN_EMAIL=admin@agency.test -e ADMIN_PASSWORD='S3gura-2026' \
   -e RUN_MIGRATIONS=true -e RUN_SEED=true car-agency-laravel-api:paas
 curl -i http://localhost:8080/up
