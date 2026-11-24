@@ -11,6 +11,7 @@ use App\Models\Users\Role;
 use App\Models\Users\User;
 use App\Services\Users\RoleService;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\Users\RolePermissionSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -131,4 +132,19 @@ it('descarta la caché del usuario al borrarlo', function () {
 
     // La clave se borra para no dejar datos de un usuario eliminado.
     expect(Cache::has("permissions:user:{$user->id}"))->toBeFalse();
+});
+
+it('invalida la caché de los usuarios del rol al resincronizar la matriz', function () {
+    $sellerRole = Role::where('name', RoleEnum::SELLER->value)->firstOrFail();
+
+    $sellerRole->permissions()->detach(
+        Permission::where('name', PermissionEnum::VIEW_CARS->value)->value('id')
+    );
+
+    // El estado revocado queda cacheado antes de resincronizar la matriz.
+    expect($this->seller->permissionNames())->not->toContain(PermissionEnum::VIEW_CARS->value);
+
+    $this->seed(RolePermissionSeeder::class);
+
+    expect($this->seller->hasPermissionTo(PermissionEnum::VIEW_CARS))->toBeTrue();
 });

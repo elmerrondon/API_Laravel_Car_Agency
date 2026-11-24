@@ -90,6 +90,10 @@ class ProductionAdminSeeder extends Seeder
         $role = Role::where('name', RoleEnum::ADMIN->value)->firstOrFail();
         $user->roles()->sync([$role->id]);
 
+        // Igual que `RolePermissionSeeder`: el `sync()` no pasa por
+        // `UserService`, así que hay que descartar la caché del administrador.
+        $user->forgetPermissionCache();
+
         // Si la instalación ya tiene sucursales, el administrador queda
         // asociado a la primera activa; si no, el usuario sigue siendo válido.
         $branch = Branch::where('is_active', true)->orderBy('id')->first();

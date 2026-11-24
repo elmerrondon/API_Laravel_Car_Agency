@@ -153,6 +153,43 @@ it('es idempotente al sembrar dos veces el administrador de producción', functi
         ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue();
 });
 
+it('invalida la caché de permisos al resincronizar la matriz de roles', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $seller = User::where('email', 'vendedor@caragency.test')->firstOrFail();
+    $sellerRole = Role::where('name', RoleEnum::SELLER->value)->firstOrFail();
+
+    // Se revoca `view_cars` por fuera de los servicios y se cachea el estado.
+    $sellerRole->permissions()->detach(
+        Permission::where('name', PermissionEnum::VIEW_CARS->value)->value('id')
+    );
+
+    expect($seller->permissionNames())->not->toContain(PermissionEnum::VIEW_CARS->value);
+
+    $this->seed(RolePermissionSeeder::class);
+
+    expect($seller->hasPermissionTo(PermissionEnum::VIEW_CARS))->toBeTrue();
+});
+
+it('invalida la caché del administrador al reaplicar su rol', function () {
+    config([
+        'seeders.admin_code' => 'USR-9004',
+        'seeders.admin_email' => 'cache@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9004')->firstOrFail();
+    $admin->roles()->detach();
+
+    expect($admin->permissionNames())->toBe([]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    expect($admin->hasPermissionTo(PermissionEnum::VIEW_AUDIT_LOGS))->toBeTrue();
+});
+
 it('en producción DatabaseSeeder solo ejecuta el seeder fundacional', function () {
     app()['env'] = 'production';
 

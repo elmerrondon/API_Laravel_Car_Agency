@@ -8,6 +8,7 @@ use App\Enums\Users\PermissionEnum;
 use App\Enums\Users\RoleEnum;
 use App\Models\Users\Permission;
 use App\Models\Users\Role;
+use App\Models\Users\User;
 use Illuminate\Database\Seeder;
 
 class RolePermissionSeeder extends Seeder
@@ -58,6 +59,11 @@ class RolePermissionSeeder extends Seeder
             )->pluck('id');
 
             $role->permissions()->sync($permissionIds);
+
+            // `sync()` escribe por fuera de `RoleService`, que es quien
+            // invalida la caché; sin este flush los permisos revocados o
+            // añadidos seguirían vigentes hasta que expire el TTL.
+            User::flushPermissionCacheForRole((int) $role->getKey());
         }
     }
 }
