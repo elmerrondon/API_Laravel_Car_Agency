@@ -46,7 +46,7 @@ No son fallos; se documentan para no reabrirlos:
 - [x] **3.2 Los seeders RBAC no invalidan la caché de permisos.** `RolePermissionSeeder.php:60` y `ProductionAdminSeeder.php:91` hacen `sync()` sin `User::flushPermissionCacheForRole()`; con TTL 300 los permisos revocados siguen vigentes hasta 5 minutos. Llamar al flush tras cada sync y cubrirlo en `tests/Feature/Database/*` y `PermissionCacheTest.php`.
 - [x] **3.3 `PATCH /users/{user}` con body `{"user":...}` responde 500.** `UpdateUserRequest.php:61,65` lee `$this->user->id` (propiedad mágica que el payload puede sombrear) en vez de `$this->route('user')`. Usar el modelo de ruta y añadir un test con ese campo extra.
 - [x] **3.4 Healthcheck TLS mal dirigido.** `docker-compose.tls.yml:14-21` no sobrescribe el `wget http://127.0.0.1/up` de `docker-compose.yml:48-53`, pero `tls.conf:12-19` redirige 80→443. Sobrescribir el healthcheck para sondear `https://127.0.0.1/up`.
-- [ ] **3.5 Rotación de backups recursiva.** `docker/scripts/backup-postgres.sh:61-62` usa `find` sin `-maxdepth 1` y `-mtime +N` (redondeo de un día). Añadir `-maxdepth 1` y ajustar el criterio de antigüedad al documentado.
+- [x] **3.5 Rotación de backups recursiva.** `docker/scripts/backup-postgres.sh:61-62` usa `find` sin `-maxdepth 1` y `-mtime +N` (redondeo de un día). Añadir `-maxdepth 1` y ajustar el criterio de antigüedad al documentado.
 - [ ] **3.6 Superusuario expuesto al contenedor `app`.** `docker-compose.prod.yml:22-23` inyecta todo `.env.production` (incluido `POSTGRES_PASSWORD`) en `app`/`worker`/`scheduler`. Sustituir `env_file` por una lista explícita de variables de aplicación.
 
 ## Fase 4 — P2: carrera fiscal y calidad de la suite

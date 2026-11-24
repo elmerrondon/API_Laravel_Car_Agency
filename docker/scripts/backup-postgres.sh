@@ -57,8 +57,14 @@ else
     exit 1
 fi
 
-# Retención: borra copias más antiguas que BACKUP_RETENTION_DAYS.
-find "$DESTINATION" -type f -name 'api_laravel_car_agency-*.dump' \
-    -mtime +"$RETENTION_DAYS" -delete
+# Retención: conserva las copias de los últimos BACKUP_RETENTION_DAYS días.
+# `-maxdepth 1` evita borrar dumps de subdirectorios ajenos (por ejemplo, una
+# copia histórica archivada). `-mtime +N` redondea hacia abajo y borraría a
+# partir de N+1 días, así que se resta uno para respetar el criterio
+# documentado: con 7 se conservan los archivos de los últimos 7 días.
+if [ "$RETENTION_DAYS" -gt 0 ]; then
+    find "$DESTINATION" -maxdepth 1 -type f -name 'api_laravel_car_agency-*.dump' \
+        -mtime +"$((RETENTION_DAYS - 1))" -delete
+fi
 
 echo "[backup] Copia creada: $FILE"

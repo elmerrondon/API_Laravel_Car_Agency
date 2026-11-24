@@ -1046,7 +1046,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/up
 
 Los scripts leen `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_APP_USER` y `POSTGRES_APP_PASSWORD` del contenedor `postgres`, así que las credenciales no viajan en la línea de comandos del host. `COMPOSE_FILE` y `ENV_FILE` permiten apuntar al compose de desarrollo (`COMPOSE_FILE=docker-compose.yml ENV_FILE=.env`).
 
-El dump contiene datos personales: `backup-postgres.sh` aplica `umask 077` y deja el archivo en `600`, así que solo el usuario que ejecuta el cron puede leerlo. Verifícalo con `stat -c '%a %n' backups/*.dump`.
+El dump contiene datos personales: `backup-postgres.sh` aplica `umask 077` y deja el archivo en `600`, así que solo el usuario que ejecuta el cron puede leerlo. Verifícalo con `stat -c '%a %n' backups/*.dump`. La retención solo considera los `*.dump` que están directamente en el destino (no recorre subdirectorios) y conserva los de los últimos `BACKUP_RETENTION_DAYS` días.
 
 La restauración corre como `car_agency` a propósito: si se hiciera con el superusuario, las tablas y secuencias quedarían a nombre de `postgres` y la API respondería `permission denied`. Al terminar se recarga Nginx porque `stop` + `start` puede cambiar la IP del contenedor `app` y Nginx resuelve el servicio al cargar su configuración.
 
