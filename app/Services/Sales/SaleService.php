@@ -13,6 +13,7 @@ use App\Exceptions\Sales\MissingBaseCurrencyException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleBranchMismatchException;
 use App\Exceptions\Sales\SaleNotCancellableException;
+use App\Exceptions\Sales\TaxNotAvailableException;
 use App\Models\Cars\Car;
 use App\Models\Sales\Currency;
 use App\Models\Sales\Sale;
@@ -119,7 +120,16 @@ class SaleService
             $totalDiscount = round($basePrice * ($discountPercentage / 100), 2);
             $taxableAmount = $basePrice - $totalDiscount;
 
-            $taxesFromDb = Tax::whereIn('id', $data->taxes)->get();
+            // La validación del FormRequest y esta lectura no son atómicas: un
+            // impuesto puede desactivarse en medio. Se filtra por `is_active`
+            // y se exige que lleguen todos los solicitados; si no, la venta
+            // quedaría con menos impuestos de los que validó el cliente.
+            $taxesFromDb = Tax::whereIn('id', $data->taxes)->where('is_active', true)->get();
+
+            if ($taxesFromDb->count() !== count($data->taxes)) {
+                throw TaxNotAvailableException::missing();
+            }
+
             $totalTaxes = 0;
             $taxDetails = [];
 

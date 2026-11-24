@@ -14,6 +14,8 @@ use App\Models\Sales\Sale;
 use App\Models\Sales\Tax;
 use App\Models\Users\User;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -332,4 +334,31 @@ it('valida impuestos, descuento y tipo de cambio', function () {
         ->assertJsonValidationErrors('exchange_rate');
 
     expect(Sale::count())->toBe(0);
+});
+
+it('responde 409 si un impuesto se desactiva entre la validación y la lectura', function () {
+    $car = sellingCar(1000);
+    $tax = Tax::where('code', 'I0001')->firstOrFail();
+
+    // Reproduce la carrera de forma determinista: en cuanto la regla `exists`
+    // del FormRequest termina, se desactiva el impuesto. La validación ya pasó,
+    // así que el servicio lee un catálogo distinto al que autorizó la venta.
+    $deactivated = false;
+
+    DB::listen(function (QueryExecuted $query) use ($tax, &$deactivated): void {
+        if ($deactivated || ! str_contains($query->sql, 'from "taxes"') || ! str_contains($query->sql, 'count(*)')) {
+            return;
+        }
+
+        $deactivated = true;
+        $tax->update(['is_active' => false]);
+    });
+
+    $this->postJson('/api/sales', salePayload($car, ['taxes' => [$tax->id]]))
+        ->assertStatus(409)
+        ->assertJsonPath('message', 'One or more taxes are no longer active; reload the catalog and try again');
+
+    expect($deactivated)->toBeTrue()
+        ->and(Sale::count())->toBe(0)
+        ->and($car->fresh()->status)->toBe(CarStatus::AVAILABLE);
 });

@@ -9,6 +9,7 @@ use App\Exceptions\Sales\MissingBaseCurrencyException;
 use App\Exceptions\Sales\SaleAlreadyCancelledException;
 use App\Exceptions\Sales\SaleBranchMismatchException;
 use App\Exceptions\Sales\SaleNotCancellableException;
+use App\Exceptions\Sales\TaxNotAvailableException;
 use App\Exceptions\Users\LastAdminException;
 use App\Exceptions\Users\RoleInUseException;
 use App\Http\Controllers\HealthController;
@@ -82,7 +83,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(
-            fn (SaleAlreadyCancelledException|SaleNotCancellableException|MissingBaseCurrencyException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
+            fn (SaleAlreadyCancelledException|SaleNotCancellableException|MissingBaseCurrencyException|TaxNotAvailableException $e): JsonResponse => response()->json(['message' => $e->getMessage()], 409)
         );
 
         $exceptions->render(
