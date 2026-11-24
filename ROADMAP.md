@@ -57,7 +57,7 @@ No son fallos; se documentan para no reabrirlos:
 - [x] **4.4 Cobertura incompleta de rangos y caché.** `SaleUserListFilterTest.php:46-53` no prueba el límite exacto `from == to`; `StatsCacheTest.php:74-100` dice invalidar los ocho agregados pero solo consulta `/stats/summary` y no prueba caducidad por TTL. Parametrizar los ocho endpoints, añadir `travel()` y variar fechas/`limit`.
 - [x] **4.5 Ramas del seeder de producción sin cubrir.** `ProductionAdminSeeder.php:73-99`: restaurar un admin soft-deleted, re-aplicar clave/rol a un registro modificado y asociar la primera sucursal activa no tiene test. Añadir tres casos en `DatabaseSeedTest.php`.
 - [x] **4.6 Exportación CSV poco cubierta.** `AuditLogExportTest.php:43-70` no comprueba el BOM ni los prefijos aparte de `=`, y «con los filtros del listado» solo cubre `action`. Añadir BOM, seis prefijos y filtros `user_id`/`from`/`to`/`auditable_type`.
-- [ ] **4.7 Wiring de limitadores sin probar.** `RateLimitTest.php:57-68` invoca el closure directamente; no hay test de que `OPTIONS` ni `api/auth/login` queden exentos de `api-anon` (`ThrottleAnonymousApi.php:28`), ni del mapeo de `RATE_LIMIT_*`. Añadir ambos.
+- [x] **4.7 Wiring de limitadores sin probar.** `RateLimitTest.php:57-68` invoca el closure directamente; no hay test de que `OPTIONS` ni `api/auth/login` queden exentos de `api-anon` (`ThrottleAnonymousApi.php:28`), ni del mapeo de `RATE_LIMIT_*`. Añadir ambos.
 
 ---
 

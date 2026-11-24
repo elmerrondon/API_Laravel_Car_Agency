@@ -4,10 +4,24 @@ declare(strict_types=1);
 
 use App\Enums\Users\RoleEnum;
 use App\Models\Users\User;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Cache\RateLimiting\Unlimited;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
+
+/**
+ * Devuelve los límites que el limitador registrado aplicaría a una petición.
+ *
+ * @return list<Limit|Unlimited>
+ */
+function limitsFor(string $name): array
+{
+    $limiter = RateLimiter::limiter($name);
+    $limits = $limiter(HttpRequest::create('/api/cars', 'GET'));
+
+    return is_array($limits) ? $limits : [$limits];
+}
 
 it('limita las peticiones generales del API por usuario', function () {
     config(['rate_limits.api' => 2]);
@@ -185,4 +199,60 @@ it('lee los límites por defecto de la configuración', function () {
         ->and(config('rate_limits.reports_pdf'))->toBe(5)
         ->and(config('rate_limits.health'))->toBe(30)
         ->and(config('rate_limits.audit_export'))->toBe(10);
+});
+
+it('conecta cada RATE_LIMIT_* con su limitador', function () {
+    config([
+        'rate_limits.login' => 11,
+        'rate_limits.login_ip' => 12,
+        'rate_limits.api_anon' => 13,
+        'rate_limits.api' => 14,
+        'rate_limits.reports' => 15,
+        'rate_limits.reports_pdf' => 16,
+        'rate_limits.health' => 17,
+        'rate_limits.audit_export' => 18,
+    ]);
+
+    $attempts = fn (string $name): array => array_map(
+        fn (object $limit): int => $limit instanceof Limit ? $limit->maxAttempts : -1,
+        limitsFor($name),
+    );
+
+    expect($attempts('login'))->toBe([11, 12])
+        ->and($attempts('api-anon'))->toBe([13])
+        ->and($attempts('api'))->toBe([14])
+        ->and($attempts('reports'))->toBe([15])
+        ->and($attempts('reports-pdf'))->toBe([16])
+        ->and($attempts('health'))->toBe([17])
+        ->and($attempts('audit-export'))->toBe([18]);
+});
+
+it('no cuenta el preflight de CORS como tráfico anónimo', function () {
+    config(['rate_limits.api_anon' => 1]);
+
+    // El middleware global procesa el OPTIONS antes de despachar la ruta, con
+    // o sin cabeceras de preflight; solo importa que no consuma el cupo.
+    $this->call('OPTIONS', '/api/cars');
+    $this->call('OPTIONS', '/api/cars');
+
+    $this->getJson('/api/cars')->assertUnauthorized();
+    $this->getJson('/api/cars')->assertStatus(429);
+});
+
+it('no cuenta el login como tráfico anónimo', function () {
+    config([
+        'rate_limits.api_anon' => 1,
+        'rate_limits.login' => 100,
+        'rate_limits.login_ip' => 100,
+    ]);
+
+    $payload = ['email' => 'anonimo@example.test', 'password' => 'clave-erronea'];
+
+    $this->postJson('/api/auth/login', $payload)->assertUnauthorized();
+    $this->postJson('/api/auth/login', $payload)->assertUnauthorized();
+
+    // El cupo anónimo sigue intacto: la primera petición al API es la que lo
+    // agota, no los intentos de login (que tienen sus propios limitadores).
+    $this->getJson('/api/cars')->assertUnauthorized();
+    $this->getJson('/api/cars')->assertStatus(429);
 });
