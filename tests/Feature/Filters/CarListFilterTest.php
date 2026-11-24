@@ -81,13 +81,33 @@ it('filtra coches por año y precio', function () {
 });
 
 it('busca por prefijo del VIN sin tratar los comodines como comodines', function () {
-    $car = Car::where('vin', '01234567890123457')->firstOrFail();
+    $suffix = 'CDDEEFFGGHHJ';
+    $plain = Car::factory()->create(['vin' => 'AAXBB'.$suffix]);
+    $percent = Car::factory()->create(['vin' => 'AA%BB'.$suffix]);
+    $underscore = Car::factory()->create(['vin' => 'AA_BB'.$suffix]);
+    $bang = Car::factory()->create(['vin' => 'AA!BB'.$suffix]);
 
-    $found = $this->getJson('/api/cars?search='.$car->vin)->assertOk();
-    expect(array_column($found->json('data'), 'id'))->toBe([$car->id]);
+    // Cada comodín se escapa: sin el `escape '!'` de `ListFilters`, `%`
+    // devolvería todos los VIN que empiezan por `AA` y `_` haría lo mismo con
+    // cualquier carácter intermedio.
+    expect(array_column($this->getJson('/api/cars?search='.urlencode('AA%'))->assertOk()->json('data'), 'id'))
+        ->toBe([$percent->id])
+        ->and(array_column($this->getJson('/api/cars?search='.urlencode('AA_'))->assertOk()->json('data'), 'id'))
+        ->toBe([$underscore->id])
+        ->and(array_column($this->getJson('/api/cars?search='.urlencode('AA!'))->assertOk()->json('data'), 'id'))
+        ->toBe([$bang->id]);
 
-    $none = $this->getJson('/api/cars?search=%25')->assertOk();
-    expect($none->json('meta.total'))->toBe(0);
+    // La búsqueda es por prefijo: `AAX` encuentra el coche, pero un fragmento
+    // intermedio del mismo VIN no.
+    expect(array_column($this->getJson('/api/cars?search=AAX')->assertOk()->json('data'), 'id'))
+        ->toBe([$plain->id])
+        ->and($this->getJson('/api/cars?search=XBBC')->assertOk()->json('meta.total'))
+        ->toBe(0);
+
+    $seeded = Car::where('vin', '01234567890123457')->firstOrFail();
+
+    expect(array_column($this->getJson('/api/cars?search='.$seeded->vin)->assertOk()->json('data'), 'id'))
+        ->toBe([$seeded->id]);
 });
 
 it('rechaza filtros no válidos', function (string $query) {

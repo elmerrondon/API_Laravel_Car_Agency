@@ -83,7 +83,13 @@ it('filtra estados, ciudades y sucursales por jerarquía', function () {
     }
 
     $bySearch = $this->getJson('/api/branches?search=agencia')->assertOk();
-    expect($bySearch->json('data'))->not->toBeEmpty();
+    expect(array_column($bySearch->json('data'), 'id'))->toBe(
+        Branch::query()
+            ->whereIn('name', ['Agencia Pueblo Nuevo', 'Agencia 5 de Julio'])
+            ->orderBy('id')
+            ->pluck('id')
+            ->all(),
+    );
 });
 
 it('rechaza filtros de catálogo y ubicación no válidos', function (string $url) {

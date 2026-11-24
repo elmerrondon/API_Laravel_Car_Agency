@@ -67,8 +67,17 @@ it('filtra usuarios por rol, sucursal, estado y búsqueda', function () {
     $byRole = $this->getJson('/api/users?role_id='.$roleId)->assertOk();
     expect(array_column($byRole->json('data'), 'id'))->toBe([$this->manager->id]);
 
-    $byBranch = $this->getJson('/api/users?branch_id='.$this->admin->branches()->value('branches.id'))->assertOk();
-    expect($byBranch->json('data'))->not->toBeEmpty();
+    $branchId = $this->admin->branches()->value('branches.id');
+
+    $byBranch = $this->getJson('/api/users?branch_id='.$branchId)->assertOk();
+
+    expect(array_column($byBranch->json('data'), 'id'))->toBe(
+        User::query()
+            ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))
+            ->orderBy('id')
+            ->pluck('id')
+            ->all(),
+    );
 
     $byActive = $this->getJson('/api/users?is_active=false')->assertOk();
     expect(array_column($byActive->json('data'), 'id'))->toContain($inactive->id);
