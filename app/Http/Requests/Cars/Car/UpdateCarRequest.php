@@ -38,7 +38,8 @@ class UpdateCarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'price' => ['sometimes', 'required', 'numeric', 'decimal:0,2', 'min:1'],
+            // `decimal(15,2)`: 13 dígitos enteros y 2 decimales.
+            'price' => ['sometimes', 'required', 'numeric', 'decimal:0,2', 'min:1', 'max:99999999999999.99'],
             'mileage' => ['sometimes', 'required', 'integer', 'min:0'],
             'year' => ['sometimes', 'required', 'integer', 'min:1900', 'max:2100'],
             // El VIN es único global, incluso entre coches con soft delete.

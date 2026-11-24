@@ -293,6 +293,16 @@ it('exige tipo de cambio 1 cuando se paga en la moneda base', function () {
         ->and($data['base_currency']['id'])->toBe($data['payment_currency']['id']);
 });
 
+it('rechaza un tipo de cambio que desborda decimal(10,2)', function () {
+    $car = sellingCar(1000);
+
+    $this->postJson('/api/sales', salePayload($car, ['exchange_rate' => '100000000']))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('exchange_rate');
+
+    expect(Sale::count())->toBe(0);
+});
+
 it('valida impuestos, descuento y tipo de cambio', function () {
     $car = sellingCar(1000);
 

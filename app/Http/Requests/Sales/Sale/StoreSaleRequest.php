@@ -32,7 +32,8 @@ class StoreSaleRequest extends FormRequest
             // Pagar en la moneda base implica importe pagado == importe base.
             // El servicio multiplica por la tasa, así que cualquier otro valor
             // dejaría la venta contabilizada dos veces en distinta moneda.
-            'exchange_rate' => ['required', 'numeric', 'gt:0', 'decimal:0,2', function ($attribute, $value, $fail) {
+            // Sin tope, un número válido para PHP desborda `decimal(10,2)`.
+            'exchange_rate' => ['required', 'numeric', 'gt:0', 'max:99999999.99', 'decimal:0,2', function ($attribute, $value, $fail) {
                 $baseCurrency = Currency::firstWhere('is_base', true);
 
                 if ($baseCurrency !== null

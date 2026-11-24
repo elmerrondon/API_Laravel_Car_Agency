@@ -37,7 +37,7 @@ No son fallos; se documentan para no reabrirlos:
 - [x] **2.4 `car_id` de coche borrado lógicamente da 404.** `StoreSaleRequest.php:36` usa `Rule::exists('cars','id')` sin `deleted_at` y `SaleService.php:101` hace `firstOrFail()`. Añadir `whereNull('deleted_at')` a la regla o traducir el `ModelNotFound` a `CarNotAvailableException` (422).
 - [x] **2.5 Escape CSV incompleto.** `AuditQueryService.php:126` no escapa el salto de línea (`\n`), que OWASP incluye junto a `= + - @ \t \r`. Añadir `\n` al patrón y cubrir los siete prefijos más el BOM en `AuditLogExportTest.php:50-71`; corregir `README.md:1244`.
 - [x] **2.6 La superposición TLS no reenvía la IP del cliente.** `docker/nginx/tls.conf:72-88` declara `X-Forwarded-Proto` pero no `X-Forwarded-For`, a diferencia de `default.conf:65`. Añadir `fastcgi_param HTTP_X_FORWARDED_FOR $remote_addr;` (una sola IP, sobrescribe la del cliente).
-- [ ] **2.7 Desbordamiento numérico → 500.** `exchange_rate` (`decimal(10,2)`) y `cars.price` (`decimal(15,2)`) no tienen `max` en `StoreSaleRequest.php:31` ni en `StoreCarRequest.php:41`. Añadir `max:99999999.99` y `max:99999999999999.99` respectivamente con tests de 422.
+- [x] **2.7 Desbordamiento numérico → 500.** `exchange_rate` (`decimal(10,2)`) y `cars.price` (`decimal(15,2)`) no tienen `max` en `StoreSaleRequest.php:31` ni en `StoreCarRequest.php:41`. Añadir `max:99999999.99` y `max:99999999999999.99` respectivamente con tests de 422.
 
 ## Fase 3 — P1/P2: acceso, operación y resiliencia
 

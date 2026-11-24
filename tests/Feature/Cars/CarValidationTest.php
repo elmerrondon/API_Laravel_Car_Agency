@@ -41,6 +41,24 @@ it('no permite reutilizar el VIN de un coche eliminado', function () {
         ->assertJsonValidationErrors('vin');
 });
 
+it('rechaza un precio que desborda decimal(15,2) al crear y al editar', function () {
+    $source = Car::firstOrFail();
+    $payload = carValidationPayload($source, '1HGBH41JXMN10918C');
+    $payload['price'] = '100000000000000';
+
+    $this->postJson('/api/cars', $payload)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('price');
+
+    $carId = $this->postJson('/api/cars', carValidationPayload($source, '1HGBH41JXMN10918D'))
+        ->assertCreated()
+        ->json('data.id');
+
+    $this->patchJson("/api/cars/{$carId}", ['price' => '100000000000000'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('price');
+});
+
 it('rechaza un año fuera del rango permitido', function () {
     $source = Car::firstOrFail();
     $payload = carValidationPayload($source, '1HGBH41JXMN10918B', 70000);
