@@ -371,8 +371,10 @@ DELETE /api/recurso/{id}      Eliminar
 
 Las ventas solo permiten `index`, `show`, `store` y `PATCH /{sale}/cancel`.
 En `POST /api/sales`, `exchange_rate` debe ser mayor que `0` (con hasta dos
-decimales). La tasa expresa cuántas unidades de la moneda de pago equivalen a
-una de la moneda base; una venta en la moneda base usa tasa `1`.
+decimales) y no superar `99999999.99`, que es el tope de la columna
+`decimal(10,2)`. La tasa expresa cuántas unidades de la moneda de pago equivalen
+a una de la moneda base; una venta en la moneda base usa tasa `1`, y cualquier
+otro valor para esa moneda responde `422`.
 `branch_id` debe coincidir con la sucursal del coche: la venta se registra
 siempre en la sucursal del vehículo y una sucursal distinta responde `422`.
 El vendedor se toma siempre del token autenticado: el payload no acepta
@@ -380,9 +382,11 @@ El vendedor se toma siempre del token autenticado: el payload no acepta
 futura ni anterior a `SALES_MIN_DATE` (por defecto `2000-01-01`).
 
 En coches, el alta solo admite `status=available`; la edición manual mueve
-entre `available` y `reserved`, y `sold` lo asigna únicamente la venta. Un coche
-con venta `completed` queda bloqueado para la edición manual (`422`) hasta que
-la venta se cancele.
+entre `available` y `reserved`, y `sold` lo asigna únicamente la venta. El
+`price` admite como máximo `99999999999999.99`, el tope de `decimal(15,2)`, tanto
+al crear como al editar; superarlo responde `422`. Un coche con venta
+`completed` queda bloqueado para la edición manual (`422`) hasta que la venta se
+cancele.
 
 ### Paginación
 
@@ -534,8 +538,9 @@ curl -s -o auditoria.csv \
 
 La exportación se transmite con `StreamedResponse` y `cursor()`, así que no
 carga toda la tabla en memoria. Incluye BOM UTF-8 para Excel y escapa las celdas
-que empiezan por `=`, `+`, `-`, `@`, tabulador o retorno de carro para evitar
-inyección de fórmulas. El nombre del archivo es `auditoria-YYYYMMDD-HHMMSS.csv`.
+que empiezan por `=`, `+`, `-`, `@`, tabulador, retorno de carro o salto de línea
+para evitar inyección de fórmulas. El nombre del archivo es
+`auditoria-YYYYMMDD-HHMMSS.csv`.
 
 ### Retención
 
@@ -1246,7 +1251,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `422` al resetear una contraseña | `password` y `password_confirmation` no coinciden o no cumplen la fuerza mínima. | Corrige el payload; el reset marca `must_change_password`. |
 | `405` en `/api/audit-logs` | La auditoría es append-only. | Solo se consulta con `GET`; no hay escritura pública. |
 | La auditoría crece demasiado | No se ejecuta la retención programada. | Revisa el scheduler y ejecuta `audit:prune`; ajusta `AUDIT_RETENTION_DAYS`. |
-| El CSV de auditoría muestra fórmulas | Un cliente abre el archivo sin respetar el escape. | El servidor prefija `'` a celdas que empiezan por `=`, `+`, `-`, `@`, tabulador o CR. |
+| El CSV de auditoría muestra fórmulas | Un cliente abre el archivo sin respetar el escape. | El servidor prefija `'` a celdas que empiezan por `=`, `+`, `-`, `@`, tabulador, CR o LF. |
 
 Para reiniciar desde cero:
 
