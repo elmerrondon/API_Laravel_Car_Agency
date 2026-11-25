@@ -29,7 +29,7 @@
 
 ## Fase 2 — Calidad estática y contrato
 
-- [ ] **2.1 Formato y análisis.** `./vendor/bin/pint --test`, `composer analyse`, `composer audit`. Criterio: Pint sin diff, PHPStan nivel 7 con 0 errores, `audit` sin avisos.
+- [x] **2.1 Formato y análisis.** `./vendor/bin/pint --test`, `composer analyse`, `composer audit`. Criterio: Pint sin diff, PHPStan nivel 7 con 0 errores, `audit` sin avisos.
 - [ ] **2.2 Arquitectura y configuración.** `./vendor/bin/pest --filter='ArchitectureTest|CorsConfigTest|TrustedProxyConfigTest|PasswordPolicyTest|Config|ScheduleTest|IndexesTest'`. Criterio: inyección en constructores, CORS/proxy/política de claves y scheduled tasks intactos.
 - [ ] **2.3 OpenAPI.** `composer docs:export` y `npx @redocly/cli lint storage/app/openapi.json`. Criterio: 3.1.2 válido, 55 paths, único aviso tolerado `no-server-example.com`. Si Node no está disponible en el host, validar solo el JSON generado y anotar la limitación.
 - [ ] **2.4 Inventario de rutas.** `php artisan route:list --path=api --json` y `php artisan route:list` (incluye `/up`, `/docs/api`, `/docs/api.json`). Criterio: sin rutas duplicadas ni ambiguas; la matriz de la fase 4 cubre todas las familias listadas.
