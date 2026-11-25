@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -106,7 +106,7 @@ jobs:
 
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar PHP 8.3
         uses: shivammathur/setup-php@v2
