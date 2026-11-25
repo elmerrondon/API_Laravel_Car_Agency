@@ -9,9 +9,9 @@
 ## 📌 Estado actual
 
 - **Actualizado:** 2026-11-24.
-- **Estado:** plan de pruebas integral cargado. Fase 0 cerrada; fases 1-6 pendientes de ejecución.
-- **Repo:** limpio antes de cargar este plan. La fase 0 sustituye el plan de QA cerrado por este ciclo.
-- **Línea base de código:** commit `c029bf5`; SQLite 524 tests / 3311 aserciones, PostgreSQL 524 / 3292, PHPStan 0 errores, Pint 381 archivos, `composer audit` limpio y OpenAPI válido (único aviso conocido `no-server-example.com`).
+- **Estado:** plan de pruebas integral ejecutado; fases 0-5 cerradas y fase 6 en curso.
+- **Repo:** limpio tras cada micro-tarea; `.env` y artefactos de build nunca versionados.
+- **Línea base final:** SQLite 524 tests / 3320 aserciones, PostgreSQL 524 / 3312, PHPStan 0 errores, Pint 381 archivos, `composer audit` limpio y OpenAPI 3.1.2 válido (único aviso tolerado `no-server-example.com`). Batería final en `/tmp/opencode/qa-final-summary.txt`.
 - **Regla de orden:** el roadmap se limpia y recibe el plan antes de ejecutar la primera prueba. Las fases posteriores solo marcan casillas y añaden resultados; no reescriben el plan.
 
 ---
@@ -71,7 +71,7 @@ curl -s http://localhost:8000/api/auth/login \
 
 ## Fase 6 — Cierre y registro
 
-- [ ] **6.1 Marcar el roadmap.** Una vez verificadas las fases 1-5, marcar `[x]` sus casillas en `ROADMAP.md` y actualizar el apartado «Estado actual» con los recuentos reales. Criterio: no queda ninguna casilla sin marcar sin explicación.
+- [x] **6.1 Marcar el roadmap.** Una vez verificadas las fases 1-5, marcar `[x]` sus casillas en `ROADMAP.md` y actualizar el apartado «Estado actual» con los recuentos reales. Criterio: no queda ninguna casilla sin marcar sin explicación. Resultado: fases 1-5 ya marcadas y verificadas; «Estado actual» refleja la batería final (SQLite 524/3320, PostgreSQL 524/3312, PHPStan 0, Pint 381, audit limpio, OpenAPI válido).
 - [ ] **6.2 Memoria.** Añadir una entrada fechada con el resultado, decisiones y gotchas de ejecución; verificar `wc -l MEMORY.md` ≤ 100 (93 + 1 = 94). Si aparece un bug no obvio, documentarlo ahí y abrir una tarea nueva en el roadmap.
 - [ ] **6.3 Commit y entrega.** `git status --short`, `git diff --check`, `git diff`, `git add` de los archivos tocados y commit convencional; nunca `.env`. Criterio: repo limpio; no se ejecuta `git push` ni otras operaciones prohibidas.
 - [ ] **6.4 Informe final.** Adjuntar rutas de los logs, recuentos de SQLite/PostgreSQL, resultados de Pint/PHPStan/audit/OpenAPI y la matriz HTTP ejecutada. Criterio: cada hallazgo tiene explicación, evidencia y destino (corregido en el ciclo o tarea nueva).
