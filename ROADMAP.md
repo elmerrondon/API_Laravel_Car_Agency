@@ -36,7 +36,7 @@
 
 ## Fase 3 — Suite automática en los dos motores
 
-- [ ] **3.1 SQLite (rápida).** `./vendor/bin/pest > /tmp/opencode/qa-2026-11-24-sqlite.log 2>&1` en segundo plano. Criterio: 524 tests / 3311 aserciones, 0 failures. No tocar archivos hasta que termine.
+- [x] **3.1 SQLite (rápida).** `./vendor/bin/pest > /tmp/opencode/qa-2026-11-24-sqlite.log 2>&1` en segundo plano. Criterio: 524 tests / 3311 aserciones, 0 failures. No tocar archivos hasta que termine. Resultado: 524/3311, 0 fallos; tres ejecuciones dieron 3304, 3305 y 3311 aserciones según los datos aleatorios de `CarListFilterTest`.
 - [ ] **3.2 PostgreSQL real.** `./vendor/bin/pest -c phpunit-postgres.xml > /tmp/opencode/qa-2026-11-24-pgsql.log 2>&1`. Criterio: 524 tests / 3292 aserciones, 0 failures. Antes de rerunear, comprobar que no queda un `pest` huérfano de una ejecución cortada (corrompe la base `testing`) y que `postgres` sigue en la red con alias `postgres`.
 - [ ] **3.3 Contraste.** Comparar ambos logs y el tiempo de ejecución. Criterio: mismos nombres de test; cualquier divergencia (cotejo, `numeric`, índices de expresión) se investiga antes de seguir.
 
