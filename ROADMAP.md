@@ -38,7 +38,7 @@
 
 - [x] **3.1 SQLite (rápida).** `./vendor/bin/pest > /tmp/opencode/qa-2026-11-24-sqlite.log 2>&1` en segundo plano. Criterio: 524 tests / 3311 aserciones, 0 failures. No tocar archivos hasta que termine. Resultado: 524/3311, 0 fallos; tres ejecuciones dieron 3304, 3305 y 3311 aserciones según los datos aleatorios de `CarListFilterTest`.
 - [x] **3.2 PostgreSQL real.** `./vendor/bin/pest -c phpunit-postgres.xml > /tmp/opencode/qa-2026-11-24-pgsql.log 2>&1`. Criterio: 524 tests / 3292 aserciones, 0 failures. Antes de rerunear, comprobar que no queda un `pest` huérfano de una ejecución cortada (corrompe la base `testing`) y que `postgres` sigue en la red con alias `postgres`. Resultado: 524 tests, 0 fallos; 3303 y 3307 aserciones en dos ejecuciones (misma causa aleatoria).
-- [ ] **3.3 Contraste.** Comparar ambos logs y el tiempo de ejecución. Criterio: mismos nombres de test; cualquier divergencia (cotejo, `numeric`, índices de expresión) se investiga antes de seguir.
+- [x] **3.3 Contraste.** Comparar ambos logs y el tiempo de ejecución. Criterio: mismos nombres de test; cualquier divergencia (cotejo, `numeric`, índices de expresión) se investiga antes de seguir. Resultado: los 524 nombres coinciden en ambos motores; la única divergencia son los recuentos de aserciones de tests que dependen de datos Faker (`CarListFilterTest`), sin fallos.
 
 ## Fase 4 — Prueba HTTP de endpoints (stack de desarrollo)
 
