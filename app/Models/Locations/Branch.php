@@ -1,36 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Locations;
 
-use App\Models\Cars\Car;
-use App\Models\Sales\Sale;
-use App\Models\Users\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Branch extends Model
 {
-    protected $fillable = ["name","address","code","description","city_id","zip_code","is_active"];
+    protected $fillable = ['name', 'address', 'code', 'description', 'city_id', 'zip_code', 'is_active'];
 
-    protected $hidden = ["created_at","updated_at"];
+    protected $hidden = ['created_at', 'updated_at'];
 
-    public function city(){
+    /** @return BelongsTo<City, $this> */
+    public function city(): BelongsTo
+    {
         return $this->belongsTo(City::class);
     }
 
-    public function cars(){
-        return $this->hasMany(Car::class);
-    }
-
-    public function users(){
-        return $this->belongsToMany(User::class);
-    }
-
-    public function sales(){
-        return $this->hasMany(Sale::class);
-    }
-
-    public function casts() : array{
-        return ["is_active" => "boolean"];
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
     }
 }

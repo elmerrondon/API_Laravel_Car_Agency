@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Locations;
 
 use App\DTOs\Locations\CountryData;
@@ -10,25 +12,35 @@ use App\Http\Requests\Locations\Country\UpdateCountryRequest;
 use App\Http\Resources\Locations\CountryResource;
 use App\Models\Locations\Country;
 use App\Services\Locations\CountryService;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class CountryController extends Controller
 {
-    public function __construct(private readonly CountryService $service)
-    {
-        
-    }
+    public function __construct(private readonly CountryService $service) {}
 
-    public function index(IndexCountryRequest $request){
-        $perPage = $request->validated('per_page');
-        $countries = $this->service->getAllPaginated($perPage);
+    public function index(IndexCountryRequest $request): AnonymousResourceCollection
+    {
+        $perPage = $this->perPage($request);
+
+        $countries = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CountryResource::collection($countries);
     }
 
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCountryRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
+    }
 
-
-    public function store(StoreCountryRequest $request){
+    public function store(StoreCountryRequest $request): CountryResource
+    {
         $dto = CountryData::fromRequest($request);
 
         $country = $this->service->createCountry($dto);
@@ -36,13 +48,13 @@ class CountryController extends Controller
         return new CountryResource($country);
     }
 
-    public function show(Country $country){
+    public function show(Country $country): CountryResource
+    {
         return new CountryResource($country);
     }
 
-
-
-    public function update(UpdateCountryRequest $request, Country $country){
+    public function update(UpdateCountryRequest $request, Country $country): CountryResource
+    {
         $dto = CountryData::fromRequest($request);
 
         $UpdateCountry = $this->service->updateCountry($country, $dto);
@@ -50,12 +62,10 @@ class CountryController extends Controller
         return new CountryResource($UpdateCountry);
     }
 
-
-
-    public function destroy(Country $country){
+    public function destroy(Country $country): Response
+    {
         $this->service->deleteCountry($country);
 
         return response()->noContent();
     }
-
 }

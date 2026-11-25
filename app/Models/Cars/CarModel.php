@@ -1,25 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Cars;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CarModel extends Model
 {
-    protected $fillable = ["name","description","brand_id","is_active"];
+    protected $fillable = ['name', 'description', 'brand_id', 'is_active'];
 
-    protected $hidden = ["created_at","updated_at"];
+    protected $hidden = ['created_at', 'updated_at'];
 
-    public function brand(){
+    /** @return BelongsTo<Brand, $this> */
+    public function brand(): BelongsTo
+    {
         return $this->belongsTo(Brand::class);
     }
 
-    public function cars(){
-        return $this->hasMany(Car::class);
-    }
-
-    public function casts() : array {
+    protected function casts(): array
+    {
         return ['is_active' => 'boolean'];
     }
 }

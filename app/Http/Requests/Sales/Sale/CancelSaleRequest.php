@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Sales\Sale;
 
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -23,7 +25,7 @@ class CancelSaleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes' => ['required','string','min:10','max:500']
+            'notes' => ['required', 'string', 'min:10', 'max:500'],
         ];
     }
 }

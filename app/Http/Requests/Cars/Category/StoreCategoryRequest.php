@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Cars\Category;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,9 +26,9 @@ class StoreCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:3','max:50','unique:categories,name'],
-            'description' => ['required','string','min:2','max:500'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:3', 'max:50', (new CaseInsensitiveUnique('categories', 'name'))],
+            'description' => ['required', 'string', 'min:2', 'max:500'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

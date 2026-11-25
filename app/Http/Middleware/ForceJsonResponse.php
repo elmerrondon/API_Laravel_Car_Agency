@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -13,7 +15,8 @@ class ForceJsonResponse
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next){
+    public function handle(Request $request, Closure $next): Response
+    {
         $request->headers->set('Accept', 'application/json');
 
         return $next($request);

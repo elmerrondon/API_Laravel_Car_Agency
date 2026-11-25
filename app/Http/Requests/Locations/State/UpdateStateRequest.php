@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Locations\State;
 
+use App\Models\Locations\State;
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateStateRequest extends FormRequest
 {
@@ -23,11 +26,13 @@ class UpdateStateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $currenCountryId = $this->state->country_id;
+        /** @var State|null $state */
+        $state = $this->route('state');
+
         return [
-            'name' => ['sometimes','required','string','min:3','max:50', Rule::unique('states','name')->where('country_id', $this->input('country_id', $currenCountryId))->ignore($this->state->id)],
-            'country_id' => ['sometimes','required','integer','exists:countries,id'],
-            'is_active' => ['sometimes', 'required', 'boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', (new CaseInsensitiveUnique('states', 'name', $state?->id))->where('country_id', $this->input('country_id', $state?->country_id))],
+            'country_id' => ['sometimes', 'required', 'integer', 'exists:countries,id'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

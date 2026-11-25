@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders\Users;
 
 use App\Enums\Users\PermissionEnum;
 use App\Models\Users\Permission;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class PermissionSeeder extends Seeder
@@ -14,8 +15,11 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        foreach(PermissionEnum::cases() as $permission){
-            Permission::firstOrCreate(['name' => $permission->value],['description' => $permission->description()]);
+        foreach (PermissionEnum::cases() as $permission) {
+            Permission::updateOrCreate(
+                ['name' => $permission->value],
+                ['description' => $permission->description()]
+            );
         }
     }
 }

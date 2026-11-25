@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Cars;
 
+use App\Models\Cars\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Brand
+ */
 class BrandResource extends JsonResource
 {
     /**
@@ -16,10 +22,10 @@ class BrandResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name, 
+            'name' => $this->name,
             'description' => $this->description,
             'country_id' => $this->country_id,
-            'is_active' => $this->is_active 
-            ];
+            'is_active' => $this->is_active,
+        ];
     }
 }

@@ -1,13 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Sales;
 
 use App\Http\Resources\Cars\CarResource;
 use App\Http\Resources\Locations\BranchResource;
 use App\Http\Resources\Users\UserResource;
+use App\Models\Sales\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Sale
+ */
 class SaleResource extends JsonResource
 {
     /**
@@ -21,7 +27,7 @@ class SaleResource extends JsonResource
             'id' => $this->id,
             'exchange_rate' => $this->exchange_rate,
             'base_price' => $this->base_price,
-            'taxes' => $this->taxes, 
+            'taxes' => $this->taxes,
             'total_taxes' => $this->total_taxes,
             'discount_percentage' => $this->discount_percentage,
             'total_discount' => $this->total_discount,
@@ -41,7 +47,7 @@ class SaleResource extends JsonResource
             'base_currency' => new CurrencyResource($this->whenLoaded('baseCurrency')),
             'payment_method_id' => $this->payment_method_id,
             'payment_method' => new PaymentMethodResource($this->whenLoaded('paymentMethod')),
-            'notes' => $this->notes
+            'notes' => $this->notes,
         ];
     }
 }

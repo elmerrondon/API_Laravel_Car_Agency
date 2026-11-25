@@ -1,0 +1,41 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Factories\Users;
+
+use App\Models\Users\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Hash;
+
+/**
+ * @extends Factory<User>
+ */
+class UserFactory extends Factory
+{
+    protected $model = User::class;
+
+    /**
+     * Contraseña compartida por los usuarios generados.
+     */
+    protected static ?string $password;
+
+    /**
+     * Define the model's default state.
+     */
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'document_number' => fake()->unique()->numerify('##########'),
+            // Rango 8### para no chocar con los códigos sembrados (USR-0001…)
+            // ni con los explícitos de otros tests: `unique()` no consulta la BD.
+            'code' => fake()->unique()->numerify('USR-8###'),
+            'email' => fake()->unique()->safeEmail(),
+            'password' => static::$password ??= Hash::make('password'),
+            'is_active' => true,
+            'must_change_password' => false,
+        ];
+    }
+}

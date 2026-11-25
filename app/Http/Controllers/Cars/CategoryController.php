@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\CategoryData;
@@ -10,27 +12,40 @@ use App\Http\Requests\Cars\Category\UpdateCategoryRequest;
 use App\Http\Resources\Cars\CategoryResource;
 use App\Models\Cars\Category;
 use App\Services\Cars\CategoryService;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class CategoryController extends Controller
 {
-    public function __construct(private readonly CategoryService $service)
-    {
-    
-    }
+    public function __construct(private readonly CategoryService $service) {}
 
-    public function index(IndexCategoryRequest $request){
-        $perPage = $request->validated('per_page');
-        $categories = $this->service->getAllPaginated($perPage);
-        
+    public function index(IndexCategoryRequest $request): AnonymousResourceCollection
+    {
+        $perPage = $this->perPage($request);
+
+        $categories = $this->service->getAllPaginated($this->filters($request), $perPage);
+
         return CategoryResource::collection($categories);
     }
 
-    public function show(Category $category){
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCategoryRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
+    }
+
+    public function show(Category $category): CategoryResource
+    {
         return new CategoryResource($category);
     }
 
-    public function store(StoreCategoryRequest $request){
+    public function store(StoreCategoryRequest $request): CategoryResource
+    {
         $dto = CategoryData::fromRequest($request);
 
         $category = $this->service->createCategory($dto);
@@ -38,15 +53,17 @@ class CategoryController extends Controller
         return new CategoryResource($category);
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category){
+    public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
+    {
         $dto = CategoryData::fromRequest($request);
 
-        $category = $this->service->updateCategory($category,$dto);
-        
+        $category = $this->service->updateCategory($category, $dto);
+
         return new CategoryResource($category);
     }
 
-    public function destroy(Category $category){
+    public function destroy(Category $category): Response
+    {
         $this->service->deleteCategory($category);
 
         return response()->noContent();

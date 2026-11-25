@@ -3,6 +3,10 @@
 .env
 .env.backup
 .env.production
+# Certificados TLS locales: la superposición docker-compose.tls.yml los monta
+# en tiempo de ejecución; nunca deben entrar en un commit.
+/docker/certs/*
+!/docker/certs/.gitkeep
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -11,6 +15,9 @@
 /.phpunit.cache
 /.vscode
 /.zed
+# Skills de agentes instaladas localmente. El lockfile (skills-lock.json) sí se
+# versiona: `npx skills install` las restaura en un clon nuevo.
+/.agents
 /auth.json
 /node_modules
 /public/build
@@ -19,6 +26,8 @@
 /storage/*.key
 /storage/pail
 /vendor
+# Copias de seguridad locales de la base de datos (ver docker/scripts).
+/backups
 Homestead.json
 Homestead.yaml
 Thumbs.db

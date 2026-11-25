@@ -1,23 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Sales;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PaymentMethod extends Model
 {
+    protected $fillable = ['name', 'is_active'];
 
-    protected $fillable = ["name","is_active"];
+    protected $hidden = ['created_at', 'updated_at'];
 
-    protected $hidden = ["created_at","updated_at"];
-
-    public function sales(){
-        return $this->hasMany(Sale::class);
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
     }
-
-    public function casts() : array{
-        return ["is_active" => "boolean"];
-    }
-    
 }

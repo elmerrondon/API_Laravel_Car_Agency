@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Locations;
 
+use App\Models\Locations\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Branch
+ */
 class BranchResource extends JsonResource
 {
     /**
@@ -23,7 +29,7 @@ class BranchResource extends JsonResource
             'zip_code' => $this->zip_code,
             'is_active' => $this->is_active,
             'city_id' => $this->city_id,
-            'city' => new CityResource($this->whenLoaded('city'))
+            'city' => new CityResource($this->whenLoaded('city')),
         ];
     }
 }

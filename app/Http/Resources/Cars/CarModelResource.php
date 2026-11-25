@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Cars;
 
+use App\Models\Cars\CarModel;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin CarModel
+ */
 class CarModelResource extends JsonResource
 {
     /**
@@ -20,7 +26,7 @@ class CarModelResource extends JsonResource
             'description' => $this->description,
             'is_active' => $this->is_active,
             'brand_id' => $this->brand_id,
-            'brand' => new BrandResource($this->whenLoaded('brand'))
+            'brand' => new BrandResource($this->whenLoaded('brand')),
         ];
     }
 }

@@ -1,5 +1,8 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Http\Controllers\Audit\AuditLogController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Cars\BrandController;
 use App\Http\Controllers\Cars\CarController;
@@ -12,46 +15,124 @@ use App\Http\Controllers\Locations\BranchController;
 use App\Http\Controllers\Locations\CityController;
 use App\Http\Controllers\Locations\CountryController;
 use App\Http\Controllers\Locations\StateController;
+use App\Http\Controllers\Reports\CarReportController;
+use App\Http\Controllers\Reports\SaleReportController;
 use App\Http\Controllers\Sales\CurrencyController;
 use App\Http\Controllers\Sales\PaymentMethodController;
 use App\Http\Controllers\Sales\SaleController;
 use App\Http\Controllers\Sales\TaxController;
+use App\Http\Controllers\Stats\StatsController;
 use App\Http\Controllers\Users\PermissionController;
 use App\Http\Controllers\Users\RoleController;
 use App\Http\Controllers\Users\UserController;
 use Illuminate\Support\Facades\Route;
 
-// Locations
-Route::apiResource('countries', CountryController::class);
-Route::apiResource('states', StateController::class);
-Route::apiResource('cities', CityController::class);
-Route::apiResource('branches', BranchController::class);
+// Autenticación: la única ruta pública es el login.
+Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-// Cars
-Route::get('car-statuses', [CarStatusController::class, 'index']);
-Route::apiResource('car-types', CarTypeController::class);
-Route::apiResource('categories', CategoryController::class);
-Route::apiResource('brands', BrandController::class);
-Route::apiResource('car-models', CarModelController::class);
-Route::apiResource('colors', ColorController::class);
-Route::apiResource('cars', CarController::class);
-
-// Users 
-Route::apiResource('users', UserController::class);
-Route::apiResource('roles', RoleController::class);
-Route::get('permissions', [PermissionController::class, 'index']);
-
-
-// Sales
-Route::apiResource('currencies', CurrencyController::class); 
-Route::apiResource('payment-methods', PaymentMethodController::class);
-Route::apiResource('taxes', TaxController::class);
-Route::patch('sales/{sale}/cancel', [SaleController::class, 'cancelSale']);
-Route::apiResource('sales', SaleController::class)->only(['index','show','store']);
-
-// Auth
-Route::post('auth/login', [AuthController::class, 'login']);
-Route::middleware('auth:sanctum')->group(function () {
+// `throttle:api` va antes de las guardas `active` y `password.changed`: si
+// abortaran primero, el token de una cuenta desactivada o con clave temporal
+// esquivaría el cupo por usuario y podría martillear el API sin 429.
+Route::middleware(['auth:sanctum', 'throttle:api', 'active', 'password.changed'])->group(function () {
+    Route::get('auth/me', [AuthController::class, 'me']);
+    Route::put('auth/password', [AuthController::class, 'changePassword']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
+
+    // Coches
+    Route::middleware('permission:view_cars')->group(function () {
+        Route::apiResource('cars', CarController::class)->only(['index', 'show']);
+    });
+    Route::middleware('permission:create_cars')->group(function () {
+        Route::apiResource('cars', CarController::class)->only(['store']);
+    });
+    Route::middleware('permission:update_cars')->group(function () {
+        Route::apiResource('cars', CarController::class)->only(['update']);
+    });
+    Route::middleware('permission:delete_cars')->group(function () {
+        Route::apiResource('cars', CarController::class)->only(['destroy']);
+    });
+
+    // Catálogos (coches, monedas, métodos de pago e impuestos)
+    Route::middleware('permission:view_catalogs')->group(function () {
+        Route::get('car-statuses', [CarStatusController::class, 'index']);
+        Route::apiResource('car-types', CarTypeController::class)->only(['index', 'show']);
+        Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+        Route::apiResource('brands', BrandController::class)->only(['index', 'show']);
+        Route::apiResource('car-models', CarModelController::class)->only(['index', 'show']);
+        Route::apiResource('colors', ColorController::class)->only(['index', 'show']);
+        Route::apiResource('currencies', CurrencyController::class)->only(['index', 'show']);
+        Route::apiResource('payment-methods', PaymentMethodController::class)->only(['index', 'show']);
+        Route::apiResource('taxes', TaxController::class)->only(['index', 'show']);
+    });
+    Route::middleware('permission:manage_catalogs')->group(function () {
+        Route::apiResource('car-types', CarTypeController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('categories', CategoryController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('brands', BrandController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('car-models', CarModelController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('colors', ColorController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('currencies', CurrencyController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('payment-methods', PaymentMethodController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('taxes', TaxController::class)->only(['store', 'update', 'destroy']);
+    });
+
+    // Ubicaciones
+    Route::middleware('permission:view_locations')->group(function () {
+        Route::apiResource('countries', CountryController::class)->only(['index', 'show']);
+        Route::apiResource('states', StateController::class)->only(['index', 'show']);
+        Route::apiResource('cities', CityController::class)->only(['index', 'show']);
+        Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
+    });
+    Route::middleware('permission:manage_locations')->group(function () {
+        Route::apiResource('countries', CountryController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('states', StateController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('cities', CityController::class)->only(['store', 'update', 'destroy']);
+        Route::apiResource('branches', BranchController::class)->only(['store', 'update', 'destroy']);
+    });
+
+    // Ventas
+    Route::middleware('permission:view_sales')->group(function () {
+        Route::apiResource('sales', SaleController::class)->only(['index', 'show']);
+    });
+    Route::middleware('permission:create_sales')->group(function () {
+        Route::apiResource('sales', SaleController::class)->only(['store']);
+    });
+    Route::middleware('permission:cancel_sales')->group(function () {
+        Route::patch('sales/{sale}/cancel', [SaleController::class, 'cancelSale']);
+    });
+
+    // Reportes
+    Route::middleware(['permission:view_reports', 'throttle:reports'])->group(function () {
+        Route::get('reports/sales/pdf', [SaleReportController::class, 'pdf'])->middleware('throttle:reports-pdf');
+        Route::get('reports/cars', [CarReportController::class, 'index']);
+        Route::get('reports/cars/pdf', [CarReportController::class, 'pdf'])->middleware('throttle:reports-pdf');
+    });
+
+    // Estadísticas (solo lectura)
+    Route::middleware('permission:view_statistics')->group(function () {
+        Route::get('stats/summary', [StatsController::class, 'summary']);
+        Route::get('stats/top-branches', [StatsController::class, 'topBranches']);
+        Route::get('stats/top-brands', [StatsController::class, 'topBrands']);
+        Route::get('stats/top-models', [StatsController::class, 'topModels']);
+        Route::get('stats/top-cities', [StatsController::class, 'topCities']);
+        Route::get('stats/top-users', [StatsController::class, 'topUsers']);
+        Route::get('stats/inventory', [StatsController::class, 'inventory']);
+        Route::get('stats/sales/trend', [StatsController::class, 'salesTrend']);
+    });
+
+    // Usuarios, roles y permisos
+    Route::middleware('permission:manage_users')->group(function () {
+        Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword']);
+        Route::apiResource('users', UserController::class);
+        Route::apiResource('roles', RoleController::class);
+        Route::get('permissions', [PermissionController::class, 'index']);
+    });
+
+    // Auditoría (solo lectura). La exportación va antes del resource para que
+    // `export` no sea capturado por el route-model binding de `{audit_log}`.
+    Route::middleware('permission:view_audit_logs')->group(function () {
+        Route::get('audit-logs/export', [AuditLogController::class, 'export'])
+            ->middleware('throttle:audit-export');
+        Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
+    });
 });

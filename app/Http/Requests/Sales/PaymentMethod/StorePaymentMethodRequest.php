@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Sales\PaymentMethod;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,8 +26,8 @@ class StorePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:2','max:50','unique:payment_methods,name'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', 'min:2', 'max:50', (new CaseInsensitiveUnique('payment_methods', 'name'))],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

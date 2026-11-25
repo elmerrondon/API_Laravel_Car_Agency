@@ -1,16 +1,20 @@
-<?php 
+<?php
+
+declare(strict_types=1);
 
 namespace App\DTOs\Sales;
 
+use App\DTOs\Concerns\NormalizesRequestValues;
 use Illuminate\Foundation\Http\FormRequest;
 
-readonly class CurrencyData {
-    public function __construct(public ?string $name = null, public ?string $code = null, public ?bool $isBase = null, public ?bool $isActive = null)
-    {
-       
-    }
+readonly class CurrencyData
+{
+    use NormalizesRequestValues;
 
-    public static function fromRequest(FormRequest $request) : self{
-        return new self(name: $request->validated('name'), code: $request->validated('code'), isBase: $request->validated('is_base'), isActive: $request->validated('is_active'));
+    public function __construct(public ?string $name = null, public ?string $code = null, public ?bool $isBase = null, public ?bool $isActive = null) {}
+
+    public static function fromRequest(FormRequest $request): self
+    {
+        return new self(name: self::string($request, 'name'), code: self::string($request, 'code'), isBase: self::boolean($request, 'is_base'), isActive: self::boolean($request, 'is_active'));
     }
 }

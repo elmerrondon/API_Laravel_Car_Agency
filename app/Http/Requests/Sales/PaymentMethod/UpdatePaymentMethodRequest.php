@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Sales\PaymentMethod;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdatePaymentMethodRequest extends FormRequest
 {
@@ -24,8 +26,8 @@ class UpdatePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes','required','string','min:2','max:50',Rule::unique('payment_methods','name')->ignore($this->payment_method->id)],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:2', 'max:50', new CaseInsensitiveUnique('payment_methods', 'name', $this->payment_method->id)],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

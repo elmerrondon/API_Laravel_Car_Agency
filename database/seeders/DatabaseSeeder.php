@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Models\User;
 use Database\Seeders\Cars\BrandSeeder;
 use Database\Seeders\Cars\CarModelSeeder;
 use Database\Seeders\Cars\CarSeeder;
@@ -17,7 +18,9 @@ use Database\Seeders\Sales\CurrencySeeder;
 use Database\Seeders\Sales\PaymentMethodSeeder;
 use Database\Seeders\Sales\TaxSeeder;
 use Database\Seeders\Users\PermissionSeeder;
+use Database\Seeders\Users\RolePermissionSeeder;
 use Database\Seeders\Users\RoleSeeder;
+use Database\Seeders\Users\UserSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -27,22 +30,38 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * La imagen de producción se construye con `composer install --no-dev`, así
+     * que Faker no existe. Por eso los seeders demo (usuarios de prueba y
+     * coches de factory) solo se ejecutan fuera de producción; en producción
+     * únicamente se siembran los datos fundacionales.
      */
     public function run(): void
     {
-        // Users
+        if (app()->environment('production')) {
+            $this->call(ProductionAdminSeeder::class);
+
+            return;
+        }
+
+        // Entorno local/testing: datos demo (incluye Faker vía CarFactory).
+        // Users (roles y permisos ya sembrados)
         $this->call([
             RoleSeeder::class,
-            PermissionSeeder::class
+            PermissionSeeder::class,
+            RolePermissionSeeder::class,
         ]);
 
-        // Locations 
+        // Locations
         $this->call([
             CountrySeeder::class,
             StateSeeder::class,
             CitySeeder::class,
-            BranchSeeder::class
+            BranchSeeder::class,
         ]);
+
+        // Usuarios base: necesitan roles, permisos y sucursal
+        $this->call(UserSeeder::class);
 
         // Cars
         $this->call([
@@ -51,14 +70,14 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             CarModelSeeder::class,
             ColorSeeder::class,
-            CarSeeder::class
+            CarSeeder::class,
         ]);
 
         // Sales
         $this->call([
             CurrencySeeder::class,
             PaymentMethodSeeder::class,
-            TaxSeeder::class
+            TaxSeeder::class,
         ]);
     }
 }

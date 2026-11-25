@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Locations;
 
+use App\Models\Locations\State;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin State
+ */
 class StateResource extends JsonResource
 {
     /**
@@ -19,7 +25,7 @@ class StateResource extends JsonResource
             'name' => $this->name,
             'country_id' => $this->country_id,
             'country' => new CountryResource($this->whenLoaded('country')),
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

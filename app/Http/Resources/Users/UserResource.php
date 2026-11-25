@@ -1,11 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Users;
 
 use App\Http\Resources\Locations\BranchResource;
+use App\Models\Users\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin User
+ */
 class UserResource extends JsonResource
 {
     /**
@@ -24,7 +30,8 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
+            'must_change_password' => $this->must_change_password,
         ];
     }
 }
