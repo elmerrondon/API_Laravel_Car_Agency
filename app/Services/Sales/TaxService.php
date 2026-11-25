@@ -1,17 +1,41 @@
-<?php 
+<?php
+
+declare(strict_types=1);
 
 namespace App\Services\Sales;
 
 use App\DTOs\Sales\TaxData;
+use App\Enums\Audit\AuditAction;
 use App\Models\Sales\Tax;
+use App\Services\Audit\AuditService;
+use App\Support\ListFilters;
+use Illuminate\Pagination\LengthAwarePaginator;
 
-class TaxService{
-    
-    public function getAllPaginatedTaxes(?int $perPage = null){
-        return Tax::paginate($perPage);
+class TaxService
+{
+    public function __construct(private readonly AuditService $audit) {}
+
+    /**
+     * @param  array{is_active: bool|null, search: string|null}  $filters
+     * @return LengthAwarePaginator<int, Tax>
+     */
+    public function getAllPaginatedTaxes(array $filters, ?int $perPage = null): LengthAwarePaginator
+    {
+        $query = Tax::select(['id', 'name', 'code', 'percentage', 'is_active']);
+
+        if ($filters['is_active'] !== null) {
+            $query->where('is_active', $filters['is_active']);
+        }
+
+        ListFilters::search($query, 'name', $filters['search']);
+
+        return $query->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
-    public function createTax(TaxData $data) : Tax{
+    public function createTax(TaxData $data): Tax
+    {
         $dataArray = ['name' => $data->name, 'code' => $data->code, 'percentage' => $data->percentage, 'is_active' => $data->isActive];
 
         $cleanArray = array_filter($dataArray, function ($value) {
@@ -22,10 +46,15 @@ class TaxService{
 
         $taxe->refresh();
 
+        $this->audit->record(AuditAction::CATALOG_CREATED, $taxe, [], $this->taxAuditValues($taxe));
+
         return $taxe;
     }
 
-    public function updateTax(Tax $taxe, TaxData $data) : Tax{
+    public function updateTax(Tax $taxe, TaxData $data): Tax
+    {
+        $oldValues = $this->taxAuditValues($taxe);
+
         $dataArray = ['name' => $data->name, 'code' => $data->code, 'percentage' => $data->percentage, 'is_active' => $data->isActive];
 
         $cleanArray = array_filter($dataArray, function ($value) {
@@ -33,12 +62,38 @@ class TaxService{
         });
 
         $taxe->update($cleanArray);
+        $taxe->refresh();
+
+        $newValues = $this->taxAuditValues($taxe);
+
+        if ($oldValues !== $newValues) {
+            $this->audit->record(AuditAction::CATALOG_UPDATED, $taxe, $oldValues, $newValues);
+        }
 
         return $taxe;
     }
 
-    public function deleteTax(Tax $taxe) : bool{
-        return $taxe->delete();
+    public function deleteTax(Tax $taxe): bool
+    {
+        $oldValues = $this->taxAuditValues($taxe);
+
+        $deleted = $taxe->delete();
+
+        $this->audit->record(AuditAction::CATALOG_DELETED, $taxe, $oldValues, []);
+
+        return (bool) $deleted;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function taxAuditValues(Tax $taxe): array
+    {
+        return [
+            'name' => (string) $taxe->name,
+            'code' => (string) $taxe->code,
+            'percentage' => (float) $taxe->percentage,
+            'is_active' => (bool) $taxe->is_active,
+        ];
+    }
 }

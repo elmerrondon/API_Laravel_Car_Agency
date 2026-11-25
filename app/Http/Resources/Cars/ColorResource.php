@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Cars;
 
+use App\Models\Cars\Color;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Color
+ */
 class ColorResource extends JsonResource
 {
     /**
@@ -16,8 +22,8 @@ class ColorResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name, 
-            'is_active' => $this->is_active
-            ];
+            'name' => $this->name,
+            'is_active' => $this->is_active,
+        ];
     }
 }

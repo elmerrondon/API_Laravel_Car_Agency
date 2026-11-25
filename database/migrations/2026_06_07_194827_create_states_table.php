@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,10 +15,10 @@ return new class extends Migration
     {
         Schema::create('states', function (Blueprint $table) {
             $table->id();
-            $table->string("name",50);
-            $table->foreignId("country_id")->constrained()->restrictOnDelete();
-            $table->boolean("is_active")->default(true);
-            $table->unique(["name","country_id"]);
+            $table->string('name', 50);
+            $table->foreignId('country_id')->constrained()->restrictOnDelete();
+            $table->boolean('is_active')->default(true);
+            $table->unique(['name', 'country_id']);
             $table->timestamps();
         });
     }

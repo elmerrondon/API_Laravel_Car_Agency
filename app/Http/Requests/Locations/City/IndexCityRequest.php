@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Locations\City;
 
+use App\Support\ListFilters;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class IndexCityRequest extends FormRequest
 {
@@ -23,7 +27,10 @@ class IndexCityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page' => ['nullable','integer','min:1','max:100']
+            'state_id' => ['nullable', 'integer', 'min:1', 'exists:states,id'],
+            'is_active' => ['nullable', Rule::in(ListFilters::BOOLEAN_VALUES)],
+            'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }

@@ -1,0 +1,2 @@
+# Los certificados reales no se versionan. Copia aquí fullchain.pem y
+# privkey.pem (ver README, sección TLS) y mantén los permisos restringidos.

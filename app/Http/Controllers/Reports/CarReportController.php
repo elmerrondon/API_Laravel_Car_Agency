@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Reports;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Reports\CarReportRequest;
+use App\Services\Reports\CarReportService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Dedoc\Scramble\Attributes\Response;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response as HttpResponse;
+
+class CarReportController extends Controller
+{
+    public function __construct(private readonly CarReportService $service) {}
+
+    public function index(CarReportRequest $request): JsonResponse
+    {
+        return response()->json($this->service->build($this->branchId($request)));
+    }
+
+    #[Response(200, description: 'Documento PDF del reporte', mediaType: 'application/pdf', format: 'binary')]
+    public function pdf(CarReportRequest $request): HttpResponse
+    {
+        $report = $this->service->build($this->branchId($request));
+
+        return Pdf::loadView('reports.cars-pdf', $report)
+            ->setPaper('a4')
+            ->download('reporte-coches-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    private function branchId(CarReportRequest $request): ?int
+    {
+        $branchId = $request->validated('branch_id');
+
+        return $branchId !== null ? (int) $branchId : null;
+    }
+}

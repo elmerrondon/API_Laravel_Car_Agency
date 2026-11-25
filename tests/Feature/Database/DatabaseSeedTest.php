@@ -1,0 +1,293 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Enums\Users\PermissionEnum;
+use App\Enums\Users\RoleEnum;
+use App\Models\Cars\Car;
+use App\Models\Locations\Branch;
+use App\Models\Sales\Currency;
+use App\Models\Sales\Tax;
+use App\Models\Users\Permission;
+use App\Models\Users\Role;
+use App\Models\Users\User;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\Locations\BranchSeeder;
+use Database\Seeders\Locations\CitySeeder;
+use Database\Seeders\Locations\CountrySeeder;
+use Database\Seeders\Locations\StateSeeder;
+use Database\Seeders\ProductionAdminSeeder;
+use Database\Seeders\Users\PermissionSeeder;
+use Database\Seeders\Users\RolePermissionSeeder;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+
+$expectedTables = [
+    'users',
+    'roles',
+    'permissions',
+    'role_user',
+    'permission_role',
+    'branch_user',
+    'countries',
+    'states',
+    'cities',
+    'branches',
+    'car_types',
+    'categories',
+    'brands',
+    'car_models',
+    'colors',
+    'cars',
+    'currencies',
+    'payment_methods',
+    'taxes',
+    'sales',
+    'audit_logs',
+    'personal_access_tokens',
+];
+
+it('ejecuta las migraciones en una base de datos limpia', function () use ($expectedTables) {
+    foreach ($expectedTables as $table) {
+        expect(Schema::hasTable($table))->toBeTrue("Falta la tabla {$table}");
+    }
+});
+
+it('siembra los datos base con DatabaseSeeder', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    expect(Role::count())->toBe(count(RoleEnum::cases()))
+        ->and(Permission::count())->toBe(count(PermissionEnum::cases()))
+        ->and(Branch::count())->toBe(8)
+        ->and(Currency::count())->toBeGreaterThan(0)
+        ->and(Tax::count())->toBeGreaterThan(0)
+        ->and(Car::count())->toBe(52);
+
+    expect(Role::where('name', RoleEnum::ADMIN->value)->exists())->toBeTrue()
+        ->and(Permission::where('name', PermissionEnum::VIEW_CARS->value)->exists())->toBeTrue()
+        ->and(Branch::where('name', 'Sede Ventura Plaza')->exists())->toBeTrue();
+});
+
+it('siembra los permisos de forma idempotente', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(PermissionSeeder::class);
+
+    expect(Permission::count())->toBe(count(PermissionEnum::cases()))
+        ->and(Permission::where('name', PermissionEnum::VIEW_REPORTS->value)->value('description'))
+        ->toBe(PermissionEnum::VIEW_REPORTS->description());
+});
+
+it('siembra los usuarios base con rol y sucursal', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $password = env('SEED_USER_PASSWORD', 'password');
+
+    foreach ([
+        'admin@caragency.test' => RoleEnum::ADMIN,
+        'manager@caragency.test' => RoleEnum::MANAGER,
+        'vendedor@caragency.test' => RoleEnum::SELLER,
+    ] as $email => $role) {
+        $user = User::where('email', $email)->first();
+
+        expect($user)->not->toBeNull()
+            ->and($user->roles()->pluck('name')->all())->toBe([$role->value])
+            ->and($user->branches()->count())->toBe(1)
+            ->and($user->must_change_password)->toBeFalse()
+            ->and(Hash::check($password, $user->password))->toBeTrue();
+    }
+});
+
+it('asigna la matriz de permisos esperada a cada rol', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $permissionCount = fn (RoleEnum $role) => Role::where('name', $role->value)
+        ->firstOrFail()
+        ->permissions()
+        ->count();
+
+    expect($permissionCount(RoleEnum::ADMIN))->toBe(15)
+        ->and($permissionCount(RoleEnum::MANAGER))->toBe(11)
+        ->and($permissionCount(RoleEnum::SELLER))->toBe(5);
+
+    expect(RolePermissionSeeder::matrix()[RoleEnum::ADMIN->value])->toHaveCount(15)
+        ->and(RolePermissionSeeder::matrix()[RoleEnum::MANAGER->value])->toHaveCount(11)
+        ->and(RolePermissionSeeder::matrix()[RoleEnum::SELLER->value])->toHaveCount(5);
+});
+
+it('siembra el administrador de producción sin Faker ni datos demo', function () {
+    config([
+        'seeders.admin_name' => 'Root',
+        'seeders.admin_last_name' => 'Producción',
+        'seeders.admin_document_number' => 'V-90000001',
+        'seeders.admin_code' => 'USR-9001',
+        'seeders.admin_email' => 'root@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $user = User::where('email', 'root@agency.test')->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user->code)->toBe('USR-9001')
+        ->and($user->is_active)->toBeTrue()
+        ->and($user->must_change_password)->toBeFalse()
+        ->and($user->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value])
+        ->and($user->roles()->first()->permissions()->count())->toBe(15)
+        ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue()
+        ->and(User::count())->toBe(1)
+        ->and(Car::count())->toBe(0)
+        ->and(Branch::count())->toBe(0);
+});
+
+it('es idempotente al sembrar dos veces el administrador de producción', function () {
+    config([
+        'seeders.admin_code' => 'USR-9002',
+        'seeders.admin_email' => 'idempotente@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+    $this->seed(ProductionAdminSeeder::class);
+
+    $user = User::where('code', 'USR-9002')->firstOrFail();
+
+    expect(User::count())->toBe(1)
+        ->and($user->roles()->count())->toBe(1)
+        ->and(Hash::check('S3gura-2026', $user->password))->toBeTrue();
+});
+
+it('invalida la caché de permisos al resincronizar la matriz de roles', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $seller = User::where('email', 'vendedor@caragency.test')->firstOrFail();
+    $sellerRole = Role::where('name', RoleEnum::SELLER->value)->firstOrFail();
+
+    // Se revoca `view_cars` por fuera de los servicios y se cachea el estado.
+    $sellerRole->permissions()->detach(
+        Permission::where('name', PermissionEnum::VIEW_CARS->value)->value('id')
+    );
+
+    expect($seller->permissionNames())->not->toContain(PermissionEnum::VIEW_CARS->value);
+
+    $this->seed(RolePermissionSeeder::class);
+
+    expect($seller->hasPermissionTo(PermissionEnum::VIEW_CARS))->toBeTrue();
+});
+
+it('invalida la caché del administrador al reaplicar su rol', function () {
+    config([
+        'seeders.admin_code' => 'USR-9004',
+        'seeders.admin_email' => 'cache@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9004')->firstOrFail();
+    $admin->roles()->detach();
+
+    expect($admin->permissionNames())->toBe([]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    expect($admin->hasPermissionTo(PermissionEnum::VIEW_AUDIT_LOGS))->toBeTrue();
+});
+
+it('en producción DatabaseSeeder solo ejecuta el seeder fundacional', function () {
+    app()['env'] = 'production';
+    config([
+        'seeders.admin_code' => 'USR-9003',
+        'seeders.admin_email' => 'prod@agency.test',
+        'seeders.admin_document_number' => 'V-90000003',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->artisan('db:seed', [
+        '--class' => DatabaseSeeder::class,
+        '--force' => true,
+    ])->assertSuccessful();
+
+    expect(User::count())->toBe(1)
+        ->and(User::where('email', 'prod@agency.test')->exists())->toBeTrue()
+        ->and(Role::count())->toBe(count(RoleEnum::cases()))
+        ->and(Permission::count())->toBe(count(PermissionEnum::cases()))
+        ->and(Car::count())->toBe(0)
+        ->and(Branch::count())->toBe(0)
+        ->and(Currency::count())->toBe(0);
+});
+
+it('restaura el administrador de producción borrado lógicamente', function () {
+    config([
+        'seeders.admin_code' => 'USR-9010',
+        'seeders.admin_email' => 'restaurado@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9010')->firstOrFail();
+    $admin->delete();
+
+    expect(User::withTrashed()->findOrFail($admin->id)->trashed())->toBeTrue();
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $restored = User::withTrashed()->findOrFail($admin->id);
+
+    expect($restored->trashed())->toBeFalse()
+        ->and(User::count())->toBe(1)
+        ->and($restored->is_active)->toBeTrue()
+        ->and($restored->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value]);
+});
+
+it('reaplica la clave y el rol a un administrador de producción modificado', function () {
+    config([
+        'seeders.admin_code' => 'USR-9011',
+        'seeders.admin_email' => 'modificado@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9011')->firstOrFail();
+    $admin->update([
+        'password' => Hash::make('clave-anterior'),
+        'is_active' => false,
+        'must_change_password' => true,
+    ]);
+    $admin->roles()->detach();
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $fresh = $admin->fresh();
+
+    expect(Hash::check('S3gura-2026', $fresh->password))->toBeTrue()
+        ->and($fresh->is_active)->toBeTrue()
+        ->and($fresh->must_change_password)->toBeFalse()
+        ->and($fresh->roles()->pluck('name')->all())->toBe([RoleEnum::ADMIN->value]);
+});
+
+it('asocia al administrador de producción la primera sucursal activa', function () {
+    $this->seed([
+        CountrySeeder::class,
+        StateSeeder::class,
+        CitySeeder::class,
+        BranchSeeder::class,
+    ]);
+
+    $active = Branch::query()->where('is_active', true)->orderBy('id')->get();
+    $active[0]->update(['is_active' => false]);
+
+    config([
+        'seeders.admin_code' => 'USR-9012',
+        'seeders.admin_email' => 'sucursal@agency.test',
+        'seeders.admin_password' => 'S3gura-2026',
+    ]);
+
+    $this->seed(ProductionAdminSeeder::class);
+
+    $admin = User::where('code', 'USR-9012')->firstOrFail();
+
+    expect($admin->branches()->pluck('branches.id')->all())->toBe([$active[1]->id]);
+});

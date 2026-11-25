@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Cars\CarType;
 
+use App\Support\ListFilters;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class IndexCarTypeRequest extends FormRequest
 {
@@ -23,7 +27,9 @@ class IndexCarTypeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page' => ['nullable','integer','min:1','max:100']
+            'is_active' => ['nullable', Rule::in(ListFilters::BOOLEAN_VALUES)],
+            'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }

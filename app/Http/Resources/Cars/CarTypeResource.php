@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Cars;
 
+use App\Models\Cars\CarType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin CarType
+ */
 class CarTypeResource extends JsonResource
 {
     /**
@@ -18,7 +24,7 @@ class CarTypeResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

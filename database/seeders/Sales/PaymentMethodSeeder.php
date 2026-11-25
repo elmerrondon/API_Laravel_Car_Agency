@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders\Sales;
 
 use App\Models\Sales\PaymentMethod;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class PaymentMethodSeeder extends Seeder
@@ -14,15 +15,15 @@ class PaymentMethodSeeder extends Seeder
     public function run(): void
     {
         $paymentMethods = [
-            ["name" => "Efectivo", "is_active" => true],
-            ["name" => "Tarjeta", "is_active" => true],
-            ["name" => "Crypto", "is_active" => true],
-            ["name" => "Transferencia", "is_active" => true],
-            ["name" => "Pago Movil", "is_active" => true]
+            ['name' => 'Efectivo', 'is_active' => true],
+            ['name' => 'Tarjeta', 'is_active' => true],
+            ['name' => 'Crypto', 'is_active' => true],
+            ['name' => 'Transferencia', 'is_active' => true],
+            ['name' => 'Pago Movil', 'is_active' => true],
         ];
 
-        foreach($paymentMethods as $method){
-            PaymentMethod::firstOrCreate(["name" => $method["name"]], $method);
+        foreach ($paymentMethods as $method) {
+            PaymentMethod::firstOrCreate(['name' => $method['name']], $method);
         }
     }
 }

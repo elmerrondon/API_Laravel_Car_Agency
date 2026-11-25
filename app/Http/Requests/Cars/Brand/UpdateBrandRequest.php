@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Cars\Brand;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateBrandRequest extends FormRequest
 {
@@ -24,10 +26,10 @@ class UpdateBrandRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes','required','string','min:2','max:50',Rule::unique('brands','name')->ignore($this->brand->id)],
-            'description' => ['sometimes','required','string','min:3','max:500'],
-            'country_id' => ['sometimes','required','integer','exists:countries,id'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:2', 'max:50', new CaseInsensitiveUnique('brands', 'name', $this->brand->id)],
+            'description' => ['sometimes', 'required', 'string', 'min:3', 'max:500'],
+            'country_id' => ['sometimes', 'required', 'integer', 'exists:countries,id'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

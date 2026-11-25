@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Locations\Branch;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,12 +26,12 @@ class StoreBranchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','min:3','max:50','unique:branches,name'],
-            'address' => ['required','string','min:3','max:255'],
-            'description' => ['nullable','string','max:300'],
-            'zip_code' => ['required','string','min:3','max:20', 'alpha_dash'],
-            'is_active' => ['sometimes','required','boolean'],
-            'city_id' => ['required','integer','exists:cities,id']
+            'name' => ['required', 'string', 'min:3', 'max:50', (new CaseInsensitiveUnique('branches', 'name'))],
+            'address' => ['required', 'string', 'min:3', 'max:255'],
+            'description' => ['nullable', 'string', 'max:300'],
+            'zip_code' => ['required', 'string', 'min:3', 'max:20', 'alpha_dash'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
         ];
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Users;
 
 use App\DTOs\Users\RoleData;
@@ -10,63 +12,74 @@ use App\Http\Requests\Users\Role\UpdateRoleRequest;
 use App\Http\Resources\Users\RoleResource;
 use App\Models\Users\Role;
 use App\Services\Users\RoleService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use LogicException;
 
 class RoleController extends Controller
 {
-    public function __construct(private readonly RoleService $service)
-    {
-        
-    }
+    public function __construct(private readonly RoleService $service) {}
 
-    public function index(IndexRoleRequest $request){
-        $perPage = $request->validated('per_page');
-        $roles = $this->service->getAllPaginatedRoles($perPage);
+    public function index(IndexRoleRequest $request): AnonymousResourceCollection
+    {
+        $perPage = $this->perPage($request);
+        $roles = $this->service->getAllPaginatedRoles($this->filters($request), $perPage);
 
         return RoleResource::collection($roles);
     }
 
-    public function show(Role $role){
-        $role->load('permissions');
-        return new RoleResource($role);
+    /** @return array{search: string|null} */
+    private function filters(IndexRoleRequest $request): array
+    {
+        return [
+            'search' => $request->validated('search'),
+        ];
     }
 
-    public function store(StoreRoleRequest $request){
-        try{
-            $dto = RoleData::fromRequest($request);
-
-            $role = $this->service->createRole($dto);
-            
-            return new RoleResource($role);
-
-        }catch(LogicException $e) {
-            return response()->json(['message' => $e->getMessage()], 403);
-        }
-     
+    public function show(Role $role): RoleResource
+    {
+        return new RoleResource($this->service->getRole($role));
     }
 
-    public function update(Role $role, UpdateRoleRequest $request){
+    public function store(StoreRoleRequest $request): RoleResource|JsonResponse
+    {
         try {
             $dto = RoleData::fromRequest($request);
 
-            $role = $this->service->updateRole($role,$dto);
-            
+            $role = $this->service->createRole($dto);
+
             return new RoleResource($role);
 
-        }catch(LogicException $e){
+        } catch (LogicException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
         }
-        
+
     }
 
-    public function destroy(Role $role){
-        try{ 
+    public function update(Role $role, UpdateRoleRequest $request): RoleResource|JsonResponse
+    {
+        try {
+            $dto = RoleData::fromRequest($request);
+
+            $role = $this->service->updateRole($role, $dto);
+
+            return new RoleResource($role);
+
+        } catch (LogicException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        }
+
+    }
+
+    public function destroy(Role $role): Response|JsonResponse
+    {
+        try {
             $response = $this->service->deleteRole($role);
-            
+
             return response()->noContent();
-            
-        }catch(LogicException $e){
+
+        } catch (LogicException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
         }
     }

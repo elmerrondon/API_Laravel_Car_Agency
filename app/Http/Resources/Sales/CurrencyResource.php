@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Sales;
 
+use App\Models\Sales\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Currency
+ */
 class CurrencyResource extends JsonResource
 {
     /**
@@ -19,7 +25,7 @@ class CurrencyResource extends JsonResource
             'name' => $this->name,
             'code' => $this->code,
             'is_base' => $this->is_base,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

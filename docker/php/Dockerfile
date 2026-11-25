@@ -1,0 +1,151 @@
+# syntax=docker/dockerfile:1
+
+FROM php:8.3-fpm-alpine AS base
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_HOME=/tmp/composer
+
+# La imagen upstream compila PHP con --enable-mysqlnd. El proyecto solo usa
+# PostgreSQL/SQLite, así que recompilamos PHP desde el mismo tarball que trae
+# la imagen, pero con --disable-mysqlnd: no queda ningún driver MySQL en el
+# binario. Al reutilizar /usr/src/php.tar.xz seguimos el ritmo de parches de
+# seguridad de la imagen oficial sin fijar una versión a mano.
+RUN apk add --no-cache \
+        bash \
+        curl \
+        freetype \
+        git \
+        libjpeg-turbo \
+        libpng \
+        libpq \
+        libxml2 \
+        libzip \
+        oniguruma \
+        sqlite-libs \
+        unzip \
+    && apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        argon2-dev \
+        curl-dev \
+        freetype-dev \
+        gnu-libiconv-dev \
+        libjpeg-turbo-dev \
+        libpng-dev \
+        libsodium-dev \
+        libxml2-dev \
+        libzip-dev \
+        oniguruma-dev \
+        postgresql-dev \
+        readline-dev \
+        sqlite-dev \
+        zlib-dev \
+    && docker-php-source extract \
+    && cd /usr/src/php \
+    && ./configure \
+        --sysconfdir=/usr/local/etc \
+        --with-config-file-path=/usr/local/etc/php \
+        --with-config-file-scan-dir=/usr/local/etc/php/conf.d \
+        --enable-option-checking=fatal \
+        --with-mhash \
+        --with-pic \
+        --enable-mbstring \
+        --disable-mysqlnd \
+        --with-password-argon2 \
+        --with-sodium=shared \
+        --with-pdo-sqlite=/usr \
+        --with-sqlite3=/usr \
+        --with-curl \
+        --with-iconv=/usr \
+        --with-openssl \
+        --with-readline \
+        --with-zlib \
+        --disable-phpdbg \
+        --with-pear \
+        --disable-cgi \
+        --enable-fpm \
+        --with-fpm-user=www-data \
+        --with-fpm-group=www-data \
+    && make -j"$(nproc)" \
+    && make install \
+    && cd /usr/src \
+    && docker-php-source delete \
+    && cd / \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" \
+        bcmath \
+        dom \
+        exif \
+        gd \
+        mbstring \
+        opcache \
+        pcntl \
+        pdo_pgsql \
+        pdo_sqlite \
+        zip \
+    && apk del .build-deps \
+    && rm -rf /var/cache/apk/* /tmp/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+
+WORKDIR /var/www/html
+
+EXPOSE 9000
+
+FROM base AS dev
+
+ARG UID=1000
+ARG GID=1000
+
+RUN addgroup -g "${GID}" app \
+    && adduser -D -u "${UID}" -G app -s /bin/sh app
+
+RUN mkdir -p \
+        vendor \
+        bootstrap/cache \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+    && chown -R app:app vendor storage bootstrap/cache \
+    # En desarrollo FPM no corre como root: `user`/`group` solo generan avisos.
+    && sed -i '/^user = www-data$/d;/^group = www-data$/d' /usr/local/etc/php-fpm.d/www.conf
+
+USER app
+
+CMD ["php-fpm"]
+
+FROM base AS prod
+
+ENV APP_ENV=production \
+    APP_DEBUG=false
+
+COPY docker/php/opcache-prod.ini /usr/local/etc/php/conf.d/zz-opcache-prod.ini
+COPY docker/php/php-prod.ini /usr/local/etc/php/conf.d/zz-prod-errors.ini
+
+COPY composer.json composer.lock ./
+
+RUN composer install \
+        --no-dev \
+        --no-interaction \
+        --no-progress \
+        --prefer-dist \
+        --no-scripts
+
+COPY . .
+
+RUN composer dump-autoload --no-dev --optimize --no-scripts \
+    && mkdir -p \
+        bootstrap/cache \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+    && php artisan package:discover --ansi \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+USER www-data
+
+CMD ["php-fpm"]

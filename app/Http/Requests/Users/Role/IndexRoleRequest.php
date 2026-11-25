@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Users\Role;
 
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -23,7 +25,8 @@ class IndexRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page' => ['nullable','integer','min:1','max:100']
+            'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }

@@ -1,0 +1,45 @@
+version: 2
+
+# Dependencias del proyecto: Composer (PHP) y las GitHub Actions que usan los
+# workflows. Agrupadas para reducir el ruido de PRs; los parches de seguridad
+# siguen llegando como PRs independientes de Dependabot.
+updates:
+  - package-ecosystem: composer
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    groups:
+      composer-produccion:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      composer-desarrollo:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencias
+      - php
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:15"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencias
+      - ci

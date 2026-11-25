@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Cars;
 
 use App\DTOs\Cars\CarTypeData;
@@ -10,27 +12,40 @@ use App\Http\Requests\Cars\CarType\UpdateCarTypeRequest;
 use App\Http\Resources\Cars\CarTypeResource;
 use App\Models\Cars\CarType;
 use App\Services\Cars\CarTypeService;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class CarTypeController extends Controller
 {
-    public function __construct(private readonly CarTypeService $service)
-    {
-        
-    }
+    public function __construct(private readonly CarTypeService $service) {}
 
-    public function index(IndexCarTypeRequest $request){
-        $perPage = $request->validated('per_page');
-        $carTypes = $this->service->getAllPaginated($perPage);
+    public function index(IndexCarTypeRequest $request): AnonymousResourceCollection
+    {
+        $perPage = $this->perPage($request);
+
+        $carTypes = $this->service->getAllPaginated($this->filters($request), $perPage);
 
         return CarTypeResource::collection($carTypes);
     }
 
-    public function show(CarType $carType){
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexCarTypeRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
+    }
+
+    public function show(CarType $carType): CarTypeResource
+    {
         return new CarTypeResource($carType);
     }
 
-    public function store(StoreCarTypeRequest $request){
+    public function store(StoreCarTypeRequest $request): CarTypeResource
+    {
         $dto = CarTypeData::fromRequest($request);
 
         $carType = $this->service->createCarType($dto);
@@ -38,7 +53,8 @@ class CarTypeController extends Controller
         return new CarTypeResource($carType);
     }
 
-    public function update(CarType $carType, UpdateCarTypeRequest $request){
+    public function update(CarType $carType, UpdateCarTypeRequest $request): CarTypeResource
+    {
         $dto = CarTypeData::fromRequest($request);
 
         $carType = $this->service->updateCarType($carType, $dto);
@@ -46,7 +62,8 @@ class CarTypeController extends Controller
         return new CarTypeResource($carType);
     }
 
-    public function destroy(CarType $carType){
+    public function destroy(CarType $carType): Response
+    {
         $this->service->deleteCarType($carType);
 
         return response()->noContent();

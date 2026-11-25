@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Locations\Country;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,8 +26,8 @@ class StoreCountryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required','string','unique:countries,name', 'min:3', 'max:50'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['required', 'string', (new CaseInsensitiveUnique('countries', 'name')), 'min:3', 'max:50'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

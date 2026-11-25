@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Sales;
 
 use App\DTOs\Sales\TaxData;
@@ -10,45 +12,59 @@ use App\Http\Requests\Sales\Tax\UpdateTaxRequest;
 use App\Http\Resources\Sales\TaxResource;
 use App\Models\Sales\Tax;
 use App\Services\Sales\TaxService;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class TaxController extends Controller
 {
-    public function __construct(private readonly TaxService $service)
+    public function __construct(private readonly TaxService $service) {}
+
+    public function index(IndexTaxRequest $request): AnonymousResourceCollection
     {
-        
+        $perPage = $this->perPage($request);
+
+        $taxes = $this->service->getAllPaginatedTaxes($this->filters($request), $perPage);
+
+        return TaxResource::collection($taxes);
     }
 
-    public function index(IndexTaxRequest $request){
-        $perPage = $request->validated('per_page');
-
-        $Taxs = $this->service->getAllPaginatedTaxes($perPage);
-
-        return TaxResource::collection($Taxs);
+    /**
+     * @return array{is_active: bool|null, search: string|null}
+     */
+    private function filters(IndexTaxRequest $request): array
+    {
+        return [
+            'is_active' => $this->nullableBool($request, 'is_active'),
+            'search' => $request->validated('search'),
+        ];
     }
 
-    public function show(Tax $tax){
+    public function show(Tax $tax): TaxResource
+    {
         return new TaxResource($tax);
     }
 
-    public function store(StoreTaxRequest $request){
+    public function store(StoreTaxRequest $request): TaxResource
+    {
         $dto = TaxData::fromRequest($request);
 
-        $Tax = $this->service->createTax($dto);
+        $tax = $this->service->createTax($dto);
 
-        return new TaxResource($Tax);
+        return new TaxResource($tax);
     }
 
-    public function update(Tax $Tax, UpdateTaxRequest $request){
+    public function update(Tax $tax, UpdateTaxRequest $request): TaxResource
+    {
         $dto = TaxData::fromRequest($request);
 
-        $TaxUpdated = $this->service->updateTax($Tax, $dto);
+        $taxUpdated = $this->service->updateTax($tax, $dto);
 
-        return new TaxResource($TaxUpdated);
+        return new TaxResource($taxUpdated);
     }
 
-    public function destroy(Tax $Tax){
-        $this->service->deleteTax($Tax);
+    public function destroy(Tax $tax): Response
+    {
+        $this->service->deleteTax($tax);
 
         return response()->noContent();
     }

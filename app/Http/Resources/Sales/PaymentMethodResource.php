@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Sales;
 
+use App\Models\Sales\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin PaymentMethod
+ */
 class PaymentMethodResource extends JsonResource
 {
     /**
@@ -17,7 +23,7 @@ class PaymentMethodResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
         ];
     }
 }

@@ -1,24 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Users;
 
 use App\Enums\Users\PermissionEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Permission extends Model
 {
-    protected $fillable = ["name","description"];
+    protected $fillable = ['name', 'description'];
 
-    protected $hidden = ["created_at","updated_at"];
+    protected $hidden = ['created_at', 'updated_at'];
 
-    public function roles(){
-        return $this->belongsToMany(Role::class);
-    }
-
-    public function casts() : array {
+    protected function casts(): array
+    {
         return [
-            'name' => PermissionEnum::class
+            'name' => PermissionEnum::class,
         ];
     }
 }

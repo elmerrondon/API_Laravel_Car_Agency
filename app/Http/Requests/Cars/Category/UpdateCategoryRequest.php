@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Cars\Category;
 
+use App\Rules\CaseInsensitiveUnique;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateCategoryRequest extends FormRequest
 {
@@ -24,9 +26,9 @@ class UpdateCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes','required','string','min:3','max:50',Rule::unique('categories','name')->ignore($this->category->id)],
-            'description' => ['sometimes','required','string','min:2','max:500'],
-            'is_active' => ['sometimes','required','boolean']
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:50', new CaseInsensitiveUnique('categories', 'name', $this->category->id)],
+            'description' => ['sometimes', 'required', 'string', 'min:2', 'max:500'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }
