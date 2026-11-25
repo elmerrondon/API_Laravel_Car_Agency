@@ -45,7 +45,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache de Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
@@ -117,7 +117,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache de Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-php-8.3-pgsql-composer-${{ hashFiles('composer.lock') }}
