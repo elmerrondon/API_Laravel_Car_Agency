@@ -23,7 +23,7 @@
 
 ## Fase 1 — Preparación y línea base
 
-- [ ] **1.1 Estado del entorno.** `git status --short`, `git log --oneline -1`, `docker compose ps`, `wc -l MEMORY.md`, `docker compose exec -T app php -v`. Criterio: repo limpio en el commit de la fase 0, cuatro servicios `healthy`, PHP 8.3 con `pdo_pgsql`/`pdo_sqlite`.
+- [x] **1.1 Estado del entorno.** `git status --short`, `git log --oneline -1`, `docker compose ps`, `wc -l MEMORY.md`, `docker compose exec -T app php -v`. Criterio: repo limpio en el commit de la fase 0, cuatro servicios `healthy`, PHP 8.3 con `pdo_pgsql`/`pdo_sqlite`.
 - [ ] **1.2 Base limpia.** `docker compose exec -T app php artisan migrate:fresh --seed`. Criterio: termina sin errores; `php artisan health:check --fresh` imprime `database: ok` y `cache: ok`; `GET http://localhost:8000/up` → 200 `{"status":"ok"}`. Aviso: esto reinicia los datos demo de desarrollo.
 - [ ] **1.3 Configuración desplegable.** `docker compose config -q` (dev) y `docker compose -f docker-compose.prod.yml --env-file .env.production config -q` (prod); `nginx -t` en los contenedores con y sin superposición TLS. Criterio: YAML y configs válidos.
 
