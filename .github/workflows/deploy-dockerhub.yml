@@ -39,7 +39,7 @@ jobs:
       # para no encarecer el build con emulación.
       - name: Calcular etiquetas (latest + SHA)
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
