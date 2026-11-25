@@ -70,11 +70,24 @@ it('filtra coches por marca a través del modelo', function () {
 });
 
 it('filtra coches por año y precio', function () {
-    $response = $this->getJson('/api/cars?year_min=2026&price_min=25000&per_page=100')->assertOk();
+    // Coches conocidos dentro y fuera del rango: la suite no depende de que
+    // los valores aleatorios de CarFactory dejen algún coche que cumpla.
+    $match = Car::factory()->create(['year' => 2026, 'price' => 25000]);
+    $tooOld = Car::factory()->create(['year' => 2025, 'price' => 90000]);
+    $tooCheap = Car::factory()->create(['year' => 2026, 'price' => 24999.99]);
 
-    expect($response->json('data'))->not->toBeEmpty();
+    $cars = collect(
+        $this->getJson('/api/cars?year_min=2026&price_min=25000&per_page=100')
+            ->assertOk()
+            ->json('data'),
+    );
 
-    foreach ($response->json('data') as $car) {
+    expect($cars->pluck('id')->all())
+        ->toContain($match->id)
+        ->not->toContain($tooOld->id)
+        ->not->toContain($tooCheap->id);
+
+    foreach ($cars as $car) {
         expect((int) $car['year'])->toBeGreaterThanOrEqual(2026)
             ->and((float) $car['price'])->toBeGreaterThanOrEqual(25000);
     }

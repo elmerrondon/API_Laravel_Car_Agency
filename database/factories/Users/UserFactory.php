@@ -29,7 +29,9 @@ class UserFactory extends Factory
             'name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'document_number' => fake()->unique()->numerify('##########'),
-            'code' => fake()->unique()->numerify('USR-####'),
+            // Rango 8### para no chocar con los códigos sembrados (USR-0001…)
+            // ni con los explícitos de otros tests: `unique()` no consulta la BD.
+            'code' => fake()->unique()->numerify('USR-8###'),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => true,
