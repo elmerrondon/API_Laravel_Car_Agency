@@ -286,7 +286,7 @@ Un usuario desactivado recibe `401` en cualquier ruta autenticada, aunque su tok
 | `401` | Sin token, token inválido/expirado, credenciales incorrectas o usuario inactivo. |
 | `403` | Autenticado, pero sin el permiso requerido. |
 | `404` | Recurso inexistente o con soft delete. |
-| `409` | Conflicto de estado o integridad: venta ya cancelada, rol con usuarios, borrado con FK, moneda base duplicada o ausente. |
+| `409` | Conflicto de estado o integridad: venta ya cancelada, rol con usuarios, borrado con FK, moneda base duplicada o ausente, o impuesto desactivado entre la validación y el alta de la venta. |
 | `422` | Error de validación (detalle en `errors`) o regla de negocio incumplida (mensaje en `message`). |
 | `429` | Demasiadas peticiones: se superó el límite del *rate limiter*. Espera un minuto. |
 

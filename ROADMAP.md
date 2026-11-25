@@ -8,11 +8,11 @@
 
 ## 📌 Estado actual
 
-- **Actualizado:** 2026-11-23.
-- **Estado:** QA integral ejecutado sobre el estado cerrado del 2026-11-22. Plan de corrección: fases 1, 2 y 3 completadas; fase 4 pendiente.
+- **Actualizado:** 2026-11-24.
+- **Estado:** QA integral ejecutado sobre el estado cerrado del 2026-11-22. Plan de corrección completo: fases 1, 2, 3 y 4 cerradas.
 - **Repo:** limpio al iniciar el QA. Este commit sustituye el roadmap anterior (plan de hardening cerrado) por el plan de QA.
 - **Línea base verde:** SQLite 491 tests / 3061 aserciones, PostgreSQL 491 / 3049, PHPStan 0 errores, Pint 380 archivos, `composer audit` sin avisos, OpenAPI válido (único aviso conocido `no-server-example.com`), humo HTTP de desarrollo 20/20 códigos esperados y `/up` → 200.
-- **Verificación tras fases 1-3:** SQLite 501 tests / 3108 aserciones, PostgreSQL 501 / 3103, PHPStan 0 errores, Pint 380 archivos, `composer audit` sin avisos.
+- **Verificación final (fases 1-4):** SQLite 524 tests / 3311 aserciones, PostgreSQL 524 / 3292, PHPStan 0 errores, Pint 381 archivos, `composer audit` sin avisos, OpenAPI válido (único aviso conocido `no-server-example.com`) y humo HTTP de desarrollo 8/8 códigos esperados.
 - **Hallazgo P0 reproducido:** la imagen PaaS siguiendo el `docker run` del README responde `/up` → **500** si falta `CORS_ALLOWED_ORIGINS` (corregido en 1.1).
 
 ## Hallazgos comprobados y descartados
