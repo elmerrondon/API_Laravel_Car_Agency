@@ -1109,6 +1109,7 @@ Esta es la **vía alternativa** para plataformas gestionadas. La vía VPS de la 
 - **Un solo proceso**: FrankenPHP arranca Caddy con PHP embebido; no hay `php-fpm` ni un Nginx aparte que coordinar.
 - **Puerto dinámico**: el `Caddyfile` escucha en `:{$PORT:8080}`. Render y Railway inyectan `PORT`; en local el valor por defecto es `8080`.
 - **Usuario sin privilegios**: el contenedor corre como `www-data`, así que `PORT` debe ser `>= 1024`. Si una plataforma obliga a usar el puerto `80`, arráncalo con `--user 0`.
+- **Sin capabilities**: el build retira la *file capability* `cap_net_bind_service` que la imagen upstream deja en `/usr/local/bin/frankenphp`. Render y otros PaaS ejecutan el contenedor con un *bounding set* restringido sin esa capability, y entonces `execve` falla con `Operation not permitted` (exit 126) aunque el binario sea `755 root:root`. Como se escucha en `$PORT >= 1024`, no hace falta; no la devuelvas con `setcap`.
 - **Cachés en el arranque**: `entrypoint.sh` ejecuta `php artisan optimize` en cada inicio (las variables de entorno de la plataforma no existen en tiempo de build). Desactívalo con `APP_OPTIMIZE=false`.
 - **Migraciones y seed**: no se ejecutan solas. Usa el Pre-Deploy Command de la plataforma (`php artisan migrate --force --seed`) o define `RUN_MIGRATIONS=true` y `RUN_SEED=true` para que los ejecute el entrypoint. El `--seed` solo crea roles/permisos y el administrador; no inserta datos demo.
 - **Sin base de datos incluida**: la imagen solo contiene la aplicación; conecta a un PostgreSQL gestionado externo (Render PostgreSQL, Neon, Supabase, Railway, etc.).
@@ -1237,6 +1238,7 @@ En **Railway** el flujo es equivalente: *New → Deploy from Docker Image*, aña
 | `pull access denied for car-agency-laravel-api` | Se construyó Nginx antes que la imagen de `app`. | Ejecuta primero `docker compose -f docker-compose.prod.yml --env-file .env.production build app`. |
 | `[entrypoint] ERROR: APP_KEY no está definida` | La imagen PaaS exige la clave por entorno. | Define `APP_KEY` (`php artisan key:generate --show`) en la plataforma. |
 | `permission denied` al abrir el puerto en PaaS | `PORT < 1024` y el contenedor corre como `www-data`. | Usa un puerto `>= 1024` (Render inyecta `10000`) o arranca con `--user 0`. |
+| `frankenphp: Operation not permitted` (exit 126) al arrancar en PaaS | Una imagen antigua conservaba la *file capability* `cap_net_bind_service=ep` en `/usr/local/bin/frankenphp` y el PaaS ejecuta el contenedor sin `CAP_NET_BIND_SERVICE` en el *bounding set*. | Reconstruye con el `Dockerfile.render` actual (la retira en el build y verifica con `getcap`); no la devuelvas con `setcap`. |
 | `pull access denied` al desplegar en Render | Imagen privada o nombre mal escrito. | Haz público el repositorio de Docker Hub o configura credenciales de registro en la plataforma. |
 | `config:cache` falla por valor no serializable | Un objeto vive en `config/*.php`. | Mueve la lógica a una clase y deja solo escalares o arrays en la configuración. |
 | Cambios en `.env` no se aplican | Configuración cacheada. | `php artisan config:clear` (en producción, `optimize:clear`) y reinicia `app`. |
