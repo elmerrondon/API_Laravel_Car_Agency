@@ -126,6 +126,18 @@ RUN composer dump-autoload --no-dev --optimize --no-scripts \
 COPY docker/render/Caddyfile /etc/frankenphp/Caddyfile
 COPY --chmod=755 docker/render/entrypoint.sh /usr/local/bin/entrypoint
 
+# La imagen upstream marca /usr/local/bin/frankenphp con la file capability
+# cap_net_bind_service=ep. Los PaaS (Render, Railway…) ejecutan el contenedor
+# con un bounding set restringido sin CAP_NET_BIND_SERVICE, así que execve
+# falla con EPERM ("Operation not permitted", exit 126) aunque el binario sea
+# 755 root:root. Esta imagen escucha en $PORT (8080 por defecto, siempre
+# >= 1024), así que no necesita la capability: la retiramos en el build y el
+# RUN falla si el binario la conserva. No la devuelvas con setcap.
+RUN apk add --no-cache --virtual .cap-tools libcap-utils \
+    && setcap -r /usr/local/bin/frankenphp \
+    && [ -z "$(getcap /usr/local/bin/frankenphp)" ] \
+    && apk del .cap-tools
+
 # Caddy no puede abrir puertos privilegiados sin root: por eso el puerto por
 # defecto es 8080. Si la plataforma exige 80, arranca el contenedor como root
 # (docker run --user 0) o cambia PORT a un valor >= 1024.
